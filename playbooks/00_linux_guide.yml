@@ -1,0 +1,6 @@
+---
+- name: Guia de Segurança Linux
+  hosts: "{{ target_hosts | default('database_servers') }}"
+  become: yes
+  roles:
+    - role: security_changes
