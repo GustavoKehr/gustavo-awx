@@ -1,6 +1,6 @@
 ---
-- name: Carregar tasks de SSH
-  include_tasks: ssh_config.yml
+- name: "Incluindo configuracoes de SSH"
+  ansible.builtin.include_tasks: ssh_config.yml
 
-- name: Carregar tasks de política de senha
-  include_tasks: password_policy.yml
+- name: "Incluindo politicas de senha"
+  ansible.builtin.include_tasks: password_policy.yml
