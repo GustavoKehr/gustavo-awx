@@ -7,3 +7,5 @@ all:
           ansible_host: 192.168.137.128
         scriptst:
           ansible_host: 192.168.137.129
+        POSTGREVM:
+          ansible_host: 192.168.137.139
