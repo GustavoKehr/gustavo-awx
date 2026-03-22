@@ -2,10 +2,5 @@
 - name: Guia de Segurança Linux
   hosts: "{{ target_hosts | default('database_servers') }}"
   become: yes
-  tasks:
-    - name: Task de Teste Direta no Playbook
-      ansible.builtin.debug:
-        msg: "AWX está lendo o Playbook"
-      tags: [testar_direto]
   roles:
     - role: "../roles/security_changes"
