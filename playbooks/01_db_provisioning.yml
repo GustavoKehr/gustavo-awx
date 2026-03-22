@@ -2,8 +2,13 @@
 - name: Provisionamento Automático de Bancos de Dados
   hosts: "{{ target_hosts | default('all') }}"
   become: yes
+  
+  # ESTA TASK VAI NOS DIZER A VERDADE
+  pre_tasks:
+    - name: "Verificar valor da variavel do Survey"
+      ansible.builtin.debug:
+        msg: "A variavel db_type contém: >{{ db_type }}<"
 
   roles:
-    - role: ../roles/postgres_install
+    - role: postgres_install
       when: db_type == "postgres"
-      tags: [postgres, database]
