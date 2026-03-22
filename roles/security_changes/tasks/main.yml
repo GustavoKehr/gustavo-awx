@@ -1,6 +1,14 @@
 ---
-- name: "Incluindo configuracoes de SSH"
-  ansible.builtin.include_tasks: ssh_config.yml
+- name: "Carregar SSH Config"
+  include_tasks:
+    file: ssh_config.yml
+  apply:
+    tags: [ssh_hardening, security]
+  tags: [ssh_hardening, security]
 
 - name: "Incluindo politicas de senha"
-  ansible.builtin.include_tasks: password_policy.yml
+  include_tasks:
+    file: password_policy.yml
+  apply:
+    tags: [policy_hardening, security]
+  tags: [policy_hardening, security]
