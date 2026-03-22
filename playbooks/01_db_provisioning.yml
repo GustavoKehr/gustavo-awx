@@ -3,12 +3,6 @@
   hosts: "{{ target_hosts | default('all') }}"
   become: yes
   
-  # ESTA TASK VAI NOS DIZER A VERDADE
-  pre_tasks:
-    - name: "Verificar valor da variavel do Survey"
-      ansible.builtin.debug:
-        msg: "A variavel db_type contém: >{{ db_type }}<"
-
   roles:
     - role: postgres_install
       when: db_type == "postgres"
