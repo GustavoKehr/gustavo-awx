@@ -8,18 +8,18 @@
       when: db_type == "postgres"
       tags: [postgres, database]
 
-    - role: ../roles/oracle_install
-      when: db_type == "oracle"
-      tags: [oracle, database]
+    #- role: ../roles/oracle_install
+    #  when: db_type == "oracle"
+    #  tags: [oracle, database]
 
-    - role: ../roles/mssql_install
-      when: db_type == "mssql"
-      tags: [mssql, database]
+    #- role: ../roles/mssql_install
+    #  when: db_type == "mssql"
+    #  tags: [mssql, database]
 
-    - role: ../roles/mysql_install
-      when: db_type == "mysql"
-      tags: [mysql, database]
+    #- role: ../roles/mysql_install
+    #  when: db_type == "mysql"
+    #  tags: [mysql, database]
 
-    - role: ../roles/db2_install
-      when: db_type == "db2"
-      tags: [db2, database]
+    #- role: ../roles/db2_install
+    #  when: db_type == "db2"
+    #  tags: [db2, database]
