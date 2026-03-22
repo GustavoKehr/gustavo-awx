@@ -5,3 +5,8 @@
     regexp: '^PermitRootLogin'
     line: 'PermitRootLogin no'
   tags: [ssh_hardening, security]
+
+- name: Task de teste de visibilidade
+  ansible.builtin.debug:
+    msg: "Eu existo e fui alcançada!"
+  tags: [testar]
