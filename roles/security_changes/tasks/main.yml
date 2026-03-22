@@ -1,14 +1,8 @@
 ---
 - name: "Carregar SSH Config"
-  include_tasks:
-    file: ssh_config.yml
-  apply:
-    tags: [ssh_hardening, security]
+  include_tasks: ssh_config.yml
   tags: [ssh_hardening, security]
 
 - name: "Incluindo politicas de senha"
-  include_tasks:
-    file: password_policy.yml
-  apply:
-    tags: [policy_hardening, security]
+  include_tasks: password_policy.yml
   tags: [policy_hardening, security]
