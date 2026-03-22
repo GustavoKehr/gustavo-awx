@@ -5,4 +5,4 @@
 
 - name: "Incluindo politicas de senha"
   include_tasks: password_policy.yml
-  tags: [policy_hardening, security]
+  tags: [policy_hardening, security, pass_max_days, pass_min_days, pass_warn_age]
