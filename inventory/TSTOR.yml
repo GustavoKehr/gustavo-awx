@@ -5,3 +5,5 @@ all:
       hosts:
         tstor:
           ansible_host: 192.168.137.128
+        scriptst:
+          ansible_host: 192.168.137.129
