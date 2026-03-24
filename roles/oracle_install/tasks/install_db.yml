@@ -40,6 +40,8 @@
     chdir: "{{ BASE_DIR }}/19.3.0"
   become: yes
   become_user: oracle
+  environment:
+    CV_ASSUME_DISTID: "OEL8.4" 
   register: oracle_install_result
   failed_when: "'Successfully Setup Software' not in oracle_install_result.stdout"
   tags: [install]
