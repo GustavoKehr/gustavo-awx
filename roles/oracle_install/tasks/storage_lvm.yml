@@ -1,0 +1,34 @@
+---
+- name: "Criar Volume Group {{ VG_NAME }}"
+  community.general.lvg:
+    vg: "{{ VG_NAME }}"
+    pvs: "{{ oracle_disk_device }}"
+  tags: [storage, vg]
+
+- name: "Criar Logical Volumes conforme definição de projeto"
+  community.general.lvol:
+    vg: "{{ VG_NAME }}"
+    lv: "{{ item.lv_name }}"
+    size: "{{ item.size }}"
+  loop: "{{ oracle_lvs }}"
+  tags: [storage, lv]
+
+- name: "Criar diretórios de montagem e ajustar permissões"
+  ansible.builtin.file:
+    path: "{{ item.mount_path }}"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: '0755'
+  loop: "{{ oracle_lvs }}"
+  tags: [storage, fs]
+
+- name: "Formatar em XFS, Montar e fixar no FSTAB"
+  ansible.posix.mount:
+    path: "{{ item.mount_path }}"
+    src: "/dev/mapper/{{ VG_NAME }}-{{ item.lv_name }}"
+    fstype: xfs
+    opts: "defaults,nofail,noatime,_netdev"
+    state: mounted
+  loop: "{{ oracle_lvs }}"
+  tags: [storage, formatfs]
