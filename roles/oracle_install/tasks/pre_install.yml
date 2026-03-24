@@ -22,6 +22,12 @@
     mode: '0775'
   tags: [pre_install, permissions]
 
+- name: "Limpar rastro de inventário antigo (Pointer file /etc/oraInst.loc)"
+  ansible.builtin.file:
+    path: "/etc/oraInst.loc"
+    state: absent
+  tags: [pre_install, cleanup]
+
 - name: "Criar o oraInventory no caminho customizado"
   ansible.builtin.file:
     path: "/oracle/oraInventory"
