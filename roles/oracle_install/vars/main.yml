@@ -6,12 +6,12 @@ BASE_DIR: "/oracle/{{ oracle_inst_name | upper }}"
 
 # Lista técnica com nomes de LVs ajustados
 oracle_lvs:
-  - { lv_name: "lv_{{ INST | lower }}", mount_path: "{{ BASE_DIR }}",           size: "{{ lv_tstor_size }}" }
-  - { lv_name: "lv_oradata",           mount_path: "{{ BASE_DIR }}/oradata",   size: "{{ lv_oradata_size }}" }
-  - { lv_name: "lv_mirrlogA",          mount_path: "{{ BASE_DIR }}/mirrlogA",  size: "{{ lv_mirrlogA_size }}" }
-  - { lv_name: "lv_mirrlogB",          mount_path: "{{ BASE_DIR }}/mirrlogB",  size: "{{ lv_mirrlogB_size }}" }
-  - { lv_name: "lv_ologA",             mount_path: "{{ BASE_DIR }}/ologA",     size: "{{ lv_ologA_size }}" }
-  - { lv_name: "lv_ologB",             mount_path: "{{ BASE_DIR }}/ologB",     size: "{{ lv_ologB_size }}" }
-  - { lv_name: "lv_arch",              mount_path: "{{ BASE_DIR }}/arch",      size: "{{ lv_arch_size }}" }
-  - { lv_name: "lv_undo",              mount_path: "{{ BASE_DIR }}/undo",      size: "{{ lv_undo_size }}" }
-  - { lv_name: "lv_temp",              mount_path: "{{ BASE_DIR }}/temp",      size: "{{ lv_temp_size }}" }
+  - { lv_name: "lv_{{ INST | lower }}", mount_path: "{{ BASE_DIR }}",           size: "{{ lv_tstor_size }}G" }
+  - { lv_name: "lv_oradata",           mount_path: "{{ BASE_DIR }}/oradata",   size: "{{ lv_oradata_size }}G" }
+  - { lv_name: "lv_mirrlogA",          mount_path: "{{ BASE_DIR }}/mirrlogA",  size: "{{ lv_mirrlogA_size }}G" }
+  - { lv_name: "lv_mirrlogB",          mount_path: "{{ BASE_DIR }}/mirrlogB",  size: "{{ lv_mirrlogB_size }}G" }
+  - { lv_name: "lv_ologA",             mount_path: "{{ BASE_DIR }}/ologA",     size: "{{ lv_ologA_size }}G" }
+  - { lv_name: "lv_ologB",             mount_path: "{{ BASE_DIR }}/ologB",     size: "{{ lv_ologB_size }}G" }
+  - { lv_name: "lv_arch",              mount_path: "{{ BASE_DIR }}/arch",      size: "{{ lv_arch_size }}G" }
+  - { lv_name: "lv_undo",              mount_path: "{{ BASE_DIR }}/undo",      size: "{{ lv_undo_size }}G" }
+  - { lv_name: "lv_temp",              mount_path: "{{ BASE_DIR }}/temp",      size: "{{ lv_temp_size }}G" }

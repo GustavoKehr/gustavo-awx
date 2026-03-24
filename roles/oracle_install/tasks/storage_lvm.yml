@@ -13,12 +13,10 @@
   loop: "{{ oracle_lvs }}"
   tags: [storage, lv]
 
-- name: "Criar diretórios de montagem e ajustar permissões"
+- name: "Criar diretórios de montagem"
   ansible.builtin.file:
     path: "{{ item.mount_path }}"
     state: directory
-    owner: oracle
-    group: oinstall
     mode: '0755'
   loop: "{{ oracle_lvs }}"
   tags: [storage, fs]
