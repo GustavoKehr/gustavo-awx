@@ -7,6 +7,15 @@
     timeout: 1200 # Aumentei para 20 minutos por ser um arquivo de 3GB
   tags: [install, download]
 
+- name: "Garantir que o diretório ORACLE_HOME existe"
+  ansible.builtin.file:
+    path: "{{ BASE_DIR }}/19.3.0"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: '0755'
+  tags: [install, directory]
+
 - name: "Descompactar Binários no ORACLE_HOME"
   ansible.builtin.unarchive:
     src: "/tmp/oracle_sig.zip"
