@@ -46,12 +46,21 @@
   failed_when: "'Successfully Setup Software' not in oracle_install_result.stdout"
   tags: [install]
 
-- name: "Executar scripts de Root (orainstRoot.sh)"
-  ansible.builtin.shell: "/oracle/app/oraInventory/orainstRoot.sh"
-  become: yes
-  tags: [install]
+- name: "Garantir que o oraInventory existe no novo caminho"
+  ansible.builtin.file:
+    path: "/oracle/oraInventory"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: '0775'
+  tags: [pre_install, inventory]
 
 - name: "Executar scripts de Root (root.sh)"
   ansible.builtin.shell: "{{ BASE_DIR }}/19.3.0/root.sh"
+  become: yes
+  tags: [install]
+
+- name: "Executar scripts de Root (orainstRoot.sh)"
+  ansible.builtin.shell: "/oracle/oraInventory/orainstRoot.sh"
   become: yes
   tags: [install]
