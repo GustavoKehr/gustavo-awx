@@ -1,8 +1,21 @@
 ---
+
+tasks:
+- name: "Debug das variáveis do Survey"
+  ansible.builtin.debug:
+    msg: "O banco escolhido foi: {{ db_type }} para o host {{ inventory_hostname }}"
+    
 - name: Provisionamento Automático de Bancos de Dados
-  hosts: "{{ target_hosts | default('all') }}"
+  hosts: all
   become: yes
-  
-  roles:
-    - role: postgres_install
-      when: db_type == "postgres"
+
+  tasks:
+    - name: "Executar instalacao do Postgres"
+      ansible.builtin.include_role:
+        name: postgres_install
+      when: db_type | lower == 'postgres'
+
+    - name: "Executar provisionamento do Oracle"
+      ansible.builtin.include_role:
+        name: oracle_install
+      when: db_type | lower == 'oracle'
