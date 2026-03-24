@@ -21,7 +21,14 @@
   loop: "{{ oracle_lvs }}"
   tags: [storage, fs]
 
-- name: "Formatar em XFS, Montar e fixar no FSTAB"
+- name: "Formatar LVs em XFS"
+  community.general.filesystem:
+    fstype: xfs
+    dev: "/dev/mapper/{{ VG_NAME }}-{{ item.lv_name }}"
+  loop: "{{ oracle_lvs }}"
+  tags: [storage, format]
+
+- name: "Montar e fixar no FSTAB"
   ansible.posix.mount:
     path: "{{ item.mount_path }}"
     src: "/dev/mapper/{{ VG_NAME }}-{{ item.lv_name }}"
@@ -29,4 +36,4 @@
     opts: "defaults,nofail,noatime,_netdev"
     state: mounted
   loop: "{{ oracle_lvs }}"
-  tags: [storage, formatfs]
+  tags: [storage, mount]
