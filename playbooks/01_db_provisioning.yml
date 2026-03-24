@@ -1,15 +1,13 @@
 ---
-
-tasks:
-- name: "Debug das variáveis do Survey"
-  ansible.builtin.debug:
-    msg: "O banco escolhido foi: {{ db_type }} para o host {{ inventory_hostname }}"
-    
-- name: Provisionamento Automático de Bancos de Dados
+- name: "Provisionamento Automático de Bancos de Dados"
   hosts: all
   become: yes
 
   tasks:
+    - name: "Debug das variáveis do Survey"
+      ansible.builtin.debug:
+        msg: "O banco escolhido foi: {{ db_type }} para o host {{ inventory_hostname }}"
+
     - name: "Executar instalacao do Postgres"
       ansible.builtin.include_role:
         name: postgres_install
