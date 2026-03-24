@@ -1,10 +1,10 @@
 ---
 - name: "Baixar Binário do Oracle 19.3 via HTTP"
   ansible.builtin.get_url:
-    url: "http://192.168.137.138:8080/LINUX.X64_193000_db_home.zip"
+    url: "http://192.168.137.138:8080/LINUX.X64_193000_db_home.zip" # Valide este IP!
     dest: "/tmp/oracle_sig.zip"
     mode: '0644'
-    timeout: 1200 # Aumentei para 20 minutos por ser um arquivo de 3GB
+    timeout: 1200
   tags: [install, download]
 
 - name: "Garantir que o diretório ORACLE_HOME existe"
@@ -46,21 +46,14 @@
   failed_when: "'Successfully Setup Software' not in oracle_install_result.stdout"
   tags: [install]
 
-- name: "Garantir que o oraInventory existe no novo caminho"
-  ansible.builtin.file:
-    path: "/oracle/oraInventory"
-    state: directory
-    owner: oracle
-    group: oinstall
-    mode: '0775'
-  tags: [pre_install, inventory]
-
-- name: "Executar scripts de Root (root.sh)"
-  ansible.builtin.shell: "{{ BASE_DIR }}/19.3.0/root.sh"
-  become: yes
-  tags: [install]
+# --- SCRIPTS DE ROOT (A ordem importa!) ---
 
 - name: "Executar scripts de Root (orainstRoot.sh)"
   ansible.builtin.shell: "/oracle/oraInventory/orainstRoot.sh"
+  become: yes
+  tags: [install]
+
+- name: "Executar scripts de Root (root.sh)"
+  ansible.builtin.shell: "{{ BASE_DIR }}/19.3.0/root.sh"
   become: yes
   tags: [install]
