@@ -1,0 +1,31 @@
+---
+- name: "Transferir RPM do Preinstall do Servidor AWX para o Destino"
+  ansible.builtin.copy:
+    src: "/opt/oracle_dist/oracle-database-preinstall-19c.rpm"
+    dest: "/tmp/oracle-database-preinstall-19c.rpm"
+    mode: '0644'
+
+- name: "Instalar Oracle Preinstall (Cria usuário oracle)"
+  ansible.builtin.dnf:
+    name: "/tmp/oracle-database-preinstall-19c.rpm"
+    state: present
+    disable_gpg_check: yes
+
+- name: "Ajustar Dono e Grupo da estrutura de diretórios"
+  ansible.builtin.file:
+    path: "{{ BASE_DIR }}"
+    state: directory
+    owner: oracle
+    group: oinstall
+    recurse: yes
+
+- name: "Configurar variáveis de ambiente (.bash_profile)"
+  ansible.builtin.blockinfile:
+    path: /home/oracle/.bash_profile
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - ORACLE ENV"
+    block: |
+      export ORACLE_SID={{ INST }}
+      export ORACLE_BASE={{ BASE_DIR }}
+      export ORACLE_HOME={{ BASE_DIR }}/19.3.0
+      export PATH=$ORACLE_HOME/bin:$PATH
+      export LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib

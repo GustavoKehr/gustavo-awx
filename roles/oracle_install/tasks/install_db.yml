@@ -1,0 +1,46 @@
+---
+- name: "Transferir Binário do Oracle 19.3 do Servidor AWX para o Destino"
+  ansible.builtin.copy:
+    src: "/opt/oracle_dist/LINUX.X64_193000_db_home.zip"
+    dest: "/tmp/oracle_sig.zip"
+    mode: '0644'
+    timeout: 600
+  tags: [install]
+
+- name: "Descompactar Binários no ORACLE_HOME"
+  ansible.builtin.unarchive:
+    src: "/tmp/oracle_sig.zip"
+    dest: "{{ BASE_DIR }}/19.3.0"
+    remote_src: yes
+    owner: oracle
+    group: oinstall
+  tags: [install]
+
+- name: "Gerar Arquivo de Resposta a partir do Template"
+  ansible.builtin.template:
+    src: db_install.rsp.j2
+    dest: "/tmp/db_install.rsp"
+    owner: oracle
+    group: oinstall
+    mode: '0644'
+  tags: [install]
+
+- name: "Executar Instalação Silenciosa do Software Oracle"
+  ansible.builtin.shell:
+    cmd: "./runInstaller -silent -waitforcompletion -responseFile /tmp/db_install.rsp -ignorePrereq"
+    chdir: "{{ BASE_DIR }}/19.3.0"
+  become: yes
+  become_user: oracle
+  register: oracle_install_result
+  failed_when: "'Successfully Setup Software' not in oracle_install_result.stdout"
+  tags: [install]
+
+- name: "Executar scripts de Root (orainstRoot.sh)"
+  ansible.builtin.shell: "/oracle/app/oraInventory/orainstRoot.sh"
+  become: yes
+  tags: [install]
+
+- name: "Executar scripts de Root (root.sh)"
+  ansible.builtin.shell: "{{ BASE_DIR }}/19.3.0/root.sh"
+  become: yes
+  tags: [install]
