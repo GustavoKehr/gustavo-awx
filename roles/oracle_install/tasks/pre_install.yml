@@ -20,3 +20,11 @@
     group: oinstall
     recurse: yes
   tags: [pre_install, permissions]
+
+- name: "Garantir permissões na pasta tmp do usuário oracle"
+  ansible.builtin.file:
+    path: "/home/oracle/.ansible/tmp"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: '0755'
