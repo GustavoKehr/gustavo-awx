@@ -9,3 +9,5 @@ all:
           ansible_host: 192.168.137.129
         POSTGREVM:
           ansible_host: 192.168.137.139
+        ORACLEVM:
+          ansible_host: 192.168.137.140
