@@ -1,30 +1,63 @@
 ---
-- name: "Baixar RPM do Preinstall via HTTP"
+- name: "Transferir RPM do Preinstall do Servidor AWX para o Destino"
   ansible.builtin.get_url:
-    url: "http://192.168.137.138:8080/oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm"
+    url: "http://192.168.137.140:8080/oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm"
     dest: "/tmp/oracle-database-preinstall-19c.rpm"
     mode: '0644'
+  tags: [pre_install, copy]
 
-- name: "Instalar Oracle Preinstall (Cria usuário oracle)"
+- name: "Instalar Oracle Preinstall (Cria usuário oracle e grupos)"
   ansible.builtin.dnf:
     name: "/tmp/oracle-database-preinstall-19c.rpm"
     state: present
     disable_gpg_check: yes
   tags: [pre_install, packages]
 
-- name: "Ajustar Dono e Grupo da estrutura de diretórios"
+- name: "Garantir permissões na raiz do Oracle (/oracle)"
+  ansible.builtin.file:
+    path: "/oracle"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: '0775'
+  tags: [pre_install, permissions]
+
+- name: "Criar o oraInventory no caminho customizado"
+  ansible.builtin.file:
+    path: "/oracle/oraInventory"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: '0775'
+    recurse: yes
+  tags: [pre_install, inventory]
+
+- name: "Garantir que o BASE_DIR e subpastas LVM pertençam ao oracle"
   ansible.builtin.file:
     path: "{{ BASE_DIR }}"
     state: directory
     owner: oracle
     group: oinstall
     recurse: yes
-  tags: [pre_install, permissions]
+  tags: [pre_install, storage_perms]
 
-- name: "Garantir permissões na pasta tmp do usuário oracle"
+- name: "Configurar variáveis de ambiente (.bash_profile)"
+  ansible.builtin.blockinfile:
+    path: /home/oracle/.bash_profile
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - ORACLE ENV"
+    block: |
+      export ORACLE_SID={{ INST }}
+      export ORACLE_BASE={{ BASE_DIR }}
+      export ORACLE_HOME={{ BASE_DIR }}/19.3.0
+      export PATH=$ORACLE_HOME/bin:$PATH
+      export LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib
+  tags: [pre_install, env]
+
+- name: "Garantir permissões na pasta tmp do Ansible para o usuário oracle"
   ansible.builtin.file:
     path: "/home/oracle/.ansible/tmp"
     state: directory
     owner: oracle
     group: oinstall
     mode: '0755'
+  tags: [pre_install, ansible_tmp]
