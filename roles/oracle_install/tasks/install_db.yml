@@ -1,11 +1,11 @@
 ---
-- name: "Transferir Binário do Oracle 19.3 do Servidor AWX para o Destino"
-  ansible.builtin.copy:
-    src: "/opt/oracle_dist/LINUX.X64_193000_db_home.zip"
+- name: "Baixar Binário do Oracle 19.3 via HTTP"
+  ansible.builtin.get_url:
+    url: "http://192.168.137.138:8080/LINUX.X64_193000_db_home.zip"
     dest: "/tmp/oracle_sig.zip"
     mode: '0644'
-    timeout: 600
-  tags: [install]
+    timeout: 1200 # Aumentei para 20 minutos por ser um arquivo de 3GB
+  tags: [install, download]
 
 - name: "Descompactar Binários no ORACLE_HOME"
   ansible.builtin.unarchive:
