@@ -7,6 +7,17 @@
     timeout: 1200
   tags: [install, download]
 
+  - name: "Instalar bibliotecas de compatibilidade críticas para RHEL 9"
+  ansible.builtin.dnf:
+    name:
+      - libnsl
+      - libnsl.i686      # Opcional, mas ajuda em compatibilidade
+      - ncurses-libs.i686 # Opcional
+      - libxcrypt-compat # CRÍTICO para o instalador do Oracle 19c
+    state: present
+  become: yes
+  tags: [install]
+
 - name: "Garantir que o diretório ORACLE_HOME existe"
   ansible.builtin.file:
     path: "{{ BASE_DIR }}/19.3.0"
