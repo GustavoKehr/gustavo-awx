@@ -36,7 +36,7 @@
 
 - name: "Executar Instalação Silenciosa do Software Oracle"
   ansible.builtin.shell:
-    cmd: "./runInstaller -silent -waitforcompletion -responseFile /tmp/db_install.rsp -ignorePrereq"
+    cmd: "./runInstaller -silent -waitforcompletion -ignorePrereq -ignoreXMLPrereqs -responseFile /tmp/db_install.rsp"
     chdir: "{{ BASE_DIR }}/19.3.0"
   become: yes
   become_user: oracle
