@@ -1,11 +1,5 @@
 ---
-- name: "Baixar Binário do Oracle 19.3 via HTTP"
-  ansible.builtin.get_url:
-    url: "http://192.168.137.138:8080/LINUX.X64_193000_db_home.zip"
-    dest: "/tmp/oracle_sig.zip"
-    mode: '0644'
-    timeout: 1200
-  tags: [install, download_binary]
+# Caminho: roles/oracle_install/tasks/install_db.yml
 
 - name: "Instalar bibliotecas de compatibilidade críticas para RHEL 9"
   ansible.builtin.dnf:
@@ -13,7 +7,7 @@
       - libnsl
       - libnsl.i686
       - ncurses-libs.i686
-      - libxcrypt-compat # ESSENCIAL para evitar erro de makefile no RHEL 9
+      - libxcrypt-compat
     state: present
   become: yes
   tags: [install, libs]
@@ -31,15 +25,6 @@
     group: oinstall
     mode: '0755'
   tags: [install, home_dir]
-
-- name: "Descompactar Binários no ORACLE_HOME"
-  ansible.builtin.unarchive:
-    src: "/tmp/oracle_sig.zip"
-    dest: "{{ BASE_DIR }}/19.3.0"
-    remote_src: yes
-    owner: oracle
-    group: oinstall
-  tags: [install, unzip_binary]
 
 - name: "Gerar Arquivo de Resposta a partir do Template"
   ansible.builtin.template:
