@@ -38,9 +38,10 @@
     recurse: yes
   tags: [pre_install, inventory]
 
-- name: "Aplicar chown apenas se o dono atual não for oracle"
+- name: "Aplicar chown no BASE_DIR (Rápido via Shell)"
   ansible.builtin.shell: "chown -R oracle:oinstall {{ BASE_DIR }}"
-  when: ansible_facts['user_id'] != "oracle"
+  become: yes
+  tags: [pre_install, storage_perms]
 
 - name: "Configurar variáveis de ambiente (.bash_profile)"
   ansible.builtin.blockinfile:
