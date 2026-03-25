@@ -12,14 +12,6 @@
   become: yes
   tags: [install, libs]
 
-- name: "Criar link simbólico de compatibilidade para libnsl"
-  ansible.builtin.file:
-    src: "/usr/lib64/libnsl.so.2"
-    dest: "/usr/lib64/libnsl.so.1"
-    state: link
-  become: yes
-  tags: [install, libs]
-
 - name: "Limpar inventário para nova tentativa (Evitar INS-32035)"
   ansible.builtin.shell: "rm -rf /oracle/oraInventory/*"
   become: yes
