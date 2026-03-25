@@ -38,14 +38,9 @@
     recurse: yes
   tags: [pre_install, inventory]
 
-- name: "Garantir que o BASE_DIR e subpastas LVM pertençam ao oracle"
-  ansible.builtin.file:
-    path: "{{ BASE_DIR }}"
-    state: directory
-    owner: oracle
-    group: oinstall
-    recurse: yes
-  tags: [pre_install, storage_perms]
+- name: "Aplicar chown apenas se o dono atual não for oracle"
+  ansible.builtin.shell: "chown -R oracle:oinstall {{ BASE_DIR }}"
+  when: ansible_facts['user_id'] != "oracle"
 
 - name: "Configurar variáveis de ambiente (.bash_profile)"
   ansible.builtin.blockinfile:
