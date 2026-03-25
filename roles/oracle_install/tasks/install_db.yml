@@ -1,7 +1,5 @@
 ---
-# Caminho: roles/oracle_install/tasks/install_db.yml
-
-- name: "Instalar dependências de compilação para RHEL 9"
+- name: "Instalar bibliotecas de compatibilidade críticas para RHEL 9"
   ansible.builtin.dnf:
     name:
       - libnsl
@@ -12,19 +10,32 @@
   become: yes
   tags: [install, libs]
 
-- name: "Limpar inventário para nova tentativa (Evitar INS-32035)"
+- name: "Criar link simbólico de compatibilidade para libnsl (Obrigatório RHEL 9)"
+  ansible.builtin.file:
+    src: "/usr/lib64/libnsl.so.2"
+    dest: "/usr/lib64/libnsl.so.1"
+    state: link
+  become: yes
+  tags: [install, libs]
+
+- name: "Limpar inventário para nova tentativa"
   ansible.builtin.shell: "rm -rf /oracle/oraInventory/*"
   become: yes
   tags: [install, clean_inventory]
 
-- name: "Garantir que o diretório ORACLE_HOME existe"
-  ansible.builtin.file:
-    path: "{{ BASE_DIR }}/19.3.0"
-    state: directory
+- name: "Limpar ORACLE_HOME sujo de falhas anteriores"
+  ansible.builtin.shell: "rm -rf {{ BASE_DIR }}/19.3.0/*"
+  become: yes
+  tags: [install, clean_home]
+
+- name: "Descompactar Binários no ORACLE_HOME"
+  ansible.builtin.unarchive:
+    src: "/tmp/oracle_sig.zip" # O arquivo ZIP já deve estar no /tmp
+    dest: "{{ BASE_DIR }}/19.3.0"
+    remote_src: yes
     owner: oracle
     group: oinstall
-    mode: '0755'
-  tags: [install, home_dir]
+  tags: [install, unzip_binary]
 
 - name: "Gerar Arquivo de Resposta a partir do Template"
   ansible.builtin.template:
@@ -32,12 +43,11 @@
     dest: "/tmp/db_install.rsp"
     owner: oracle
     group: oinstall
-    mode: '0644'
   tags: [install, rsp_file]
 
 - name: "Executar Instalação Silenciosa do Software Oracle"
   ansible.builtin.shell:
-    cmd: "./runInstaller -silent -ignorePrereq -responseFile /tmp/db_install.rsp -waitforcompletion"
+    cmd: "./runInstaller -silent -waitforcompletion -ignorePrereqFailure -responseFile /tmp/db_install.rsp"
     chdir: "{{ BASE_DIR }}/19.3.0"
   become: yes
   become_user: oracle
