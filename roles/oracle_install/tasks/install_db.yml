@@ -36,7 +36,7 @@
 
 - name: "Executar Instalação Silenciosa do Software Oracle"
   ansible.builtin.shell:
-    cmd: "./runInstaller -silent -waitforcompletion -ignorePrereq -ignoreXMLPrereqs -responseFile /tmp/db_install.rsp"
+    cmd: "./runInstaller -silent -waitforcompletion -ignorePrereqFailure -responseFile /tmp/db_install.rsp"
     chdir: "{{ BASE_DIR }}/19.3.0"
   become: yes
   become_user: oracle
@@ -44,7 +44,7 @@
     CV_ASSUME_DISTID: "OEL8.4" 
   register: oracle_install_result
   failed_when: "'Successfully Setup Software' not in oracle_install_result.stdout"
-  tags: [install]
+  tags: [install] # Esta é a tag que você vai usar no AWX
 
 # --- SCRIPTS DE ROOT (A ordem importa!) ---
 

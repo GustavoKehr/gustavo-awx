@@ -1,9 +1,9 @@
 ---
-- name: "Executando Storage LVM"
-  ansible.builtin.include_tasks: storage_lvm.yml
+#- name: "Executando Storage LVM"
+  #ansible.builtin.include_tasks: storage_lvm.yml
 
-- name: "Executando Pré-requisitos do SO"
-  ansible.builtin.include_tasks: pre_install.yml
+#- name: "Executando Pré-requisitos do SO"
+  #ansible.builtin.include_tasks: pre_install.yml
 
 - name: "Executando Instalação do Software"
   ansible.builtin.include_tasks: install_db.yml
