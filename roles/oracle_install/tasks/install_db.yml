@@ -1,22 +1,27 @@
 ---
 - name: "Baixar Binário do Oracle 19.3 via HTTP"
   ansible.builtin.get_url:
-    url: "http://192.168.137.138:8080/LINUX.X64_193000_db_home.zip" # Valide este IP!
+    url: "http://192.168.137.138:8080/LINUX.X64_193000_db_home.zip"
     dest: "/tmp/oracle_sig.zip"
     mode: '0644'
     timeout: 1200
-  tags: [install, download]
+  tags: [install, download_binary]
 
-  - name: "Instalar bibliotecas de compatibilidade críticas para RHEL 9"
+- name: "Instalar bibliotecas de compatibilidade críticas para RHEL 9"
   ansible.builtin.dnf:
     name:
       - libnsl
-      - libnsl.i686      # Opcional, mas ajuda em compatibilidade
-      - ncurses-libs.i686 # Opcional
-      - libxcrypt-compat # CRÍTICO para o instalador do Oracle 19c
+      - libnsl.i686
+      - ncurses-libs.i686
+      - libxcrypt-compat # ESSENCIAL para evitar erro de makefile no RHEL 9
     state: present
   become: yes
-  tags: [install]
+  tags: [install, libs]
+
+- name: "Limpar inventário para nova tentativa (Evitar INS-32035)"
+  ansible.builtin.shell: "rm -rf /oracle/oraInventory/*"
+  become: yes
+  tags: [install, clean_inventory]
 
 - name: "Garantir que o diretório ORACLE_HOME existe"
   ansible.builtin.file:
@@ -25,7 +30,7 @@
     owner: oracle
     group: oinstall
     mode: '0755'
-  tags: [install, directory]
+  tags: [install, home_dir]
 
 - name: "Descompactar Binários no ORACLE_HOME"
   ansible.builtin.unarchive:
@@ -34,7 +39,7 @@
     remote_src: yes
     owner: oracle
     group: oinstall
-  tags: [install]
+  tags: [install, unzip_binary]
 
 - name: "Gerar Arquivo de Resposta a partir do Template"
   ansible.builtin.template:
@@ -43,7 +48,7 @@
     owner: oracle
     group: oinstall
     mode: '0644'
-  tags: [install]
+  tags: [install, rsp_file]
 
 - name: "Executar Instalação Silenciosa do Software Oracle"
   ansible.builtin.shell:
@@ -55,9 +60,7 @@
     CV_ASSUME_DISTID: "OEL8.4" 
   register: oracle_install_result
   failed_when: "'Successfully Setup Software' not in oracle_install_result.stdout"
-  tags: [install, silent_installation] # Esta é a tag que você vai usar no AWX
-
-# --- SCRIPTS DE ROOT (A ordem importa!) ---
+  tags: [install, silent_installation]
 
 - name: "Executar scripts de Root (orainstRoot.sh)"
   ansible.builtin.shell: "/oracle/oraInventory/orainstRoot.sh"
