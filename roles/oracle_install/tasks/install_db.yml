@@ -1,14 +1,22 @@
 ---
 # Caminho: roles/oracle_install/tasks/install_db.yml
 
-- name: "Instalar bibliotecas de compatibilidade críticas para RHEL 9"
+- name: "Instalar dependências de compilação para RHEL 9"
   ansible.builtin.dnf:
     name:
       - libnsl
       - libnsl.i686
-      - ncurses-libs.i686
       - libxcrypt-compat
+      - glibc-devel
     state: present
+  become: yes
+  tags: [install, libs]
+
+- name: "Criar link simbólico de compatibilidade para libnsl"
+  ansible.builtin.file:
+    src: "/usr/lib64/libnsl.so.2"
+    dest: "/usr/lib64/libnsl.so.1"
+    state: link
   become: yes
   tags: [install, libs]
 
@@ -37,7 +45,7 @@
 
 - name: "Executar Instalação Silenciosa do Software Oracle"
   ansible.builtin.shell:
-    cmd: "./runInstaller -silent -waitforcompletion -ignorePrereqFailure -responseFile /tmp/db_install.rsp"
+    cmd: "./runInstaller -silent -ignorePrereq -responseFile /tmp/db_install.rsp -waitforcompletion"
     chdir: "{{ BASE_DIR }}/19.3.0"
   become: yes
   become_user: oracle
