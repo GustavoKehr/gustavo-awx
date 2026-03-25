@@ -51,9 +51,9 @@
 - name: "Executar scripts de Root (orainstRoot.sh)"
   ansible.builtin.shell: "/oracle/oraInventory/orainstRoot.sh"
   become: yes
-  tags: [install]
+  tags: [install, instroot]
 
 - name: "Executar scripts de Root (root.sh)"
   ansible.builtin.shell: "{{ BASE_DIR }}/19.3.0/root.sh"
   become: yes
-  tags: [install]
+  tags: [install, rootsh]
