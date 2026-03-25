@@ -44,7 +44,7 @@
     CV_ASSUME_DISTID: "OEL8.4" 
   register: oracle_install_result
   failed_when: "'Successfully Setup Software' not in oracle_install_result.stdout"
-  tags: [install] # Esta é a tag que você vai usar no AWX
+  tags: [install, silent_installation] # Esta é a tag que você vai usar no AWX
 
 # --- SCRIPTS DE ROOT (A ordem importa!) ---
 
