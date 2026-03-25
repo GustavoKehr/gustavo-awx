@@ -1,12 +1,9 @@
 ---
-# Caminho: roles/oracle_install/tasks/main.yml
-
-- include_tasks: storage.yml
+- include_tasks: storage_lvm.yml
   tags: [storage]
 
 - include_tasks: pre_install.yml
   tags: [pre_install]
 
 - include_tasks: install_db.yml
-  # A tag 'always' é o segredo para o seletor de tags do AWX funcionar nos includes
   tags: [always, install, libs, clean_inventory, rsp_file, silent_installation, instroot, rootsh]
