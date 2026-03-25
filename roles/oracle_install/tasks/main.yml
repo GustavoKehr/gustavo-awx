@@ -1,10 +1,11 @@
 ---
-#- name: "Executando Storage LVM"
-  #ansible.builtin.include_tasks: storage_lvm.yml
+# roles/oracle_install/tasks/main.yml
 
-#- name: "Executando Pré-requisitos do SO"
-  #ansible.builtin.include_tasks: pre_install.yml
-  
-- name: "Executar tarefas de instalação do DB"
-  ansible.builtin.import_tasks: install_db.yml
+- include_tasks: storage.yml
+  tags: [storage]
+
+- include_tasks: pre_install.yml
+  tags: [pre_install]
+
+- include_tasks: install_db.yml
   tags: [install, libs, clean_inventory, rsp_file, silent_installation, instroot, rootsh]
