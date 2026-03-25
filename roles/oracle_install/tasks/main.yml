@@ -4,6 +4,7 @@
 
 #- name: "Executando Pré-requisitos do SO"
   #ansible.builtin.include_tasks: pre_install.yml
-
-- name: "Executando Instalação do Software"
-  ansible.builtin.include_tasks: install_db.yml
+  
+- name: "Executar tarefas de instalação do DB"
+  ansible.builtin.import_tasks: install_db.yml
+  tags: [install, libs, clean_inventory, rsp_file, silent_installation, instroot, rootsh]
