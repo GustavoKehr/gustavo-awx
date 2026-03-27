@@ -10,19 +10,22 @@
   become: yes
   tags: [install, libs]
 
-- name: "Limpar inventário para nova tentativa"
-  ansible.builtin.shell: "rm -rf /oracle/oraInventory/*"
+- name: "Criar link simbólico de compatibilidade para libnsl"
+  ansible.builtin.file:
+    src: "/usr/lib64/libnsl.so.2"
+    dest: "/usr/lib64/libnsl.so.1"
+    state: link
   become: yes
-  tags: [install, clean_inventory]
+  tags: [install, libs]
 
-- name: "Limpar ORACLE_HOME sujo de falhas anteriores"
-  ansible.builtin.shell: "rm -rf {{ BASE_DIR }}/19.3.0/*"
+- name: "Limpar tudo para uma tentativa virgem (Evitar erros de Makefile)"
+  ansible.builtin.shell: "rm -rf /oracle/oraInventory/* {{ BASE_DIR }}/19.3.0/*"
   become: yes
-  tags: [install, clean_home]
+  tags: [install, clean_all]
 
-- name: "Descompactar Binários no ORACLE_HOME"
+- name: "Descompactar Binários (Obrigatório após falha de compilação)"
   ansible.builtin.unarchive:
-    src: "/tmp/oracle_sig.zip" # O arquivo ZIP já deve estar no /tmp
+    src: "/tmp/oracle_sig.zip"
     dest: "{{ BASE_DIR }}/19.3.0"
     remote_src: yes
     owner: oracle
