@@ -80,11 +80,13 @@
     block: |
       umask 0022
       TMOUT=1800
-      ORACLE_BASE={{ BASE_DIR }};export ORACLE_BASE
+      # Usando o caminho dinâmico que definimos no storage
+      ORACLE_BASE={{ BASE_DIR }}/{{ INST }};export ORACLE_BASE
       ORACLE_HOME=$ORACLE_BASE/19.3.0;export ORACLE_HOME
       ORACLE_SID={{ INST }};export ORACLE_SID
       PATH=$ORACLE_HOME/bin:$PATH;export PATH
-      LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib;export LD_LIBRARY_PATH
+      # PRIORIDADE 64-BIT: Removido /lib e /usr/lib (32-bit)
+      LD_LIBRARY_PATH=$ORACLE_HOME/lib:/usr/lib64:/lib64;export LD_LIBRARY_PATH
       ORACLE_HOSTNAME=`hostname`;export ORACLE_HOSTNAME
       CV_ASSUME_DISTID=RHEL8;export CV_ASSUME_DISTID
   become: yes
