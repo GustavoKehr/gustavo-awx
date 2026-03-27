@@ -1,33 +1,29 @@
 ---
-- name: "Criar Volume Group (VG) dinâmico"
+- name: "Criar Volume Group {{ VG_NAME }}"
   community.general.lvg:
     vg: "{{ VG_NAME }}"
-    pvs: "{{ PV_NAME }}"
-  become: yes
-  tags: [storage, lvm]
+    pvs: "{{ oracle_disk_device }}"
+  tags: [storage, vg]
 
-- name: "TASK 1: Criar Logical Volumes (LVs)"
+- name: "Criar Logical Volumes conforme definição de projeto"
   community.general.lvol:
     vg: "{{ VG_NAME }}"
     lv: "{{ item.lv_name }}"
     size: "{{ item.size }}"
-    force: yes
   loop: "{{ oracle_lvs }}"
-  become: yes
-  tags: [storage, lvm]
+  tags: [storage, lv]
 
-- name: "TASK 2: Formatar Filesystems (XFS)"
-  community.general.filesystem:
-    fstype: xfs
-    dev: "/dev/{{ VG_NAME }}/{{ item.lv_name }}"
-    force: yes
-  loop: "{{ oracle_lvs }}"
-  become: yes
-  tags: [storage, lvm]
-
-- name: "TASK 3: Criar Diretórios de Montagem"
+- name: "Criar diretórios de montagem"
   ansible.builtin.file:
     path: "{{ item.mount_path }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ oracle_lvs }}"
+  tags: [storage, fs]
+
+- name: "TASK 4: Criar Diretórios de Montagem"
+  ansible.builtin.file:
+    path: "{{ item.path }}"
     state: directory
     owner: oracle
     group: oinstall
@@ -36,10 +32,10 @@
   become: yes
   tags: [storage, lvm]
 
-- name: "TASK 4: Montar Volumes"
+- name: "TASK 5: Montar Volumes"
   ansible.builtin.mount:
-    path: "{{ item.mount_path }}"
-    src: "/dev/{{ VG_NAME }}/{{ item.lv_name }}"
+    path: "{{ item.path }}"
+    src: "/dev/{{ VG_NAME }}/lv_{{ item.name }}"
     fstype: xfs
     opts: defaults,noatime
     state: mounted
