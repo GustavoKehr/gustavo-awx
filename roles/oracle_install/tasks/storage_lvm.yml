@@ -1,39 +1,132 @@
 ---
-- name: "Criar Volume Group {{ VG_NAME }}"
-  community.general.lvg:
-    vg: "{{ VG_NAME }}"
-    pvs: "{{ oracle_disk_device }}"
-  tags: [storage, vg]
+# 1. PREPARAÇÃO DE PACOTES E REPOSITÓRIOS (ROOT)
+- name: "Transferir RPM do Preinstall do Servidor AWX para o Destino"
+  ansible.builtin.get_url:
+    url: "http://192.168.137.138:8080/oracle-database-preinstall-19c-1.0-2.el9.x86_64.rpm"
+    dest: "/tmp/oracle-database-preinstall-19c-1.0-2.el9.x86_64.rpm"
+    mode: '0644'
+  tags: [pre_install, copy]
 
-- name: "Criar Logical Volumes conforme definição de projeto"
-  community.general.lvol:
-    vg: "{{ VG_NAME }}"
-    lv: "{{ item.lv_name }}"
-    size: "{{ item.size }}"
-  loop: "{{ oracle_lvs }}"
-  tags: [storage, lv]
+- name: "Instalar Oracle Preinstall (Cria usuário oracle e grupos)"
+  ansible.builtin.dnf:
+    name: "/tmp/oracle-database-preinstall-19c-1.0-2.el9.x86_64.rpm"
+    state: present
+    disable_gpg_check: yes
+  tags: [pre_install, packages]
 
-- name: "Criar diretórios de montagem"
+- name: "Instalar bibliotecas de compatibilidade essenciais para RHEL 9"
+  ansible.builtin.dnf:
+    name:
+      - libxcrypt-compat  # Evita erro 'ohso' na linkagem
+      - libnsl            # Biblioteca de rede legada
+      - make              # Necessário para processar arquivos .mk
+      - binutils          # Ferramentas de binários/linker
+      - glibc-devel       # Headers da biblioteca C
+      - unzip             # Garantir que o utilitário existe
+    state: present
+  become: yes
+  tags: [pre_install, fix_linkage]
+
+- name: "Criar link simbólico de compatibilidade libnsl.so.1 (Fix RHEL 9)"
   ansible.builtin.file:
-    path: "{{ item.mount_path }}"
+    src: "/usr/lib64/libnsl.so.2"
+    dest: "/usr/lib64/libnsl.so.1"
+    state: link
+    force: yes
+  become: yes
+  tags: [pre_install, fix_el9_libnsl]
+
+# 2. LIMPEZA E ESTRUTURA DE DIRETÓRIOS (ROOT)
+- name: "Limpar rastros de inventário e ponteiros de instalações anteriores"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/etc/oraInst.loc"
+    - "{{ BASE_DIR }}/{{ INST }}/oraInventory"
+  become: yes
+  tags: [pre_install, cleanup]
+
+- name: "Garantir estrutura de diretórios da instância (Rápido/Sem Recurse)"
+  ansible.builtin.file:
+    path: "{{ item }}"
     state: directory
+    owner: oracle
+    group: oinstall
+    mode: '0775'
+  loop:
+    - "{{ BASE_DIR }}/{{ INST }}"
+    - "{{ BASE_DIR }}/{{ INST }}/19.3.0"
+    - "{{ BASE_DIR }}/{{ INST }}/oraInventory"
+  become: yes
+  tags: [install, setup_dirs]
+
+# 3. DOWNLOAD E EXTRAÇÃO (ORACLE USER)
+- name: "Baixar binário do Oracle Database via HTTP"
+  ansible.builtin.get_url:
+    url: "http://192.168.137.138:8080/LINUX.X64_193000_db_home.zip"
+    dest: "/tmp/LINUX.X64_193000_db_home.zip"
+    mode: '0644'
+    timeout: 900
+  tags: [install, download_bin]
+
+- name: "Descompactar binário (Dono automático: oracle)"
+  ansible.builtin.shell: |
+    unzip -qo /tmp/LINUX.X64_193000_db_home.zip -d {{ BASE_DIR }}/{{ INST }}/19.3.0/
+  args:
+    creates: "{{ BASE_DIR }}/{{ INST }}/19.3.0/runInstaller"
+  become: yes
+  become_user: oracle
+  tags: [install, unzip_shell]
+
+# 4. CONFIGURAÇÃO DE AMBIENTE E RESPOSTA
+- name: "Configurar variáveis de ambiente (.bash_profile do usuário oracle)"
+  ansible.builtin.blockinfile:
+    path: /home/oracle/.bash_profile
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - ORACLE ENV"
+    block: |
+      umask 0022
+      ORACLE_BASE={{ BASE_DIR }}/{{ INST }}; export ORACLE_BASE
+      ORACLE_HOME={{ BASE_DIR }}/{{ INST }}/19.3.0; export ORACLE_HOME
+      ORACLE_SID={{ INST }}; export ORACLE_SID
+      PATH=$ORACLE_HOME/bin:$PATH; export PATH
+      LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib; export LD_LIBRARY_PATH
+      CV_ASSUME_DISTID=RHEL8; export CV_ASSUME_DISTID
+  become: yes
+  tags: [pre_install, env]
+
+- name: "Criar arquivo de resposta db_install.rsp dinâmico"
+  ansible.builtin.copy:
+    dest: "{{ BASE_DIR }}/{{ INST }}/19.3.0/install/response/db_install.rsp"
+    content: |
+      oracle.install.responseFileVersion=/oracle/install/rspconf.6.0.0
+      oracle.install.option=INSTALL_DB_SWONLY
+      ORACLE_HOSTNAME={{ ansible_hostname }}
+      UNIX_GROUP_NAME=oinstall
+      INVENTORY_LOCATION={{ BASE_DIR }}/{{ INST }}/oraInventory
+      SELECTED_LANGUAGES=en
+      ORACLE_HOME={{ BASE_DIR }}/{{ INST }}/19.3.0
+      ORACLE_BASE={{ BASE_DIR }}/{{ INST }}
+      oracle.install.db.InstallEdition=EE
+      oracle.install.db.OSDBA_GROUP=dba
+      oracle.install.db.OSBACKUPDBA_GROUP=dba
+      oracle.install.db.OSDGDBA_GROUP=dba
+      oracle.install.db.OSKMDBA_GROUP=kmdba
+      oracle.install.db.OSRACDBA_GROUP=dba
+      SECURITY_UPDATES_VIA_MYORACLESUPPORT=false
+      DECLINE_SECURITY_UPDATES=true
+    owner: oracle
+    group: oinstall
+    mode: '0644'
+  become: yes
+  tags: [install, setup_rsp]
+
+- name: "Garantir permissões na pasta tmp do Ansible para o usuário oracle"
+  ansible.builtin.file:
+    path: "/home/oracle/.ansible/tmp"
+    state: directory
+    owner: oracle
+    group: oinstall
     mode: '0755'
-  loop: "{{ oracle_lvs }}"
-  tags: [storage, fs]
-
-- name: "Formatar LVs em XFS"
-  community.general.filesystem:
-    fstype: xfs
-    dev: "/dev/mapper/{{ VG_NAME }}-{{ item.lv_name }}"
-  loop: "{{ oracle_lvs }}"
-  tags: [storage, format]
-
-- name: "Montar e fixar no FSTAB"
-  ansible.posix.mount:
-    path: "{{ item.mount_path }}"
-    src: "/dev/mapper/{{ VG_NAME }}-{{ item.lv_name }}"
-    fstype: xfs
-    opts: "defaults,nofail,noatime,_netdev"
-    state: mounted
-  loop: "{{ oracle_lvs }}"
-  tags: [storage, mount]
+  become: yes
+  tags: [pre_install, ansible_tmp]

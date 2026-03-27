@@ -60,12 +60,11 @@
 
 - name: "Garantir que o diretório oraInventory existe com permissões corretas"
   ansible.builtin.file:
-    path: "{{ BASE_DIR }}/oraInventory"
+    path: "{{ BASE_DIR }}/{{ INST }}/oraInventory"
     state: directory
     owner: oracle
     group: oinstall
     mode: '0775'
-    recurse: yes 
   become: yes
   tags: [pre_install, inventory]
 
@@ -154,3 +153,12 @@
     state: present
   become: yes
   tags: [pre_install, fix_linkage]
+
+- name: "Criar link simbólico de compatibilidade para libnsl (Fix EL9)"
+  ansible.builtin.file:
+    src: "/usr/lib64/libnsl.so.2"
+    dest: "/usr/lib64/libnsl.so.1"
+    state: link
+    force: yes
+  become: yes
+  tags: [pre_install, fix_el9_libnsl]
