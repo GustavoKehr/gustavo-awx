@@ -1,16 +1,14 @@
 ---
 BASE_DIR: "/oracle"
-# ===== Versão Oracle =====
+
 oracle_version: "19.3.0"
 
-# ===== Caminhos dinâmicos (vindos do Survey) =====
 oracle_base_root: "{{ BASE_DIR }}"
 oracle_base: "{{ BASE_DIR }}/{{ INST }}"
 oracle_home: "{{ oracle_base }}/{{ oracle_version }}"
 oracle_inventory: "{{ oracle_base }}/oraInventory"
 oracle_rsp_file: "{{ oracle_home }}/install/response/db_install.rsp"
 
-# ===== Artefatos =====
 oracle_preinstall_rpm_file: "oracle-database-preinstall-19c-1.0-2.el9.x86_64.rpm"
 oracle_preinstall_rpm_url: "http://192.168.137.138:8080/{{ oracle_preinstall_rpm_file }}"
 oracle_preinstall_rpm_dest: "/tmp/{{ oracle_preinstall_rpm_file }}"
@@ -19,7 +17,6 @@ oracle_db_zip_file: "LINUX.X64_193000_db_home.zip"
 oracle_db_zip_url: "http://192.168.137.138:8080/{{ oracle_db_zip_file }}"
 oracle_db_zip_dest: "/tmp/{{ oracle_db_zip_file }}"
 
-# ===== Compatibilidade RHEL9 =====
 oracle_cv_assume_distid: "RHEL8"
 
 oracle_required_packages:
@@ -37,43 +34,41 @@ oracle_required_packages:
   - util-linux
   - smartmontools
 
-# ===== Storage =====
-VG_NAME: "vg_oracle"
+VG_NAME: "vg_{{ INST | lower }}"
 
-# ===== LVs dinâmicos vindos do Survey =====
 oracle_lvs:
-  - lv_name: "lv_base"
-    size: "{{ lv_base_size }}"
+  - lv_name: "lv_{{ INST | lower }}"
+    size: "{{ lv_base_size }}G"
     mount_path: "{{ BASE_DIR }}"
 
   - lv_name: "lv_oradata"
-    size: "{{ lv_oradata_size }}"
+    size: "{{ lv_oradata_size }}G"
     mount_path: "{{ BASE_DIR }}/{{ INST }}/oradata"
 
   - lv_name: "lv_archive"
-    size: "{{ lv_archive_size }}"
+    size: "{{ lv_archive_size }}G"
     mount_path: "{{ BASE_DIR }}/{{ INST }}/archive"
 
   - lv_name: "lv_ologa"
-    size: "{{ lv_ologa_size }}"
+    size: "{{ lv_ologa_size }}G"
     mount_path: "{{ BASE_DIR }}/{{ INST }}/ologA"
 
   - lv_name: "lv_ologb"
-    size: "{{ lv_ologb_size }}"
+    size: "{{ lv_ologb_size }}G"
     mount_path: "{{ BASE_DIR }}/{{ INST }}/ologB"
 
   - lv_name: "lv_undo"
-    size: "{{ lv_undo_size }}"
+    size: "{{ lv_undo_size }}G"
     mount_path: "{{ BASE_DIR }}/{{ INST }}/undo"
 
   - lv_name: "lv_temp"
-    size: "{{ lv_temp_size }}"
+    size: "{{ lv_temp_size }}G"
     mount_path: "{{ BASE_DIR }}/{{ INST }}/temp"
 
   - lv_name: "lv_mirrorloga"
-    size: "{{ lv_mirrorloga_size }}"
+    size: "{{ lv_mirrorloga_size }}G"
     mount_path: "{{ BASE_DIR }}/{{ INST }}/mirrorlogA"
 
   - lv_name: "lv_mirrorlogb"
-    size: "{{ lv_mirrorlogb_size }}"
+    size: "{{ lv_mirrorlogb_size }}G"
     mount_path: "{{ BASE_DIR }}/{{ INST }}/mirrorlogB"
