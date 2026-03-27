@@ -13,10 +13,14 @@
     disable_gpg_check: yes
   tags: [pre_install, packages]
 
-- name: "Criar diretório do Home apenas se não existir (Alta Performance)"
-  ansible.builtin.shell: "mkdir -p {{ BASE_DIR }}/{{ INST }}/19.3.0/install/response"
-  args:
-    creates: "{{ BASE_DIR }}/{{ INST }}/19.3.0/install/response"
+- name: "Garantir que o diretório da instância está limpo e pertence ao Oracle (Root)"
+  ansible.builtin.file:
+    path: "{{ BASE_DIR }}/{{ INST }}/19.3.0"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: '0775'
+    recurse: no  
   become: yes
   tags: [install, setup_dirs]
 
@@ -34,7 +38,7 @@
   args:
     creates: "{{ BASE_DIR }}/{{ INST }}/19.3.0/runInstaller"
   become: yes
-  become_user: oracle 
+  become_user: oracle  # Essencial: faz os arquivos internos já nascerem com dono correto
   tags: [install, unzip_shell]
 
 - name: "Garantir dono e permissão na raiz da instância (Rápido)"
