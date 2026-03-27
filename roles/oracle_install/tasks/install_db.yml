@@ -1,9 +1,10 @@
 ---
-- name: "Executar Instalação Silenciosa do Oracle (Dinamismo Total)"
+- name: "Executar Instalação Silenciosa do Oracle (Configuração Fixa RHEL8)"
   ansible.builtin.shell:
     cmd: >
       export CV_ASSUME_DISTID=RHEL8;
-      export LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib
+      export ORACLE_HOME={{ BASE_DIR }}/{{ INST }}/19.3.0;
+      export LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib;
       ./runInstaller -silent 
       -responseFile {{ BASE_DIR }}/{{ INST }}/19.3.0/install/response/db_install.rsp 
       -ignorePrereq 
@@ -27,10 +28,10 @@
   become: yes
   become_user: oracle
   environment:
-    LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib
     CV_ASSUME_DISTID: "RHEL8"
     ORACLE_HOME: "{{ BASE_DIR }}/{{ INST }}/19.3.0"
     ORACLE_BASE: "{{ BASE_DIR }}/{{ INST }}"
+    LD_LIBRARY_PATH: "{{ BASE_DIR }}/{{ INST }}/19.3.0/lib:/lib:/usr/lib"
   tags: [install, silent_installation]
 
 - name: "Executar orainstRoot.sh (Dinâmico)"
