@@ -24,7 +24,7 @@
 
 - name: "Descompactar binários do Oracle diretamente no ORACLE_HOME"
   ansible.builtin.unarchive:
-    src: "{{ BASE_DIR }}/stage/LINUX.X64_193000_db_home.zip"
+    src: "{{ BASE_DIR }}/LINUX.X64_193000_db_home.zip"
     dest: "{{ BASE_DIR }}/19.3.0"
     remote_src: yes
     owner: oracle
