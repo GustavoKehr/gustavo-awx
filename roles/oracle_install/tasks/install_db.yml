@@ -1,23 +1,23 @@
 ---
-- name: "Instalar bibliotecas de compatibilidade críticas para RHEL 9"
-  ansible.builtin.dnf:
-    name:
-      - libnsl
-      - libnsl.i686
-      - libxcrypt-compat
-      - glibc-devel
-    state: present
-  become: yes
-  tags: [install, libs]
+#- name: "Instalar bibliotecas de compatibilidade críticas para RHEL 9"
+#  ansible.builtin.dnf:
+#    name:
+#      - libnsl
+#      - libnsl.i686
+#      - libxcrypt-compat
+#      - glibc-devel
+#    state: present
+#  become: yes
+#  tags: [install, libs]
 
-- name: "Descompactar Binários (Obrigatório após falha de compilação)"
-  ansible.builtin.unarchive:
-    src: "/tmp/oracle_sig.zip"
-    dest: "{{ BASE_DIR }}/19.3.0"
-    remote_src: yes
-    owner: oracle
-    group: oinstall
-  tags: [install, unzip_binary]
+#- name: "Descompactar Binários (Obrigatório após falha de compilação)"
+#  ansible.builtin.unarchive:
+#    src: "/tmp/oracle_sig.zip"
+#    dest: "{{ BASE_DIR }}/19.3.0"
+#    remote_src: yes
+#    owner: oracle
+#    group: oinstall
+#  tags: [install, unzip_binary]
 
 - name: "Limpar oraInventory antigos"
   ansible.builtin.shell: "rm -rf {{ BASE_DIR }}/oraInventory/* {{ BASE_DIR }}/19.3.0/*"
@@ -59,16 +59,6 @@
 
 - name: "Executar script de Root (orainstRoot.sh no novo caminho)"
   ansible.builtin.shell: "{{ BASE_DIR }}/oraInventory/orainstRoot.sh"
-  become: yes
-  tags: [install, instroot]
-
-- name: "Executar script de Root (root.sh)"
-  ansible.builtin.shell: "{{ BASE_DIR }}/19.3.0/root.sh"
-  become: yes
-  tags: [install, rootsh]
-
-- name: "Executar scripts de Root (orainstRoot.sh)"
-  ansible.builtin.shell: "/oracle/oraInventory/orainstRoot.sh"
   become: yes
   tags: [install, instroot]
 
