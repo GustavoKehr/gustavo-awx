@@ -119,3 +119,20 @@
     mode: '0644'
   become: yes
   tags: [install, setup_rsp]
+
+  - name: "Limpar inventário sujo para permitir re-instalação (Dinâmico)"
+  ansible.builtin.file:
+    path: "{{ BASE_DIR }}/{{ INST }}/oraInventory"
+    state: absent
+  become: yes
+  tags: [install, cleanup_inventory]
+
+- name: "Recriar diretório do inventário vazio"
+  ansible.builtin.file:
+    path: "{{ BASE_DIR }}/{{ INST }}/oraInventory"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: '0775'
+  become: yes
+  tags: [install, setup_dirs]
