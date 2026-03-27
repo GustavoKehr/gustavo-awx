@@ -40,9 +40,45 @@
     group: oinstall
   tags: [install, rsp_file]
 
-- name: "Executar Instalação Silenciosa do Software Oracle"
+---
+# ... (tasks de libs e link simbólico libnsl)
+
+- name: "Limpar tudo para uma tentativa virgem (Caminhos Trabalho)"
+  ansible.builtin.shell: "rm -rf {{ BASE_DIR }}/oraInventory/* {{ BASE_DIR }}/19.3.0/*"
+  become: yes
+  tags: [install, clean_all]
+
+- name: "Descompactar Binários"
+  ansible.builtin.unarchive:
+    src: "/tmp/oracle_sig.zip"
+    dest: "{{ BASE_DIR }}/19.3.0"
+    remote_src: yes
+    owner: oracle
+    group: oinstall
+  tags: [install, unzip_binary]
+
+- name: "Executar Instalação Silenciosa (Comando Identico ao Trabalho)"
   ansible.builtin.shell:
-    cmd: "./runInstaller -silent -waitforcompletion -ignorePrereqFailure -responseFile /tmp/db_install.rsp"
+    cmd: >
+      ./runInstaller -silent 
+      -responseFile /tmp/db_install.rsp 
+      -ignorePrereq 
+      -waitforcompletion 
+      oracle.install.option=INSTALL_DB_SWONLY 
+      ORACLE_HOSTNAME={{ ansible_fqdn }} 
+      UNIX_GROUP_NAME=oinstall 
+      INVENTORY_LOCATION={{ BASE_DIR }}/oraInventory 
+      SELECTED_LANGUAGES=en 
+      ORACLE_HOME={{ BASE_DIR }}/19.3.0 
+      ORACLE_BASE={{ BASE_DIR }} 
+      oracle.install.db.InstallEdition=EE 
+      oracle.install.db.OSDBA_GROUP=dba 
+      oracle.install.db.OSBACKUPDBA_GROUP=dba 
+      oracle.install.db.OSDGDBA_GROUP=dba 
+      oracle.install.db.OSKMDBA_GROUP=kmdba 
+      oracle.install.db.OSRACDBA_GROUP=dba 
+      SECURITY_UPDATES_VIA_MYORACLESUPPORT=false 
+      DECLINE_SECURITY_UPDATES=true
     chdir: "{{ BASE_DIR }}/19.3.0"
   become: yes
   become_user: oracle
@@ -51,6 +87,16 @@
   register: oracle_install_result
   failed_when: "'Successfully Setup Software' not in oracle_install_result.stdout"
   tags: [install, silent_installation]
+
+- name: "Executar script de Root (orainstRoot.sh no novo caminho)"
+  ansible.builtin.shell: "{{ BASE_DIR }}/oraInventory/orainstRoot.sh"
+  become: yes
+  tags: [install, instroot]
+
+- name: "Executar script de Root (root.sh)"
+  ansible.builtin.shell: "{{ BASE_DIR }}/19.3.0/root.sh"
+  become: yes
+  tags: [install, rootsh]
 
 - name: "Executar scripts de Root (orainstRoot.sh)"
   ansible.builtin.shell: "/oracle/oraInventory/orainstRoot.sh"

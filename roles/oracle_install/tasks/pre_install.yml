@@ -28,14 +28,13 @@
     state: absent
   tags: [pre_install, cleanup]
 
-- name: "Criar o oraInventory no caminho customizado"
+- name: "Criar o oraInventory dentro do ORACLE_BASE (Padrao Trabalho)"
   ansible.builtin.file:
-    path: "/oracle/oraInventory"
+    path: "{{ BASE_DIR }}/oraInventory"
     state: directory
     owner: oracle
     group: oinstall
     mode: '0775'
-    recurse: yes
   tags: [pre_install, inventory]
 
 - name: "Aplicar chown no BASE_DIR (Rápido via Shell)"
