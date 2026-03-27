@@ -73,7 +73,7 @@
   become: yes
   tags: [pre_install, storage_perms]
 
-- name: "Configurar variáveis de ambiente (.bash_profile)"
+- name: "Configurar variáveis de ambiente (.bash_profile) - Padrao Trabalho"
   ansible.builtin.blockinfile:
     path: /home/oracle/.bash_profile
     marker: "# {mark} ANSIBLE MANAGED BLOCK - ORACLE ENV"
@@ -86,7 +86,7 @@
       PATH=$ORACLE_HOME/bin:$PATH;export PATH
       LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib;export LD_LIBRARY_PATH
       ORACLE_HOSTNAME=`hostname`;export ORACLE_HOSTNAME
-      CV_ASSUME_DISTID=RHEL8;export CV_ASSUME_DISTID
+      CV_ASSUME_DISTID=OL8;export CV_ASSUME_DISTID
   become: yes
   tags: [pre_install, env]
 
