@@ -142,21 +142,3 @@
   become: yes
   tags: [install, setup_dirs]
 
-- name: "Instalar bibliotecas de compatibilidade (RHEL 9)"
-  ansible.builtin.dnf:
-    name:
-      - libnsl
-      - libnsl.i686
-      - libxcrypt-compat
-    state: present
-  become: yes
-  tags: [install, libs]
-
-- name: "Criar links simbólicos para libnsl.so.1 (64 e 32 bits)"
-  ansible.builtin.shell: |
-    # Link para 64 bits
-    [ -f /usr/lib64/libnsl.so.2 ] && ln -sf /usr/lib64/libnsl.so.2 /usr/lib64/libnsl.so.1
-    # Link para 32 bits (o Perl do Oracle as vezes pede esta)
-    [ -f /usr/lib/libnsl.so.2 ] && ln -sf /usr/lib/libnsl.so.2 /usr/lib/libnsl.so.1
-  become: yes
-  tags: [install, libs]
