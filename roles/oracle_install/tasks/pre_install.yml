@@ -28,12 +28,14 @@
     timeout: 900
   tags: [install, download_bin]
 
-- name: "Descompactar binário via Shell"
-  ansible.builtin.shell: "unzip -qo /tmp/LINUX.X64_193000_db_home.zip -d {{ BASE_DIR }}/{{ INST }}/19.3.0/"
-  become: yes
-  become_user: oracle 
+- name: "Descompactar binário via Shell (como usuário Oracle)"
+  ansible.builtin.shell: |
+    unzip -qo /tmp/LINUX.X64_193000_db_home.zip -d {{ BASE_DIR }}/{{ INST }}/19.3.0/
   args:
     creates: "{{ BASE_DIR }}/{{ INST }}/19.3.0/runInstaller"
+  become: yes
+  become_user: oracle 
+  tags: [install, unzip_shell]
 
 - name: "Garantir dono e permissão na raiz da instância (Rápido)"
   ansible.builtin.file:
