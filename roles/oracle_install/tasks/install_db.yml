@@ -1,47 +1,98 @@
 ---
-- name: "Executar Instalação Silenciosa do Oracle (Correção ELF 64-bit)"
-  ansible.builtin.shell:
-    cmd: >
-      export CV_ASSUME_DISTID=RHEL8;
-      export ORACLE_HOME={{ BASE_DIR }}/{{ INST }}/19.3.0;
-      export LD_LIBRARY_PATH=$ORACLE_HOME/lib:/usr/lib64:/lib64;
-      ./runInstaller -silent 
-      -responseFile {{ BASE_DIR }}/{{ INST }}/19.3.0/install/response/db_install.rsp 
-      -ignorePrereq 
-      -waitforcompletion 
-      oracle.install.option=INSTALL_DB_SWONLY 
-      ORACLE_HOSTNAME={{ ansible_hostname }} 
-      UNIX_GROUP_NAME=oinstall 
-      INVENTORY_LOCATION={{ BASE_DIR }}/oraInventory 
-      SELECTED_LANGUAGES=en 
-      ORACLE_HOME={{ BASE_DIR }}/{{ INST }}/19.3.0 
-      ORACLE_BASE={{ BASE_DIR }}/{{ INST }} 
-      oracle.install.db.InstallEdition=EE 
-      oracle.install.db.OSDBA_GROUP=dba 
-      oracle.install.db.OSBACKUPDBA_GROUP=dba 
-      oracle.install.db.OSDGDBA_GROUP=dba 
-      oracle.install.db.OSKMDBA_GROUP=kmdba 
-      oracle.install.db.OSRACDBA_GROUP=dba 
-      SECURITY_UPDATES_VIA_MYORACLESUPPORT=false 
-      DECLINE_SECURITY_UPDATES=true
-    chdir: "{{ BASE_DIR }}/{{ INST }}/19.3.0"
+- name: "Validar existência do runInstaller"
+  ansible.builtin.stat:
+    path: "{{ oracle_home }}/runInstaller"
+  register: runinstaller_stat
+  become: yes
+  tags: [install, validate]
+
+- name: "Falhar se o runInstaller não existir"
+  ansible.builtin.fail:
+    msg: "runInstaller não encontrado em {{ oracle_home }}. Verifique o download e o unzip do binário."
+  when: not runinstaller_stat.stat.exists
+  tags: [install, validate]
+
+- name: "Validar existência do response file"
+  ansible.builtin.stat:
+    path: "{{ oracle_rsp_file }}"
+  register: rsp_stat
+  become: yes
+  tags: [install, validate]
+
+- name: "Falhar se o response file não existir"
+  ansible.builtin.fail:
+    msg: "Response file não encontrado em {{ oracle_rsp_file }}."
+  when: not rsp_stat.stat.exists
+  tags: [install, validate]
+
+- name: "Executar instalação silenciosa do Oracle 19c"
+  ansible.builtin.shell: |
+    ./runInstaller -silent \
+      -responseFile {{ oracle_rsp_file }} \
+      -ignorePrereq \
+      -waitforcompletion
+  args:
+    chdir: "{{ oracle_home }}"
+    executable: /bin/bash
+  register: oracle_install_result
   become: yes
   become_user: oracle
   environment:
-    CV_ASSUME_DISTID: "RHEL8"
-    ORACLE_HOME: "{{ BASE_DIR }}/{{ INST }}/19.3.0"
-    ORACLE_BASE: "{{ BASE_DIR }}/{{ INST }}"
-    LD_LIBRARY_PATH: "{{ BASE_DIR }}/{{ INST }}/19.3.0/lib:/usr/lib64:/lib64"
+    CV_ASSUME_DISTID: "{{ oracle_cv_assume_distid }}"
+    ORACLE_BASE: "{{ oracle_base }}"
+    ORACLE_HOME: "{{ oracle_home }}"
+    ORACLE_SID: "{{ INST }}"
+    ORACLE_HOSTNAME: "{{ ansible_hostname }}"
+    LD_LIBRARY_PATH: "{{ oracle_home }}/lib:/usr/lib64:/lib64"
+    PATH: "{{ oracle_home }}/bin:/usr/local/bin:/usr/bin:/bin"
+  changed_when: >
+    oracle_install_result.rc == 0 and
+    (
+      'Successfully Setup Software' in (oracle_install_result.stdout | default('')) or
+      'The installation of Oracle Database was successful' in (oracle_install_result.stdout | default('')) or
+      'Successfully Setup Software with warning(s)' in (oracle_install_result.stdout | default('')) or
+      oracle_install_result.rc == 0
+    )
   tags: [install, silent_installation]
 
-- name: "Executar orainstRoot.sh (Dinâmico)"
-  ansible.builtin.shell: "{{ BASE_DIR }}/{{ INST }}/oraInventory/orainstRoot.sh"
+- name: "Exibir saída resumida da instalação"
+  ansible.builtin.debug:
+    msg:
+      - "RC: {{ oracle_install_result.rc }}"
+      - "STDOUT: {{ oracle_install_result.stdout_lines | default([]) }}"
+      - "STDERR: {{ oracle_install_result.stderr_lines | default([]) }}"
+  tags: [install, silent_installation]
+
+- name: "Validar existência do script orainstRoot.sh"
+  ansible.builtin.stat:
+    path: "{{ oracle_inventory }}/orainstRoot.sh"
+  register: orainstroot_stat
   become: yes
-  become_user: root
   tags: [install, root_scripts]
 
-- name: "Executar root.sh (Dinâmico)"
-  ansible.builtin.shell: "{{ BASE_DIR }}/{{ INST }}/19.3.0/root.sh"
+- name: "Executar orainstRoot.sh"
+  ansible.builtin.shell: "{{ oracle_inventory }}/orainstRoot.sh"
+  args:
+    executable: /bin/bash
   become: yes
-  become_user: root
+  when:
+    - oracle_install_result.rc == 0
+    - orainstroot_stat.stat.exists
+  tags: [install, root_scripts]
+
+- name: "Validar existência do script root.sh"
+  ansible.builtin.stat:
+    path: "{{ oracle_home }}/root.sh"
+  register: rootsh_stat
+  become: yes
+  tags: [install, root_scripts]
+
+- name: "Executar root.sh"
+  ansible.builtin.shell: "{{ oracle_home }}/root.sh"
+  args:
+    executable: /bin/bash
+  become: yes
+  when:
+    - oracle_install_result.rc == 0
+    - rootsh_stat.stat.exists
   tags: [install, root_scripts]

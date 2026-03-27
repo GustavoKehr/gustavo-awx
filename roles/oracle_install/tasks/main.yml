@@ -1,9 +1,17 @@
 ---
-- include_tasks: storage_lvm.yml
-  tags: [storage]
+- name: "Preparar storage LVM para Oracle"
+  ansible.builtin.include_tasks: storage_lvm.yml
+  tags:
+    - storage
 
-- include_tasks: pre_install.yml
-  tags: [pre_install]
+- name: "Executar pré-instalação do Oracle"
+  ansible.builtin.include_tasks: pre_install.yml
+  tags:
+    - pre_install
 
-- include_tasks: install_db.yml
-  tags: [always, install, libs, clean_inventory, rsp_file, silent_installation, instroot, rootsh]
+- name: "Executar instalação do Oracle"
+  ansible.builtin.include_tasks: install_db.yml
+  tags:
+    - install
+    - silent_installation
+    - root_scripts
