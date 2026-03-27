@@ -26,7 +26,7 @@
     path: "{{ item.mount_path }}"
     src: "/dev/mapper/{{ VG_NAME }}-{{ item.lv_name }}"
     fstype: xfs
-    opts: "defaults,nofail,noatime,_netdev"
+    opts: "defaults,nofail,_netdev,noresvport"
     state: mounted
   loop: "{{ oracle_lvs }}"
   tags: [storage, formatfs]
