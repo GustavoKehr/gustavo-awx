@@ -13,6 +13,27 @@
     disable_gpg_check: yes
   tags: [pre_install, packages]
 
+  - name: "Garantir que o ORACLE_HOME existe e está vazio"
+  ansible.builtin.file:
+    path: "{{ BASE_DIR }}/19.3.0"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: '0775'
+  tags: [install, unzip]
+
+- name: "Descompactar binários do Oracle diretamente no ORACLE_HOME"
+  ansible.builtin.unarchive:
+    src: "{{ BASE_DIR }}/stage/LINUX.X64_193000_db_home.zip"
+    dest: "{{ BASE_DIR }}/19.3.0"
+    remote_src: yes
+    owner: oracle
+    group: oinstall
+    creates: "{{ BASE_DIR }}/19.3.0/runInstaller"
+  become: yes
+  become_user: oracle
+  tags: [install, unzip]
+
 - name: "Garantir permissões na raiz do Oracle (/oracle)"
   ansible.builtin.file:
     path: "/oracle"
