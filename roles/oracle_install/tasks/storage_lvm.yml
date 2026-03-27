@@ -1,5 +1,10 @@
 ---
-- name: "Checar se o disco já pertence a algum volume group"
+- name: "Definir nome do VG a partir da instância"
+  ansible.builtin.set_fact:
+    VG_NAME: "{{ INST }}"
+  tags: [storage, vg]
+
+- name: "Checar se o disco já pertence a algum VG"
   ansible.builtin.command: "pvs --noheadings -o vg_name {{ oracle_disk_device }}"
   register: pv_vg_check
   changed_when: false
@@ -7,34 +12,35 @@
   become: yes
   tags: [storage, vg]
 
-- name: "Exibir status atual do disco no LVM"
+- name: "Exibir status do disco"
   ansible.builtin.debug:
     msg:
-      - "Disco informado: {{ oracle_disk_device }}"
-      - "VG encontrado no PV: {{ pv_vg_check.stdout | trim }}"
+      - "Disco: {{ oracle_disk_device }}"
+      - "VG atual: {{ pv_vg_check.stdout | trim }}"
+      - "VG desejado: {{ VG_NAME }}"
   tags: [storage, vg, debug]
 
-- name: "Falhar se o disco já estiver em outro VG diferente do esperado"
-  ansible.builtin.fail:
-    msg: >-
-      O disco {{ oracle_disk_device }} já pertence ao volume group
-      '{{ pv_vg_check.stdout | trim }}' e não ao VG esperado '{{ VG_NAME }}'.
-      Ajuste o Survey ou escolha outro disco.
-  when:
-    - pv_vg_check.stdout | trim != ""
-    - pv_vg_check.stdout | trim != VG_NAME
-  tags: [storage, vg]
-
-- name: "Criar ou garantir Volume Group {{ VG_NAME }}"
+# 👇 Aqui está a lógica principal
+- name: "Criar VG apenas se o disco não estiver em nenhum VG"
   community.general.lvg:
     vg: "{{ VG_NAME }}"
     pvs: "{{ oracle_disk_device }}"
+  when: pv_vg_check.stdout | trim == ""
   become: yes
-  when:
-    - pv_vg_check.stdout | trim == "" or pv_vg_check.stdout | trim == VG_NAME
   tags: [storage, vg]
 
-- name: "Coletar Logical Volumes existentes"
+# 👇 Se já estiver em VG (qualquer um), não faz nada e segue
+- name: "Pular criação de VG (já existe)"
+  ansible.builtin.debug:
+    msg: "Disco já pertence a um VG, pulando criação"
+  when: pv_vg_check.stdout | trim != ""
+  tags: [storage, vg]
+
+# ========================
+# LVs
+# ========================
+
+- name: "Coletar LVs existentes"
   ansible.builtin.command: "lvs --noheadings -o lv_name {{ VG_NAME }}"
   register: existing_lvs
   changed_when: false
@@ -42,7 +48,7 @@
   become: yes
   tags: [storage, lv]
 
-- name: "Criar Logical Volumes somente se ainda não existirem"
+- name: "Criar LVs somente se não existirem"
   community.general.lvol:
     vg: "{{ VG_NAME }}"
     lv: "{{ item.lv_name }}"
@@ -52,16 +58,11 @@
   become: yes
   tags: [storage, lv]
 
-- name: "Verificar se os volumes já estão montados"
-  ansible.builtin.command: "grep -w {{ item.mount_path }} /proc/mounts"
-  loop: "{{ oracle_lvs }}"
-  register: mount_check
-  failed_when: false
-  changed_when: false
-  become: yes
-  tags: [storage, fs]
+# ========================
+# Filesystem
+# ========================
 
-- name: "Verificar tipo de filesystem atual"
+- name: "Checar filesystem existente"
   ansible.builtin.command: "blkid -o value -s TYPE /dev/{{ VG_NAME }}/{{ item.lv_name }}"
   loop: "{{ oracle_lvs }}"
   register: fs_check
@@ -70,20 +71,23 @@
   become: yes
   tags: [storage, fs]
 
-- name: "Formatar filesystem XFS somente se ainda não existir"
+- name: "Formatar XFS apenas se necessário"
   community.general.filesystem:
     fstype: xfs
     dev: "/dev/{{ VG_NAME }}/{{ item.lv_name }}"
-    force: no
   loop: "{{ oracle_lvs }}"
   loop_control:
     index_var: idx
-  when:
-    - fs_check.results[idx].rc != 0 or (fs_check.results[idx].stdout | trim) == ""
+  when: fs_check.results[idx].stdout | trim == ""
   become: yes
   tags: [storage, fs]
 
-- name: "Criar diretórios de montagem"
+
+# ========================
+# Mount
+# ========================
+
+- name: "Criar diretórios"
   ansible.builtin.file:
     path: "{{ item.mount_path }}"
     state: directory
@@ -94,7 +98,7 @@
   become: yes
   tags: [storage, fs]
 
-- name: "Montar volumes e persistir no /etc/fstab"
+- name: "Montar volumes e persistir no fstab"
   ansible.builtin.mount:
     path: "{{ item.mount_path }}"
     src: "/dev/{{ VG_NAME }}/{{ item.lv_name }}"
