@@ -10,14 +10,6 @@
   become: yes
   tags: [install, libs]
 
-- name: "Criar link simbólico de compatibilidade para libnsl"
-  ansible.builtin.file:
-    src: "/usr/lib64/libnsl.so.2"
-    dest: "/usr/lib64/libnsl.so.1"
-    state: link
-  become: yes
-  tags: [install, libs]
-
 - name: "Limpar tudo para uma tentativa virgem (Evitar erros de Makefile)"
   ansible.builtin.shell: "rm -rf /oracle/oraInventory/* {{ BASE_DIR }}/19.3.0/*"
   become: yes
@@ -39,9 +31,6 @@
     owner: oracle
     group: oinstall
   tags: [install, rsp_file]
-
----
-# ... (tasks de libs e link simbólico libnsl)
 
 - name: "Limpar tudo para uma tentativa virgem (Caminhos Trabalho)"
   ansible.builtin.shell: "rm -rf {{ BASE_DIR }}/oraInventory/* {{ BASE_DIR }}/19.3.0/*"
