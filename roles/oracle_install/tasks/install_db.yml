@@ -1,5 +1,5 @@
 ---
-- name: "Executar Instalação Silenciosa (Estilo Trabalho com CV_ASSUME_DISTID=OL8)"
+- name: "Executar Instalação Silenciosa (Caminho Dinâmico)"
   ansible.builtin.shell:
     cmd: >
       ./runInstaller -silent 
