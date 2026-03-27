@@ -13,14 +13,16 @@
     disable_gpg_check: yes
   tags: [pre_install, packages]
 
-- name: "Garantir que o ORACLE_HOME existe e está vazio"
+- name: "Garantir que o diretório do Home existe (mkdir -p)"
   ansible.builtin.file:
-    path: "{{ BASE_DIR }}/19.3.0"
+    path: "{{ BASE_DIR }}/{{ INST }}/19.3.0"
     state: directory
     owner: oracle
     group: oinstall
     mode: '0775'
-  tags: [install, unzip]
+    recurse: yes
+  become: yes
+  tags: [install, setup_dirs]
 
 - name: "Baixar binário do Oracle Database via HTTP"
   ansible.builtin.get_url:
@@ -32,9 +34,9 @@
 
 - name: "Descompactar binário via Shell (Performance Máxima)"
   ansible.builtin.shell: |
-    unzip -qo /tmp/LINUX.X64_193000_db_home.zip -d {{ BASE_DIR }}/19.3.0/
+    unzip -qo /tmp/LINUX.X64_193000_db_home.zip -d {{ BASE_DIR }}/{{ INST }}/19.3.0/
   args:
-    creates: "{{ BASE_DIR }}/19.3.0/runInstaller"
+    creates: "{{ BASE_DIR }}/{{ INST }}/19.3.0/runInstaller"
   become: yes
   become_user: oracle
   tags: [install, unzip_shell]
