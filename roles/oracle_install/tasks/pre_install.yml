@@ -136,3 +136,15 @@
     mode: '0775'
   become: yes
   tags: [install, setup_dirs]
+
+- name: "Instalar bibliotecas de compatibilidade para linkagem no EL9"
+  ansible.builtin.dnf:
+    name:
+      - libxcrypt-compat  # ESSENCIAL: Sem isso o erro ohso ocorre no EL9
+      - libnsl            # Biblioteca de rede antiga
+      - make              # Para rodar o ins_rdbms.mk
+      - binutils          # Para o linker (ld)
+      - glibc-devel       # Headers da glibc
+    state: present
+  become: yes
+  tags: [pre_install, fix_linkage]
