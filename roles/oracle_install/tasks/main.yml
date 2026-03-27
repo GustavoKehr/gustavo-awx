@@ -1,9 +1,13 @@
 ---
-- include_tasks: storage_lvm.yml
-  tags: [storage]
+- name: "Configurar Storage e LVM"
+  ansible.builtin.include_tasks: storage_lvm.yml
+  # A tag 'always' garante que o Ansible entre no arquivo independente das tags do Job
+  tags: [always, storage, lvm]
 
-- include_tasks: pre_install.yml
-  tags: [pre_install]
+- name: "Pre-requisitos e Usuários"
+  ansible.builtin.include_tasks: pre_install.yml
+  tags: [always, pre_install]
 
-- include_tasks: install_db.yml
-  tags: [always, install, libs, clean_inventory, rsp_file, silent_installation, instroot, rootsh]
+- name: "Instalação do Banco"
+  ansible.builtin.include_tasks: install_db.yml
+  tags: [always, install]
