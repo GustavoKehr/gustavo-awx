@@ -142,3 +142,11 @@
   become: yes
   tags: [install, setup_dirs]
 
+- name: "Garantir link simbólico da libnsl para o instalador"
+  ansible.builtin.file:
+    src: "/usr/lib64/libnsl.so.2.0.0" # ou o destino real do seu so.2
+    dest: "/usr/lib64/libnsl.so.1"
+    state: link
+    force: yes
+  become: yes
+  tags: [install, lib_fix]
