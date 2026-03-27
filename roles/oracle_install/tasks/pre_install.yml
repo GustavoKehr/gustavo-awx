@@ -22,9 +22,17 @@
     mode: '0775'
   tags: [install, unzip]
 
-- name: "Descompactar binários do Oracle diretamente no ORACLE_HOME"
+- name: "Baixar binário do Oracle Database via HTTP"
+  ansible.builtin.get_url:
+    url: "http://192.168.137.138:8080/LINUX.X64_193000_db_home.zip"
+    dest: "/tmp/LINUX.X64_193000_db_home.zip"
+    mode: '0644'
+    timeout: 900  # 15 minutos para garantir o download de 3GB
+  tags: [install, download_bin]
+
+- name: "Descompactar binário no ORACLE_HOME"
   ansible.builtin.unarchive:
-    src: "{{ BASE_DIR }}/LINUX.X64_193000_db_home.zip"
+    src: "/tmp/LINUX.X64_193000_db_home.zip"
     dest: "{{ BASE_DIR }}/19.3.0"
     remote_src: yes
     owner: oracle
