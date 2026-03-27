@@ -22,6 +22,7 @@
 - name: "Executar Instalação Silenciosa (Estilo Trabalho - Caminho Corrigido)"
   ansible.builtin.shell:
     cmd: >
+      export CV_ASSUME_DISTID=RHEL8
       ./runInstaller -silent 
       -responseFile {{ BASE_DIR }}/19.3.0/install/response/db_install.rsp 
       -ignorePrereq 
