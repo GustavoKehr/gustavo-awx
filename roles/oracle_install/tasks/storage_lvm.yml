@@ -6,26 +6,38 @@
   become: yes
   tags: [storage, vg]
 
-- name: "Criar Logical Volumes conforme definição de projeto"
+- name: "TASK 1: Criar Logical Volumes"
   community.general.lvol:
     vg: "{{ VG_NAME }}"
     lv: "{{ item.lv_name }}"
     size: "{{ item.size }}"
-    force: yes
   loop: "{{ oracle_lvs }}"
   become: yes
   tags: [storage, lv]
 
-- name: "Formatar Filesystems (XFS)"
-  community.general.filesystem:
-    fstype: xfs
-    dev: "/dev/{{ VG_NAME }}/{{ item.lv_name }}"
-    force: yes
+- name: "VERIFICAÇÃO: Checar se os volumes já estão montados"
+  ansible.builtin.command: "grep -w {{ item.mount_path }} /proc/mounts"
   loop: "{{ oracle_lvs }}"
+  register: mount_check
+  failed_when: false
+  changed_when: false
   become: yes
   tags: [storage, fs]
 
-- name: "Criar diretórios de montagem e permissões"
+- name: "TASK 2: Formatar Filesystems (XFS) - APENAS SE NÃO ESTIVER MONTADO"
+  community.general.filesystem:
+    fstype: xfs
+    dev: "/dev/{{ VG_NAME }}/{{ item.lv_name }}"
+    force: no
+  loop: "{{ oracle_lvs }}"
+  loop_control:
+    index_var: idx
+  # O index_var mapeia o resultado do mount_check para cada item do loop
+  when: mount_check.results[idx].rc != 0
+  become: yes
+  tags: [storage, fs]
+
+- name: "TASK 3: Criar Diretorios de Montagem e Permissões"
   ansible.builtin.file:
     path: "{{ item.mount_path }}"
     state: directory
@@ -36,7 +48,7 @@
   become: yes
   tags: [storage, fs]
 
-- name: "Montar Volumes"
+- name: "TASK 4: Montar Volumes"
   ansible.builtin.mount:
     path: "{{ item.mount_path }}"
     src: "/dev/{{ VG_NAME }}/{{ item.lv_name }}"
