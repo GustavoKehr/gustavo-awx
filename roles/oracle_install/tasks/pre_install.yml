@@ -30,11 +30,11 @@
     timeout: 900  # 15 minutos para garantir o download de 3GB
   tags: [install, download_bin]
 
-- name: "Descompactar binário via Shell"
+- name: "Descompactar binário via Shell (Performance Máxima)"
   ansible.builtin.shell: |
     unzip -qo /tmp/LINUX.X64_193000_db_home.zip -d {{ BASE_DIR }}/19.3.0/
   args:
-    creates: "{{ BASE_DIR }}/19.3.0/runInstaller" # Evita re-extrair se já existir
+    creates: "{{ BASE_DIR }}/19.3.0/runInstaller"
   become: yes
   become_user: oracle
   tags: [install, unzip_shell]

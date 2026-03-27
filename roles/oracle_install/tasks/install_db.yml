@@ -10,40 +10,34 @@
 #  become: yes
 #  tags: [install, libs]
 
-- name: "Executar Instalação Silenciosa (Estilo Trabalho - Caminho Corrigido)"
-  ansible.builtin.shell:
-    cmd: >
-      export CV_ASSUME_DISTID=RHEL8
-      ./runInstaller -silent 
-      -responseFile {{ BASE_DIR }}/19.3.0/install/response/db_install.rsp 
-      -ignorePrereq 
-      -waitforcompletion 
-      oracle.install.option=INSTALL_DB_SWONLY 
-      ORACLE_HOSTNAME={{ ansible_hostname }} 
-      UNIX_GROUP_NAME=oinstall 
-      INVENTORY_LOCATION={{ BASE_DIR }}/oraInventory 
-      SELECTED_LANGUAGES=en 
-      ORACLE_HOME={{ BASE_DIR }}/19.3.0 
-      ORACLE_BASE={{ BASE_DIR }} 
-      oracle.install.db.InstallEdition=EE 
-      oracle.install.db.OSDBA_GROUP=dba 
-      oracle.install.db.OSBACKUPDBA_GROUP=dba 
-      oracle.install.db.OSDGDBA_GROUP=dba 
-      oracle.install.db.OSKMDBA_GROUP=kmdba 
-      oracle.install.db.OSRACDBA_GROUP=dba 
-      SECURITY_UPDATES_VIA_MYORACLESUPPORT=false 
-      DECLINE_SECURITY_UPDATES=true
-    chdir: "{{ BASE_DIR }}/19.3.0"
+- name: "Executar o Instalador do Oracle 19c (Silent Mode)"
+  ansible.builtin.shell: |
+    export CV_ASSUME_DISTID=RHEL8
+    ./runInstaller -silent \
+    -responseFile /oracle/PATOD/19.3.0/install/response/db_install.rsp \
+    -ignorePrereq \
+    -waitforcompletion \
+    oracle.install.option=INSTALL_DB_SWONLY \
+    ORACLE_HOSTNAME=ORACLEVM \
+    UNIX_GROUP_NAME=oinstall \
+    INVENTORY_LOCATION=/oracle/PATOD/oraInventory \
+    SELECTED_LANGUAGES=en \
+    ORACLE_HOME=/oracle/PATOD/19.3.0 \
+    ORACLE_BASE=/oracle/PATOD \
+    oracle.install.db.InstallEdition=EE \
+    oracle.install.db.OSDBA_GROUP=dba \
+    oracle.install.db.OSBACKUPDBA_GROUP=dba \
+    oracle.install.db.OSDGDBA_GROUP=dba \
+    oracle.install.db.OSKMDBA_GROUP=kmdba \
+    oracle.install.db.OSRACDBA_GROUP=dba \
+    SECURITY_UPDATES_VIA_MYORACLESUPPORT=false \
+    DECLINE_SECURITY_UPDATES=true
+  args:
+    chdir: "/oracle/PATOD/19.3.0"
+    executable: /bin/bash  # Garante que o bash processe o export corretamente
   become: yes
   become_user: oracle
-  environment:
-    CV_ASSUME_DISTID: "RHEL8"
-    ORACLE_HOME: "{{ BASE_DIR }}/19.3.0"
-    ORACLE_BASE: "{{ BASE_DIR }}"
-    LD_LIBRARY_PATH: "{{ BASE_DIR }}/19.3.0/lib:/usr/lib64"
-  register: oracle_install_result
-  failed_when: "'Successfully Setup Software' not in oracle_install_result.stdout"
-  tags: [install, silent_installation]
+  tags: [install, run_installer]
 
 - name: "Executar script de Root (orainstRoot.sh no novo caminho)"
   ansible.builtin.shell: "{{ BASE_DIR }}/oraInventory/orainstRoot.sh"
