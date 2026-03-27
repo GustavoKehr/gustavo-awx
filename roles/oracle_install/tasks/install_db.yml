@@ -10,15 +10,6 @@
 #  become: yes
 #  tags: [install, libs]
 
-- name: "Descompactar Binários (Obrigatório após falha de compilação)"
-  ansible.builtin.unarchive:
-    src: "/tmp/oracle_sig.zip"
-    dest: "{{ BASE_DIR }}/19.3.0"
-    remote_src: yes
-    owner: oracle
-    group: oinstall
-  tags: [install, unzip_binary]
-
 - name: "Executar Instalação Silenciosa (Estilo Trabalho - Caminho Corrigido)"
   ansible.builtin.shell:
     cmd: >
