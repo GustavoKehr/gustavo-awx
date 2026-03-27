@@ -1,7 +1,9 @@
 ---
-- name: "Executar Instalação Silenciosa (Dinamismo Total)"
+- name: "Executar Instalação Silenciosa do Oracle (Dinamismo Total)"
   ansible.builtin.shell:
     cmd: >
+      export CV_ASSUME_DISTID=RHEL8;
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64;
       ./runInstaller -silent 
       -responseFile {{ BASE_DIR }}/{{ INST }}/19.3.0/install/response/db_install.rsp 
       -ignorePrereq 
@@ -25,7 +27,7 @@
   become: yes
   become_user: oracle
   environment:
-    CV_ASSUME_DISTID: "OL8"
+    CV_ASSUME_DISTID: "RHEL8"
     ORACLE_HOME: "{{ BASE_DIR }}/{{ INST }}/19.3.0"
     ORACLE_BASE: "{{ BASE_DIR }}/{{ INST }}"
   tags: [install, silent_installation]
