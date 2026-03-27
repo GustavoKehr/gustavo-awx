@@ -94,12 +94,26 @@
     mode: '0755'
   tags: [pre_install, ansible_tmp]
 
-- name: "Criar arquivo de resposta base (dinâmico)"
+- name: "Criar arquivo de resposta base (Corrigido para 19c)"
   ansible.builtin.copy:
     dest: "{{ BASE_DIR }}/{{ INST }}/19.3.0/install/response/db_install.rsp"
     content: |
-      oracle.install.responseConfigVersion=/oracle/install/rspconf.6.0.0
+      oracle.install.responseFileVersion=/oracle/install/rspconf.6.0.0
       oracle.install.option=INSTALL_DB_SWONLY
+      ORACLE_HOSTNAME={{ ansible_hostname }}
+      UNIX_GROUP_NAME=oinstall
+      INVENTORY_LOCATION={{ BASE_DIR }}/{{ INST }}/oraInventory
+      SELECTED_LANGUAGES=en
+      ORACLE_HOME={{ BASE_DIR }}/{{ INST }}/19.3.0
+      ORACLE_BASE={{ BASE_DIR }}/{{ INST }}
+      oracle.install.db.InstallEdition=EE
+      oracle.install.db.OSDBA_GROUP=dba
+      oracle.install.db.OSBACKUPDBA_GROUP=dba
+      oracle.install.db.OSDGDBA_GROUP=dba
+      oracle.install.db.OSKMDBA_GROUP=kmdba
+      oracle.install.db.OSRACDBA_GROUP=dba
+      SECURITY_UPDATES_VIA_MYORACLESUPPORT=false
+      DECLINE_SECURITY_UPDATES=true
     owner: oracle
     group: oinstall
     mode: '0644'
