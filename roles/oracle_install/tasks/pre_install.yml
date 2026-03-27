@@ -120,7 +120,7 @@
   become: yes
   tags: [install, setup_rsp]
 
-  - name: "Limpar inventário sujo para permitir re-instalação (Dinâmico)"
+- name: "Limpar inventário sujo para permitir re-instalação (Dinâmico)"
   ansible.builtin.file:
     path: "{{ BASE_DIR }}/{{ INST }}/oraInventory"
     state: absent
