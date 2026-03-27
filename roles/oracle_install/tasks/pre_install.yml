@@ -30,17 +30,14 @@
     timeout: 900  # 15 minutos para garantir o download de 3GB
   tags: [install, download_bin]
 
-- name: "Descompactar binário no ORACLE_HOME"
-  ansible.builtin.unarchive:
-    src: "/tmp/LINUX.X64_193000_db_home.zip"
-    dest: "{{ BASE_DIR }}/19.3.0"
-    remote_src: yes
-    owner: oracle
-    group: oinstall
-    creates: "{{ BASE_DIR }}/19.3.0/runInstaller"
+- name: "Descompactar binário via Shell"
+  ansible.builtin.shell: |
+    unzip -qo /tmp/LINUX.X64_193000_db_home.zip -d {{ BASE_DIR }}/19.3.0/
+  args:
+    creates: "{{ BASE_DIR }}/19.3.0/runInstaller" # Evita re-extrair se já existir
   become: yes
   become_user: oracle
-  tags: [install, unzip]
+  tags: [install, unzip_shell]
 
 - name: "Garantir permissões na raiz do Oracle (/oracle)"
   ansible.builtin.file:
@@ -68,12 +65,12 @@
   become: yes
   tags: [pre_install, inventory]
 
-- name: "Aplicar chown no BASE_DIR (Rápido via Shell)"
+- name: "Aplicar chown no BASE_DIR"
   ansible.builtin.shell: "chown -R oracle:oinstall {{ BASE_DIR }}"
   become: yes
   tags: [pre_install, storage_perms]
 
-- name: "Configurar variáveis de ambiente (.bash_profile) - Padrao Trabalho"
+- name: "Configurar variáveis de ambiente (.bash_profile)"
   ansible.builtin.blockinfile:
     path: /home/oracle/.bash_profile
     marker: "# {mark} ANSIBLE MANAGED BLOCK - ORACLE ENV"
