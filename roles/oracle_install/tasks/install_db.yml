@@ -1,9 +1,9 @@
 ---
-- name: "Executar Instalação Silenciosa (Caminho Dinâmico)"
+- name: "Executar Instalação Silenciosa (Dinamismo Total)"
   ansible.builtin.shell:
     cmd: >
       ./runInstaller -silent 
-      -responseFile {{ BASE_DIR }}/19.3.0/install/response/db_install.rsp 
+      -responseFile {{ BASE_DIR }}/{{ INST }}/19.3.0/install/response/db_install.rsp 
       -ignorePrereq 
       -waitforcompletion 
       oracle.install.option=INSTALL_DB_SWONLY 
@@ -11,8 +11,8 @@
       UNIX_GROUP_NAME=oinstall 
       INVENTORY_LOCATION={{ BASE_DIR }}/oraInventory 
       SELECTED_LANGUAGES=en 
-      ORACLE_HOME={{ BASE_DIR }}/19.3.0 
-      ORACLE_BASE={{ BASE_DIR }} 
+      ORACLE_HOME={{ BASE_DIR }}/{{ INST }}/19.3.0 
+      ORACLE_BASE={{ BASE_DIR }}/{{ INST }} 
       oracle.install.db.InstallEdition=EE 
       oracle.install.db.OSDBA_GROUP=dba 
       oracle.install.db.OSBACKUPDBA_GROUP=dba 
@@ -21,15 +21,13 @@
       oracle.install.db.OSRACDBA_GROUP=dba 
       SECURITY_UPDATES_VIA_MYORACLESUPPORT=false 
       DECLINE_SECURITY_UPDATES=true
-    chdir: "{{ BASE_DIR }}/19.3.0"
+    chdir: "{{ BASE_DIR }}/{{ INST }}/19.3.0"
   become: yes
   become_user: oracle
   environment:
     CV_ASSUME_DISTID: "OL8"
-    ORACLE_HOME: "{{ BASE_DIR }}/19.3.0"
-    ORACLE_BASE: "{{ BASE_DIR }}"
-  register: oracle_install_result
-  failed_when: "'Successfully Setup Software' not in oracle_install_result.stdout"
+    ORACLE_HOME: "{{ BASE_DIR }}/{{ INST }}/19.3.0"
+    ORACLE_BASE: "{{ BASE_DIR }}/{{ INST }}"
   tags: [install, silent_installation]
 
 - name: "Executar orainstRoot.sh (Dinâmico)"
