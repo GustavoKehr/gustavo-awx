@@ -42,16 +42,21 @@
   become: yes
   tags: [pre_install, storage_perms]
 
-- name: "Configurar variáveis de ambiente (.bash_profile)"
+- name: "Configurar variáveis de ambiente (.bash_profile) - Padrao Trabalho"
   ansible.builtin.blockinfile:
     path: /home/oracle/.bash_profile
     marker: "# {mark} ANSIBLE MANAGED BLOCK - ORACLE ENV"
     block: |
-      export ORACLE_SID={{ INST }}
-      export ORACLE_BASE={{ BASE_DIR }}
-      export ORACLE_HOME={{ BASE_DIR }}/19.3.0
-      export PATH=$ORACLE_HOME/bin:$PATH
-      export LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib
+      umask 0022
+      TMOUT=1800
+      ORACLE_BASE={{ BASE_DIR }};export ORACLE_BASE
+      ORACLE_HOME=$ORACLE_BASE/19.3.0;export ORACLE_HOME
+      ORACLE_SID={{ INST }};export ORACLE_SID
+      PATH=$ORACLE_HOME/bin:$PATH;export PATH
+      LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib;export LD_LIBRARY_PATH
+      ORACLE_HOSTNAME=`hostname`;export ORACLE_HOSTNAME
+      CV_ASSUME_DISTID=RHEL8;export CV_ASSUME_DISTID
+  become: yes
   tags: [pre_install, env]
 
 - name: "Garantir permissões na pasta tmp do Ansible para o usuário oracle"
