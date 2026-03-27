@@ -142,23 +142,21 @@
   become: yes
   tags: [install, setup_dirs]
 
-- name: "Instalar bibliotecas de compatibilidade para linkagem no EL9"
+- name: "Instalar bibliotecas de compatibilidade (RHEL 9)"
   ansible.builtin.dnf:
     name:
-      - libxcrypt-compat  # ESSENCIAL: Sem isso o erro ohso ocorre no EL9
-      - libnsl            # Biblioteca de rede antiga
-      - make              # Para rodar o ins_rdbms.mk
-      - binutils          # Para o linker (ld)
-      - glibc-devel       # Headers da glibc
+      - libnsl
+      - libnsl.i686
+      - libxcrypt-compat
     state: present
   become: yes
-  tags: [pre_install, fix_linkage]
+  tags: [install, libs]
 
-- name: "Criar link simbólico de compatibilidade para libnsl (Fix EL9)"
-  ansible.builtin.file:
-    src: "/usr/lib64/libnsl.so.2"
-    dest: "/usr/lib64/libnsl.so.1"
-    state: link
-    force: yes
+- name: "Criar links simbólicos para libnsl.so.1 (64 e 32 bits)"
+  ansible.builtin.shell: |
+    # Link para 64 bits
+    [ -f /usr/lib64/libnsl.so.2 ] && ln -sf /usr/lib64/libnsl.so.2 /usr/lib64/libnsl.so.1
+    # Link para 32 bits (o Perl do Oracle as vezes pede esta)
+    [ -f /usr/lib/libnsl.so.2 ] && ln -sf /usr/lib/libnsl.so.2 /usr/lib/libnsl.so.1
   become: yes
-  tags: [pre_install, fix_el9_libnsl]
+  tags: [install, libs]
