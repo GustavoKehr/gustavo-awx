@@ -36,7 +36,6 @@
     \$\$;"
   become: true
   become_user: postgres
-  no_log: true
   changed_when: true
   when: db_user.state | default('present') == 'present'
   tags: [postgres, postgres_users, postgres_user]
