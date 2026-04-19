@@ -117,6 +117,7 @@
     DO \$\$
     BEGIN
       IF EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ db_user.username }}') THEN
+        DROP OWNED BY {{ db_user.username }};
         EXECUTE format('DROP ROLE %I', '{{ db_user.username }}');
       END IF;
     END;
