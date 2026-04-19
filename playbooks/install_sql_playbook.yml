@@ -1,0 +1,49 @@
+---
+- name: "Instalação SQL Server 2025"
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: "FASE 1: Storage"
+      ansible.builtin.include_role:
+        name: storage_setup
+      tags: [storage, infra]
+
+    - name: "FASE 2: Security"
+      ansible.builtin.include_role:
+        name: security_hardening
+      tags: [security, sql_pre]
+
+    - name: "FASE 3: Pre-reqs"
+      ansible.builtin.include_role:
+        name: sql_pre_reqs
+      tags: [sql_pre, infra]
+
+    - name: "FASE 4: Instalação"
+      ansible.builtin.include_role:
+        name: sql_install
+      tags: [sql_install, app]
+
+    - name: "FASE 5: Post-Install"
+      ansible.builtin.include_role:
+        name: sql_post_config
+      tags: [sql_post, database]
+
+    - name: "FASE 6: Gerenciar usuários SQL Server (opcional)"
+      ansible.builtin.include_role:
+        name: sql_manage_users
+      when:
+        - sql_manage_users_enabled | default(false) | bool
+          or ('sql_users' in (ansible_run_tags | default([])))
+      tags: [sql_users, database]
+
+    - name: "FASE 7: Descobrir patches locais (sem aplicar)"
+      ansible.builtin.include_role:
+        name: db_patches
+      when:
+        - db_patches_enabled | default(false) | bool
+          or ('db_patches' in (ansible_run_tags | default([])))
+      vars:
+        db_patch_platform: "sqlserver"
+      tags: [db_patches, patching]

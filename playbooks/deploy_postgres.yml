@@ -1,0 +1,29 @@
+---
+- name: "Deploy and harden PostgreSQL server"
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: "Phase 1: Install and harden PostgreSQL"
+      ansible.builtin.include_role:
+        name: postgres_install
+      tags: [postgres, postgres_install, bootstrap]
+
+    - name: "Phase 2: Optional PostgreSQL user management from survey"
+      ansible.builtin.include_role:
+        name: postgres_manage_users
+      when:
+        - postgres_manage_users_enabled | default(false) | bool
+          or ('postgres_users' in (ansible_run_tags | default([])))
+      tags: [postgres, postgres_users, post_install]
+
+    - name: "Phase 3: Discover local DB patches (no apply)"
+      ansible.builtin.include_role:
+        name: db_patches
+      when:
+        - db_patches_enabled | default(false) | bool
+          or ('db_patches' in (ansible_run_tags | default([])))
+      vars:
+        db_patch_platform: "postgres"
+      tags: [postgres, db_patches, patching]

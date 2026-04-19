@@ -1,0 +1,15 @@
+/var/log/hawkey.log {
+    missingok
+    notifempty
+    rotate 12
+    monthly
+}
+
+/var/log/dnf.log {
+    missingok
+    notifempty
+    rotate 24
+    compress
+    delaycompress
+    create 0644 root root
+}

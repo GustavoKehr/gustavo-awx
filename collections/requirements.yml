@@ -1,0 +1,19 @@
+---
+# Manifest of collections this project needs
+# (ansible.windows, community.windows, community.mysql, community.postgresql).
+# Offline AWX: copy expanded collections under /opt/collections on the AWX/EE host, e.g.
+#   /opt/collections/ansible_collections/ansible/windows/
+#   /opt/collections/ansible_collections/community/windows/
+# ansible.cfg sets collections_paths to /opt/collections first so jobs do not need Galaxy.
+#
+# To populate /opt/collections from a machine with internet (then copy the tree to AWX):
+#   ansible-galaxy collection install -r collections/requirements.yml -p /opt/collections
+#
+# In AWX: disable "Install collections" / clear the collection requirements file on the
+# Project so sync does not call ansible-galaxy against the internet.
+collections:
+  - name: ansible.windows
+  - name: community.windows
+  - name: community.mysql
+  - name: community.postgresql
+  - name: community.general

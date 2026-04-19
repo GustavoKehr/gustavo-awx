@@ -1,0 +1,20 @@
+---
+- name: "Red Hat Installation Guide — Baseline & Hardening"
+  hosts: "{{ servidores | default('all') }}"
+  become: true
+  gather_facts: true
+  serial: 10
+  max_fail_percentage: 10
+
+  roles:
+    - role: baseline_system
+      tags: [baseline_system]
+
+    - role: shell_environment
+      tags: [shell_environment]
+
+    - role: hardening_security
+      tags: [hardening_security]
+
+    - role: monitoring_logs
+      tags: [monitoring_logs]

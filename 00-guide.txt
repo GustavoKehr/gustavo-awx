@@ -1,0 +1,815 @@
+00-guide.yml
+
+- name: Red Hat Installation Guide
+  hosts: '{{ servidores }}'
+  become: true
+  gather_facts: true
+  serial: 10 #Executa em 10 servidores por vez
+  max_fail_percentage: 10 #Se mais de 10% falharem, o playbook para.
+  
+
+  roles:
+    - role: baseline_system
+      tags: [baseline_system]
+
+    - role: shell_environment
+      tags: [shell_environment]
+
+    - role: hardening_security
+      tags: [hardening_security]
+
+    - role: monitoring_logs
+      tags: [monitoring_logs]
+
+
+
+basesile_system
+	defaults
+		main.yml
+			---
+disable_ipv6: true
+disable_firewalld: true
+journald_storage: persistent
+
+install_baseline_packages: true
+
+# ------------------------------------------------
+# Baseline packages organized by category
+# ------------------------------------------------
+
+baseline_packages_network:
+  - net-tools
+  - bind-utils
+  - tcpdump
+  - nmap
+
+baseline_packages_tools:
+  - vim-enhanced
+  - curl
+  - wget
+  - tree
+  - unzip
+  - lsof
+  - psmisc
+
+baseline_packages_monitoring:
+  - sysstat
+  - iptraf-ng
+
+baseline_packages_misc:
+  - rsync
+  - bash-completion
+  - ed
+  - ftp
+  - yum-utils
+  - mlocate
+  - bzip2
+  - telnet
+
+# Final merged list used by the role
+baseline_packages: >
+  {{
+    baseline_packages_network +
+    baseline_packages_tools +
+    baseline_packages_monitoring +
+    baseline_packages_misc
+  }}
+
+# ------------------------------------------------
+# Chrony / NTP configuration
+# ------------------------------------------------
+
+chrony_enabled: true
+
+chrony_servers:
+  - "105.103.1.176"
+  - "105.103.1.177"
+
+chrony_comment_makestep: true
+chrony_leapsecmode: "slew"
+
+# rc.local requirement for forced time sync
+chrony_rc_local_enabled: true
+chrony_rc_local_server: "105.103.1.176"
+
+handlers
+	main.yml	
+		---
+- name: restart journald
+  ansible.builtin.systemd:
+    name: systemd-journald
+    state: restarted
+
+- name: restart chronyd
+  ansible.builtin.systemd:
+    name: chronyd
+    state: restarted
+  when: not ansible_check_mode
+  
+	tasks
+		chrony.yml
+			---
+# 3.9 - Configurar Chrony (NTP)
+
+- name: "3.9 - Garantir que chrony está instalado"
+  ansible.builtin.package:
+    name: chrony
+    state: present
+  when: chrony_enabled | bool
+
+- name: "3.9 - Aplicar /etc/chrony.conf"
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony.conf
+    owner: root
+    group: root
+    mode: "0644"
+  when: chrony_enabled | bool
+  notify: restart chronyd
+
+- name: "3.9 - Habilitar e iniciar chronyd"
+  ansible.builtin.systemd:
+    name: chronyd
+    enabled: true
+    state: started
+  when:
+    - chrony_enabled | bool
+    - not ansible_check_mode
+
+---
+# 3.5 - Desabilitar atalho CTRL+ALT+DEL
+
+- name: "3.5 - Desabilitar atalho CTRL+ALT+DEL"
+  ansible.builtin.systemd:
+    name: ctrl-alt-del.target
+    masked: true
+    enabled: false
+    state: stopped
+    daemon_reload: true
+
+- name: "3.5 - Garantir ctrl-alt-del.target mascarado via /dev/null"
+  ansible.builtin.file:
+    src: /dev/null
+    dest: /etc/systemd/system/ctrl-alt-del.target
+    state: link
+    force: true
+
+- name: "3.5 - Recarregar systemd"
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+---
+# 3.2 - Desabilitar Firewalld
+
+- name: "3.2 - Desabilitar Firewalld"
+  ansible.builtin.systemd:
+    name: firewalld
+    enabled: false
+    state: stopped
+    masked: true
+  when: disable_firewalld | bool
+
+---
+# 3.3 - Desabilitar IPv6 via GRUB
+
+- name: "3.3 - Verificar parâmetros atuais do kernel"
+  ansible.builtin.command:
+    cmd: cat /proc/cmdline
+  register: grub_cmdline
+  changed_when: false
+  when: disable_ipv6 | bool
+
+- name: "3.3 - Verificar se grubby está disponível"
+  ansible.builtin.command:
+    cmd: command -v grubby
+  register: grubby_check
+  changed_when: false
+  failed_when: false
+  when: disable_ipv6 | bool
+
+- name: "3.3 - Aplicar ipv6.disable=1 em todos os kernels"
+  ansible.builtin.command:
+    cmd: grubby --update-kernel=ALL --args="ipv6.disable=1"
+  when:
+    - disable_ipv6 | bool
+    - grubby_check.rc == 0
+    - "'ipv6.disable=1' not in grub_cmdline.stdout"
+
+- name: "3.3 - Informar que alteração foi aplicada (reboot externo)"
+  ansible.builtin.debug:
+    msg: "ipv6.disable=1 aplicado via GRUB. Reboot será realizado posteriormente."
+  when:
+    - disable_ipv6 | bool
+    - grubby_check.rc == 0
+    - "'ipv6.disable=1' not in grub_cmdline.stdout"
+
+---
+# 3.4 - Configurar journald para logs persistentes
+
+- name: "3.4 - Garantir diretório persistente do journald (/var/log/journal)"
+  ansible.builtin.file:
+    path: /var/log/journal
+    state: directory
+    owner: root
+    group: systemd-journal
+    mode: "2755"
+
+- name: "3.4 - Configurar journald Storage={{ journald_storage }}"
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/journald.conf
+    regexp: "^#?Storage="
+    line: "Storage={{ journald_storage | lower }}"
+    create: true
+  notify: restart journald
+
+
+---
+- import_tasks: packages.yml
+  tags: [baseline_system, packages, guide_3_8]
+
+- import_tasks: firewall.yml
+  tags: [baseline_system, firewalld, guide_3_2]
+
+- import_tasks: ipv6.yml
+  tags: [baseline_system, ipv6, guide_3_3]
+
+- import_tasks: journald.yml
+  tags: [baseline_system, journald, guide_3_4]
+
+- import_tasks: ctrlaltdel.yml
+  tags: [baseline_system, ctrlaltdel, guide_3_5]
+
+- import_tasks: chrony.yml
+  tags: [baseline_system, chrony, guide_3_9]
+
+- import_tasks: rclocal.yml
+  tags: [baseline_system, rclocal, guide_3_10]
+
+---
+- name: "3.8 - Instalar pacotes necessários"
+  ansible.builtin.dnf:
+    name: "{{ baseline_packages }}"
+    state: present
+    update_cache: true
+    lock_timeout: 300
+  when: install_baseline_packages | bool
+
+
+---
+# 3.10 - Configurar "/etc/rc.local"
+
+- name: "3.10 - Garantir /etc/rc.d/rc.local"
+  ansible.builtin.template:
+    src: rc.local.j2
+    dest: /etc/rc.d/rc.local
+    owner: root
+    group: root
+    mode: "0755"
+  when: chrony_rc_local_enabled | bool
+
+- name: "3.10 - Garantir link /etc/rc.local -> /etc/rc.d/rc.local"
+  ansible.builtin.file:
+    src: /etc/rc.d/rc.local
+    dest: /etc/rc.local
+    state: link
+    force: true
+  when: chrony_rc_local_enabled | bool
+
+- name: "3.10 - Recarregar systemd rc-local"
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: chrony_rc_local_enabled | bool
+
+- name: "3.10 - Iniciar rc-local.service"
+  ansible.builtin.systemd:
+    name: rc-local.service
+    state: started
+  when: chrony_rc_local_enabled | bool
+
+
+templates/
+	chrony.conf.j2
+		# Managed by Ansible - baseline_system
+#
+# Use public servers from the pool.ntp.org project.
+# Please consider joining the pool (https://www.pool.ntp.org/join.html).
+
+{% for s in chrony_servers %}
+server {{ s }} iburst
+{% endfor %}
+
+# Use NTP servers from DHCP.
+sourcedir /run/chrony-dhcp
+
+# Record the rate at which the system clock gains/losses time.
+driftfile /var/lib/chrony/drift
+
+# Allow the system clock to be stepped in the first three updates
+# if its offset is larger than 1 second.
+# makestep 1.0 3
+
+# Enable kernel synchronization of the real-time clock (RTC).
+rtcsync
+
+# Enable hardware timestamping on all interfaces that support it.
+#hwtimestamp *
+
+# Increase the minimum number of selectable sources required to adjust
+# the system clock.
+#minsources 2
+
+# Allow NTP client access from local network.
+#allow 192.168.0.0/16
+
+# Serve time even if not synchronized to a time source.
+#local stratum 10
+
+# Require authentication (nts or key option) for all NTP sources.
+#authselectmode require
+
+# Specify file containing keys for NTP authentication.
+keyfile /etc/chrony.keys
+
+# Save NTS keys and cookies.
+ntsdumpdir /var/lib/chrony
+
+# Insert/delete leap seconds by slewing instead of stepping.
+leapsecmode slew
+
+# Get TAI-UTC offset and leap seconds from the system tz database.
+leapsectz right/UTC
+
+# Specify directory for log files.
+logdir /var/log/chrony
+
+# Select which information is logged.
+#log measurements statistics tracking
+
+rc.local.j2
+	#!/bin/bash
+# Managed by Ansible - baseline_system
+# Security requirement: force time sync on boot
+
+systemctl stop chronyd
+chronyd -t 6 -q "server {{ chrony_rc_local_server }} iburst"
+hwclock -w
+systemctl start chronyd
+
+
+hardening_security	var.conf
+f /var/log/wtmp 0600 root utmp -
+f /var/log/btmp 0600 root utmp -
+
+
+handlers
+	---
+- name: restart sshd
+  ansible.builtin.systemd:
+    name: sshd
+    state: restarted
+
+- name: reload systemd
+  ansible.builtin.command: systemctl daemon-reload
+  changed_when: false
+  
+  tasks
+  ---
+#####################################
+# Hardening e Políticas de Segurança
+# RHEL 7 / 8 / 9 / 10
+# Idempotente + PROD-safe
+#####################################
+
+#####################################
+# 4.0 - Backup date (necessário)
+#####################################
+- name: "4.0 - Define backup_date"
+  ansible.builtin.set_fact:
+    backup_date: "{{ ansible_date_time.date }}_{{ ansible_date_time.time | regex_replace(':', '') }}"
+  tags: [hardening_security]
+
+#####################################
+# 4.1 Política de Senhas – /etc/login.defs (PROD-safe)
+# - Backup só se houver mudança
+# - Sem backup: true em cada lineinfile
+# - Idempotente
+#####################################
+
+- name: "4.1 - Stat /etc/login.defs"
+  ansible.builtin.stat:
+    path: /etc/login.defs
+  register: login_defs_stat
+  tags: [hardening_security, login_defs]
+
+- name: "4.1 - Ensure PASS_MAX_DAYS 90"
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^\s*PASS_MAX_DAYS\s+'
+    line: 'PASS_MAX_DAYS   90'
+    create: false
+  register: ld_max
+  when: login_defs_stat.stat.exists
+  tags: [hardening_security, login_defs]
+
+- name: "4.1 - Ensure PASS_MIN_DAYS 7"
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^\s*PASS_MIN_DAYS\s+'
+    line: 'PASS_MIN_DAYS   7'
+    create: false
+  register: ld_min
+  when: login_defs_stat.stat.exists
+  tags: [hardening_security, login_defs]
+
+- name: "4.1 - Ensure PASS_WARN_AGE 7"
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^\s*PASS_WARN_AGE\s+'
+    line: 'PASS_WARN_AGE   7'
+    create: false
+  register: ld_warn
+  when: login_defs_stat.stat.exists
+  tags: [hardening_security, login_defs]
+
+- name: "4.1 - Ensure PASS_MIN_LEN 8"
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^\s*PASS_MIN_LEN\s+'
+    line: 'PASS_MIN_LEN    8'
+    create: false
+  register: ld_len
+  when: login_defs_stat.stat.exists
+  tags: [hardening_security, login_defs]
+
+- name: "4.1 - Backup /etc/login.defs (only if changed)"
+  ansible.builtin.copy:
+    src: /etc/login.defs
+    dest: "/etc/login.defs.{{ backup_date }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - login_defs_stat.stat.exists
+    - (ld_max.changed or ld_min.changed or ld_warn.changed or ld_len.changed)
+  tags: [hardening_security, login_defs]
+
+#####################################
+# 4.2 Configurações SSH (guide-only, idempotente + backup só se mudar)
+#####################################
+
+- name: "4.2 - Stat /etc/ssh/sshd_config"
+  ansible.builtin.stat:
+    path: /etc/ssh/sshd_config
+  register: sshd_conf_stat
+  tags: [hardening_security, ssh]
+
+- name: "4.2 - Configure SSH hardening options"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^\s*#?\s*{{ item.key }}\b.*'
+    line: "{{ item.key }} {{ item.value }}"
+    create: false
+  loop:
+    - { key: "LoginGraceTime",      value: "0" }
+    - { key: "ClientAliveInterval", value: "0" }
+    - { key: "UseDNS",              value: "no" }
+    - { key: "PermitRootLogin",     value: "no" }
+  register: ssh_main
+  when: sshd_conf_stat.stat.exists
+  tags: [hardening_security, ssh]
+
+- name: "4.2 - Ensure SSH Port 22"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^\s*Port\s+22\b'
+    line: "Port 22"
+    insertafter: EOF
+    create: false
+  register: ssh_port_22
+  when: sshd_conf_stat.stat.exists
+  tags: [hardening_security, ssh]
+
+- name: "4.2 - Ensure SSH Port 20022"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^\s*Port\s+20022\b'
+    line: "Port 20022"
+    insertafter: EOF
+    create: false
+  register: ssh_port_20022
+  when: sshd_conf_stat.stat.exists
+  tags: [hardening_security, ssh]
+
+- name: "4.2 - Backup /etc/ssh/sshd_config (only if changed)"
+  ansible.builtin.copy:
+    src: /etc/ssh/sshd_config
+    dest: "/etc/ssh/sshd_config.{{ backup_date }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0600"
+  when:
+    - sshd_conf_stat.stat.exists
+    - (ssh_main.changed or ssh_port_22.changed or ssh_port_20022.changed)
+  tags: [hardening_security, ssh]
+
+- name: "4.2 - Validate sshd config (only if changed)"
+  ansible.builtin.command: sshd -t
+  changed_when: false
+  when:
+    - sshd_conf_stat.stat.exists
+    - (ssh_main.changed or ssh_port_22.changed or ssh_port_20022.changed)
+  tags: [hardening_security, ssh]
+
+- name: "4.2 - Restart sshd (only if changed)"
+  ansible.builtin.systemd:
+    name: sshd
+    state: restarted
+  when:
+    - sshd_conf_stat.stat.exists
+    - (ssh_main.changed or ssh_port_22.changed or ssh_port_20022.changed)
+  tags: [hardening_security, ssh]
+
+
+#####################################
+# 4.3 Sysstat – HISTORY=90
+#####################################
+- name: "4.3 - Check if /etc/sysconfig/sysstat exists"
+  ansible.builtin.stat:
+    path: /etc/sysconfig/sysstat
+  register: sysstat_conf
+  tags: [hardening_security, sysstat]
+
+- name: "4.3 - Set sysstat HISTORY=90"
+  ansible.builtin.lineinfile:
+    path: /etc/sysconfig/sysstat
+    regexp: '^\s*#?\s*HISTORY='
+    line: 'HISTORY=90'
+    create: false
+  when: sysstat_conf.stat.exists
+  tags: [hardening_security, sysstat]
+
+#####################################
+# 4.4 PAM
+#####################################
+# 4.4.1 faillock
+- name: "4.4.1 - Check if /etc/security/faillock.conf exists"
+  ansible.builtin.stat:
+    path: /etc/security/faillock.conf
+  register: faillock_conf
+  tags: [hardening_security, pam, faillock]
+
+- name: "4.4.1 - Configure faillock"
+  ansible.builtin.lineinfile:
+    path: /etc/security/faillock.conf
+    regexp: '^\s*#?\s*{{ item.key }}\s*='
+    line: "{{ item.key }} = {{ item.value }}"
+    create: false
+  loop:
+    - { key: "deny", value: "4" }
+    - { key: "unlock_time", value: "1800" }
+  when: faillock_conf.stat.exists
+  tags: [hardening_security, pam, faillock]
+
+# 4.4.2 pwhistory
+- name: "4.4.2 - Check if /etc/security/pwhistory.conf exists"
+  ansible.builtin.stat:
+    path: /etc/security/pwhistory.conf
+  register: pwhistory_conf
+  tags: [hardening_security, pam, pwhistory]
+
+- name: "4.4.2 - Configure pwhistory"
+  ansible.builtin.lineinfile:
+    path: /etc/security/pwhistory.conf
+    regexp: '^\s*#?\s*remember\s*='
+    line: "remember = 2"
+    create: false
+  when: pwhistory_conf.stat.exists
+  tags: [hardening_security, pam, pwhistory]
+
+# 4.4.3 pwquality
+- name: "4.4.3 - Check if /etc/security/pwquality.conf exists"
+  ansible.builtin.stat:
+    path: /etc/security/pwquality.conf
+  register: pwquality_conf
+  tags: [hardening_security, pam, pwquality]
+
+- name: "4.4.3 - Configure pwquality"
+  ansible.builtin.lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: '^\s*#?\s*{{ item.key }}\s*='
+    line: "{{ item.key }} = {{ item.value }}"
+    create: false
+  loop:
+    - { key: "minlen", value: "8" }
+    - { key: "dcredit", value: "-1" }
+    - { key: "ucredit", value: "-1" }
+    - { key: "lcredit", value: "-1" }
+    - { key: "ocredit", value: "-1" }
+    - { key: "minclass", value: "1" }
+    - { key: "maxrepeat", value: "2" }
+    - { key: "maxclassrepeat", value: "0" }
+  when: pwquality_conf.stat.exists
+  tags: [hardening_security, pam, pwquality]
+
+#####################################
+# 4.5 Expiração de senha (root/serverteam)
+#####################################
+- name: "4.5 - Set chage for root"
+  ansible.builtin.command: "chage -m 1 -M 90 -d {{ ansible_date_time.date }} root"
+  changed_when: false
+  tags: [hardening_security, chage]
+
+- name: "4.5 - Check if serverteam exists"
+  ansible.builtin.command: getent passwd serverteam
+  register: serverteam_check
+  changed_when: false
+  failed_when: false
+  tags: [hardening_security, chage]
+
+- name: "4.5 - Set chage for serverteam (if exists)"
+  ansible.builtin.command: "chage -m 1 -M 90 -d {{ ansible_date_time.date }} serverteam"
+  when: serverteam_check.rc == 0
+  changed_when: false
+  tags: [hardening_security, chage]
+
+#####################################
+# 4.6 Permissões em binários
+#####################################
+- name: "4.6 - Restrict /usr/bin/last"
+  ansible.builtin.file:
+    path: /usr/bin/last
+    mode: "0700"
+    owner: root
+    group: root
+  tags: [hardening_security, perms]
+
+- name: "4.6 - Check if /usr/sbin/ifconfig exists"
+  ansible.builtin.stat:
+    path: /usr/sbin/ifconfig
+  register: ifconfig_bin
+  tags: [hardening_security, perms]
+
+- name: "4.6 - Restrict /usr/sbin/ifconfig"
+  ansible.builtin.file:
+    path: /usr/sbin/ifconfig
+    mode: "0700"
+    owner: root
+    group: root
+  when: ifconfig_bin.stat.exists
+  tags: [hardening_security, perms]
+
+#####################################
+# 4.7 Banner + MOTD
+#####################################
+- name: "4.7 - Deploy /etc/banner"
+  ansible.builtin.template:
+    src: banner.j2
+    dest: /etc/banner
+    owner: root
+    group: root
+    mode: "0644"
+  register: banner_deploy
+  tags: [hardening_security, banner]
+
+- name: "4.7 - Ensure SSH Banner"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^\s*#?\s*Banner\b'
+    line: "Banner /etc/banner"
+    create: false
+  register: ssh_banner
+  tags: [hardening_security, banner, ssh]
+
+- name: "4.7 - Deploy /etc/motd"
+  ansible.builtin.template:
+    src: motd.j2
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [hardening_security, banner]
+
+- name: "4.7 - Validate sshd (banner) (only if changed)"
+  ansible.builtin.command: sshd -t
+  changed_when: false
+  when: banner_deploy.changed or ssh_banner.changed
+  tags: [hardening_security, banner, ssh]
+
+- name: "4.7 - Restart sshd (banner) (only if changed)"
+  ansible.builtin.systemd:
+    name: sshd
+    state: restarted
+  when: banner_deploy.changed or ssh_banner.changed
+  tags: [hardening_security, banner, ssh]
+
+#####################################
+# 4.8 Sysstat timer (every minute)
+#####################################
+- name: "4.8 - Check if sysstat-collect.timer exists"
+  ansible.builtin.command: systemctl cat sysstat-collect.timer
+  register: sysstat_timer_cat
+  changed_when: false
+  failed_when: false
+  tags: [hardening_security, sysstat_timer]
+
+- name: "4.8 - Ensure override dir"
+  ansible.builtin.file:
+    path: /etc/systemd/system/sysstat-collect.timer.d
+    state: directory
+    mode: "0755"
+  when: sysstat_timer_cat.rc == 0
+  tags: [hardening_security, sysstat_timer]
+
+- name: "4.8 - Deploy sysstat timer override"
+  ansible.builtin.template:
+    src: sysstat-collect-override.conf.j2
+    dest: /etc/systemd/system/sysstat-collect.timer.d/override.conf
+    mode: "0644"
+  register: sysstat_override
+  when: sysstat_timer_cat.rc == 0
+  tags: [hardening_security, sysstat_timer]
+
+- name: "4.8 - Reload systemd"
+  ansible.builtin.command: systemctl daemon-reload
+  changed_when: false
+  when: sysstat_timer_cat.rc == 0 and sysstat_override.changed
+  tags: [hardening_security, sysstat_timer]
+
+- name: "4.8 - Enable/start sysstat timer"
+  ansible.builtin.systemd:
+    name: sysstat-collect.timer
+    enabled: true
+    state: started
+  when: sysstat_timer_cat.rc == 0
+  tags: [hardening_security, sysstat_timer]
+
+#####################################
+# 4.9 UTMP / BTMP
+#####################################
+- name: "4.9 - Deploy tmpfiles var.conf"
+  ansible.builtin.copy:
+    src: var.conf
+    dest: /etc/tmpfiles.d/var.conf
+    mode: "0644"
+  register: tmpfiles_conf
+  tags: [hardening_security, tmpfiles]
+
+- name: "4.9 - Apply tmpfiles"
+  ansible.builtin.command: systemd-tmpfiles --create /etc/tmpfiles.d/var.conf
+  changed_when: false
+  when: tmpfiles_conf.changed
+  tags: [hardening_security, tmpfiles]
+
+- name: "4.9 - Enforce wtmp perms"
+  ansible.builtin.file:
+    path: /var/log/wtmp
+    owner: root
+    group: utmp
+    mode: "0600"
+  tags: [hardening_security, tmpfiles]
+
+- name: "4.9 - Enforce btmp perms"
+  ansible.builtin.file:
+    path: /var/log/btmp
+    owner: root
+    group: utmp
+    mode: "0600"
+  tags: [hardening_security, tmpfiles]
+
+
+
+templates banner.j2
+
+########################## W A R N I N G - L E G A L  N O T I C E ##########################
+##                                                                                        ##
+## This computer system is the property of the . It is for authorized use only.    ##
+## By using this system, all users acknowledge notice of, and agree to comply with, the   ##
+##  Security Policy. Unauthorized or improper use of this system may result in   ##
+## administrative disciplinary action, civil charges/criminal penalties, and/or other     ##
+## sanctions as set forth in the Security Policy.By continuing to use this system ##
+## you indicate your awareness of and consent to these terms and conditions of use.       ##
+##                                                                                        ##
+## LOG OFF IMMEDIATELY if you do not agree to the conditions stated in this warning.       ##
+##                                                                                        ##
+############################################################################################
+
+logrotate-btmp.j2
+/var/log/btmp {
+    missingok
+    monthly
+    create 0600 root utmp
+    rotate 12
+}
+
+
+sysstat-collect-override.conf.j2
+[Unit]
+Description=Run system activity accounting tool every 1 minutes
+
+[Timer]
+OnCalendar=
+OnCalendar=*:*:00
+
+

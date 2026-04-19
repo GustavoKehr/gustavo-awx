@@ -1,0 +1,32 @@
+---
+- name: "3.1 - Ensure /etc/selinux/config exists"
+  ansible.builtin.stat:
+    path: /etc/selinux/config
+  register: selinux_config_stat
+  tags: [baseline_system, selinux, guide_3_1]
+
+- name: "3.1 - Set SELINUX=disabled"
+  ansible.builtin.lineinfile:
+    path: /etc/selinux/config
+    regexp: '^\s*SELINUX\s*='
+    line: 'SELINUX=disabled'
+    create: false
+  when: selinux_config_stat.stat.exists
+  register: selinux_cfg_change
+  tags: [baseline_system, selinux, guide_3_1]
+
+- name: "3.1 - Set SELINUXTYPE=targeted"
+  ansible.builtin.lineinfile:
+    path: /etc/selinux/config
+    regexp: '^\s*SELINUXTYPE\s*='
+    line: 'SELINUXTYPE=targeted'
+    create: false
+  when: selinux_config_stat.stat.exists
+  tags: [baseline_system, selinux, guide_3_1]
+
+- name: "3.1 - Disable SELinux at runtime (setenforce 0)"
+  ansible.builtin.command: setenforce 0
+  changed_when: false
+  failed_when: false
+  when: selinux_config_stat.stat.exists
+  tags: [baseline_system, selinux, guide_3_1]

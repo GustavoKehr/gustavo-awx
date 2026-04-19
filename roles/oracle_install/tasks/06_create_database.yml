@@ -1,0 +1,61 @@
+---
+- name: "DBCREATE | Add Oracle to /etc/oratab"
+  ansible.builtin.lineinfile:
+    path: /etc/oratab
+    line: "{{ oracle_sid }}:{{ oracle_home }}:Y"
+    create: true
+    owner: oracle
+    group: oinstall
+    mode: "0664"
+  tags: oracle_dbcreate
+
+- name: "DBCREATE | Run database creation script"
+  ansible.builtin.shell: |
+    export ORACLE_BASE={{ oracle_base }}
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH={{ oracle_home }}/bin:{{ oracle_home }}/perl/bin:$PATH
+    export LD_LIBRARY_PATH={{ oracle_home }}/lib:/lib:/usr/lib
+    {{ oracle_scripts_dir }}/{{ oracle_sid }}.sh
+  become: true
+  become_user: oracle
+  register: dbcreate_result
+  changed_when: true
+  tags: oracle_dbcreate
+
+- name: "DBCREATE | Show creation output summary"
+  ansible.builtin.debug:
+    msg: "{{ dbcreate_result.stdout_lines[-30:] }}"
+  tags: oracle_dbcreate
+
+- name: "DBCREATE | Verify database is open"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH={{ oracle_home }}/bin:$PATH
+    sqlplus -s / as sysdba <<EOF
+    SELECT status FROM v\$instance;
+    EXIT;
+    EOF
+  become: true
+  become_user: oracle
+  register: db_status
+  changed_when: false
+  tags: oracle_dbcreate
+
+- name: "DBCREATE | Assert database is OPEN"
+  ansible.builtin.assert:
+    that: "'OPEN' in db_status.stdout"
+    fail_msg: "Database did not reach OPEN status. Check {{ oracle_scripts_dir }}/CreateDB.log"
+  tags: oracle_dbcreate
+
+- name: "DBCREATE | Apply Users_and_Objects profile settings"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH={{ oracle_home }}/bin:$PATH
+    sqlplus -s "/ as sysdba" @{{ oracle_scripts_dir }}/Users_and_Objects.sql
+  become: true
+  become_user: oracle
+  changed_when: true
+  tags: oracle_dbcreate

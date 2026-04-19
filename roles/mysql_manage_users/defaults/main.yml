@@ -1,0 +1,18 @@
+---
+# Survey-driven inputs.
+db_username: ""
+db_user_host: ""
+db_password: ""
+db_privileges: "SELECT"
+db_target_databases: []
+
+# Operation behavior.
+db_user_state: present         # present | absent
+db_revoke_access: false        # true = revoke db_privileges from db_target_databases
+db_append_privileges: false    # true = append grants instead of replacing
+db_manage_databases: false     # true = create db_target_databases when state=present
+
+# Connection for community.mysql modules.
+mysql_login_unix_socket:
+  RedHat: /var/lib/mysql/mysql.sock
+  Debian: /var/run/mysqld/mysqld.sock

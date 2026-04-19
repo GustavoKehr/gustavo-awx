@@ -1,0 +1,33 @@
+---
+# 3.3 - Desabilitar IPv6 via GRUB
+
+- name: "3.3 - Verificar parâmetros atuais do kernel"
+  ansible.builtin.command:
+    cmd: cat /proc/cmdline
+  register: grub_cmdline
+  changed_when: false
+  when: disable_ipv6 | bool
+
+- name: "3.3 - Verificar se grubby está disponível"
+  ansible.builtin.command:
+    cmd: command -v grubby
+  register: grubby_check
+  changed_when: false
+  failed_when: false
+  when: disable_ipv6 | bool
+
+- name: "3.3 - Aplicar ipv6.disable=1 em todos os kernels"
+  ansible.builtin.command:
+    cmd: grubby --update-kernel=ALL --args="ipv6.disable=1"
+  when:
+    - disable_ipv6 | bool
+    - grubby_check.rc == 0
+    - "'ipv6.disable=1' not in grub_cmdline.stdout"
+
+- name: "3.3 - Informar que alteração foi aplicada (reboot externo necessário)"
+  ansible.builtin.debug:
+    msg: "ipv6.disable=1 aplicado via GRUB. Reboot será realizado posteriormente."
+  when:
+    - disable_ipv6 | bool
+    - grubby_check.rc == 0
+    - "'ipv6.disable=1' not in grub_cmdline.stdout"

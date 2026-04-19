@@ -1,0 +1,10 @@
+---
+# 3.8 - Instalar pacotes necessários
+
+- name: "3.8 - Instalar pacotes necessários"
+  ansible.builtin.dnf:
+    name: "{{ baseline_packages }}"
+    state: present
+    update_cache: true
+    lock_timeout: 300
+  when: install_baseline_packages | bool

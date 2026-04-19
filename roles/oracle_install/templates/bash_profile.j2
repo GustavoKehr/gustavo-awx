@@ -1,0 +1,16 @@
+# Oracle environment — managed by Ansible
+# /home/oracle/.bash_profile
+
+umask 0022
+TMOUT=1800
+
+ORACLE_BASE={{ oracle_base }}; export ORACLE_BASE
+ORACLE_HOME={{ oracle_home }}; export ORACLE_HOME
+ORACLE_SID={{ oracle_sid }}; export ORACLE_SID
+
+PATH={{ oracle_home }}/bin:$PATH; export PATH
+LD_LIBRARY_PATH={{ oracle_home }}/lib:/lib:/usr/lib; export LD_LIBRARY_PATH
+ORACLE_HOSTNAME=`hostname`; export ORACLE_HOSTNAME
+
+# OPatch
+export PATH=$PATH:{{ oracle_home }}/OPatch

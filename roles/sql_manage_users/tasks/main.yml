@@ -1,0 +1,173 @@
+---
+- name: "Validate SQL user-management input"
+  ansible.builtin.assert:
+    that:
+      - sql_login_name | length > 0
+      - sql_login_type in ["sql", "windows"]
+      - sql_login_state in ["present", "absent"]
+      - not (sql_login_type == "sql" and sql_login_state == "present" and sql_login_password | length == 0)
+      - not (sql_revoke_access | bool and sql_login_state == "absent")
+    fail_msg: "Invalid SQL user-management variables."
+  tags: [sql_users, sql_users_validate]
+
+- name: "Set derived SQL Server user name"
+  ansible.builtin.set_fact:
+    sql_database_user_effective: "{{ sql_database_user | default('', true) | length > 0 | ternary(sql_database_user, sql_login_name) }}"
+  tags: [sql_users, sql_users_validate]
+
+- name: "Normalize SQL database roles list"
+  ansible.builtin.set_fact:
+    sql_database_roles_effective: >-
+      {{
+        sql_database_roles
+        if (sql_database_roles is sequence and sql_database_roles is not string)
+        else (sql_database_roles | string).split(',')
+      }}
+  tags: [sql_users, sql_users_validate]
+
+- name: "Trim SQL database roles list"
+  ansible.builtin.set_fact:
+    sql_database_roles_effective: "{{ sql_database_roles_effective | map('trim') | reject('equalto', '') | list }}"
+  tags: [sql_users, sql_users_validate]
+
+- name: "Create or update SQL login (SQL auth)"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'{{ sql_login_name }}')
+    BEGIN
+      CREATE LOGIN [{{ sql_login_name }}] WITH PASSWORD = N'{{ sql_login_password }}', CHECK_POLICY = ON, CHECK_EXPIRATION = ON, DEFAULT_DATABASE = [{{ sql_login_default_db }}];
+      PRINT 'CHANGED';
+    END
+    ELSE
+    BEGIN
+      ALTER LOGIN [{{ sql_login_name }}] WITH PASSWORD = N'{{ sql_login_password }}', CHECK_POLICY = ON, CHECK_EXPIRATION = ON, DEFAULT_DATABASE = [{{ sql_login_default_db }}];
+      PRINT 'CHANGED';
+    END
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  register: sql_login_result
+  changed_when: "'CHANGED' in (sql_login_result.stdout | default(''))"
+  no_log: true
+  when:
+    - sql_login_state == "present"
+    - sql_login_type == "sql"
+  tags: [sql_users, sql_login]
+
+- name: "Create Windows login when missing"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'{{ sql_login_name }}')
+    BEGIN
+      CREATE LOGIN [{{ sql_login_name }}] FROM WINDOWS;
+      PRINT 'CHANGED';
+    END
+    ELSE
+    BEGIN
+      PRINT 'OK';
+    END
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  register: sql_windows_login_result
+  changed_when: "'CHANGED' in (sql_windows_login_result.stdout | default(''))"
+  when:
+    - sql_login_state == "present"
+    - sql_login_type == "windows"
+  tags: [sql_users, sql_login]
+
+- name: "Ensure DB user exists and mapped to login"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    USE [{{ sql_target_database }}];
+    IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'{{ sql_database_user_effective }}')
+    BEGIN
+      CREATE USER [{{ sql_database_user_effective }}] FOR LOGIN [{{ sql_login_name }}];
+      PRINT 'CHANGED';
+    END
+    ELSE
+    BEGIN
+      PRINT 'OK';
+    END
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  register: sql_db_user_result
+  changed_when: "'CHANGED' in (sql_db_user_result.stdout | default(''))"
+  when:
+    - sql_login_state == "present"
+    - sql_manage_database_user | bool
+    - sql_target_database | length > 0
+  tags: [sql_users, sql_db_user]
+
+- name: "Grant database roles"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    USE [{{ sql_target_database }}];
+    IF IS_ROLEMEMBER(N'{{ item }}', N'{{ sql_database_user_effective }}') <> 1
+    BEGIN
+      ALTER ROLE [{{ item }}] ADD MEMBER [{{ sql_database_user_effective }}];
+      PRINT 'CHANGED';
+    END
+    ELSE
+    BEGIN
+      PRINT 'OK';
+    END
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  loop: "{{ sql_database_roles_effective }}"
+  register: sql_grant_result
+  changed_when: "'CHANGED' in (sql_grant_result.stdout | default(''))"
+  when:
+    - sql_login_state == "present"
+    - not sql_revoke_access | bool
+    - sql_target_database | length > 0
+    - sql_database_roles_effective | length > 0
+  tags: [sql_users, sql_grants]
+
+- name: "Revoke database roles"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    USE [{{ sql_target_database }}];
+    IF IS_ROLEMEMBER(N'{{ item }}', N'{{ sql_database_user_effective }}') = 1
+    BEGIN
+      ALTER ROLE [{{ item }}] DROP MEMBER [{{ sql_database_user_effective }}];
+      PRINT 'CHANGED';
+    END
+    ELSE
+    BEGIN
+      PRINT 'OK';
+    END
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  loop: "{{ sql_database_roles_effective }}"
+  register: sql_revoke_result
+  changed_when: "'CHANGED' in (sql_revoke_result.stdout | default(''))"
+  when:
+    - sql_login_state == "present"
+    - sql_revoke_access | bool
+    - sql_target_database | length > 0
+    - sql_database_roles_effective | length > 0
+  tags: [sql_users, sql_revoke]
+
+- name: "Drop SQL login when requested"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'{{ sql_login_name }}')
+    BEGIN
+      DROP LOGIN [{{ sql_login_name }}];
+      PRINT 'CHANGED';
+    END
+    ELSE
+    BEGIN
+      PRINT 'OK';
+    END
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  register: sql_drop_login_result
+  changed_when: "'CHANGED' in (sql_drop_login_result.stdout | default(''))"
+  when: sql_login_state == "absent"
+  tags: [sql_users, sql_remove_user]

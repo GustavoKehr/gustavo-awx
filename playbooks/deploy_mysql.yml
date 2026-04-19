@@ -1,0 +1,29 @@
+---
+- name: "Deploy and harden MySQL server"
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: "Phase 1: Install and harden MySQL"
+      ansible.builtin.include_role:
+        name: mysql_install
+      tags: [mysql, mysql_install, bootstrap]
+
+    - name: "Phase 2: Optional user management from survey"
+      ansible.builtin.include_role:
+        name: mysql_manage_users
+      when:
+        - mysql_manage_users_enabled | default(false) | bool
+          or ('mysql_users' in (ansible_run_tags | default([])))
+      tags: [mysql, mysql_users, post_install]
+
+    - name: "Phase 3: Discover local DB patches (no apply)"
+      ansible.builtin.include_role:
+        name: db_patches
+      when:
+        - db_patches_enabled | default(false) | bool
+          or ('db_patches' in (ansible_run_tags | default([])))
+      vars:
+        db_patch_platform: "mysql"
+      tags: [mysql, db_patches, patching]

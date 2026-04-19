@@ -1,0 +1,10 @@
+# /etc/profile.d/01-prompt-env.sh — PS1 and environment
+# Managed by Ansible — do not edit manually
+
+export PS1='[\u@\h \W]\$ '
+export HISTFILE=/sysadmin/histlog/${LOGNAME}_$(hostname -s)_$(date +%Y%m%d_%H%M%S)_$$
+export HISTSIZE=10000
+export HISTFILESIZE=10000
+export HISTTIMEFORMAT="%F %T "
+export HISTCONTROL=ignoredups:erasedups
+shopt -s histappend 2>/dev/null || true

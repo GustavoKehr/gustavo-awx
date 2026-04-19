@@ -1,0 +1,24 @@
+---
+- import_tasks: selinux.yml
+  tags: [baseline_system, selinux, guide_3_1]
+
+- import_tasks: packages.yml
+  tags: [baseline_system, packages, guide_3_8]
+
+- import_tasks: firewall.yml
+  tags: [baseline_system, firewalld, guide_3_2]
+
+- import_tasks: ipv6.yml
+  tags: [baseline_system, ipv6, guide_3_3]
+
+- import_tasks: journald.yml
+  tags: [baseline_system, journald, guide_3_4]
+
+- import_tasks: ctrlaltdel.yml
+  tags: [baseline_system, ctrlaltdel, guide_3_5]
+
+- import_tasks: chrony.yml
+  tags: [baseline_system, chrony, guide_3_9]
+
+- import_tasks: rclocal.yml
+  tags: [baseline_system, rclocal, guide_3_10]

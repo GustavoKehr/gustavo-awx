@@ -1,0 +1,31 @@
+---
+postgres_server_packages:
+  RedHat:
+    - postgresql-server
+    - postgresql
+    - python3-psycopg2
+  Debian:
+    - postgresql
+    - postgresql-contrib
+    - python3-psycopg2
+
+postgres_service_name:
+  RedHat: postgresql
+  Debian: postgresql
+
+postgres_config_dir:
+  RedHat: /var/lib/pgsql/data
+  Debian: /etc/postgresql/16/main
+
+postgres_bind_address: "{{ ansible_default_ipv4.address | default('127.0.0.1') }}"
+postgres_port: 15432
+postgres_max_connections: 300
+postgres_shared_buffers: "512MB"
+postgres_work_mem: "16MB"
+postgres_password_encryption: "scram-sha-256"
+postgres_log_connections: "on"
+postgres_log_disconnections: "on"
+
+postgres_manage_hba: true
+postgres_hba_cidr: "0.0.0.0/0"
+postgres_hba_method: "scram-sha-256"

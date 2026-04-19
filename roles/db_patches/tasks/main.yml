@@ -1,0 +1,51 @@
+---
+- name: "Ensure patch repository path exists on controller"
+  ansible.builtin.stat:
+    path: "{{ db_patches_root }}"
+  delegate_to: localhost
+  run_once: true
+  register: db_patch_root_stat
+  tags: [db_patches, patch_discovery]
+
+- name: "Fail when patch repository path is missing"
+  ansible.builtin.fail:
+    msg: "Patch repository path not found: {{ db_patches_root }}"
+  when: not db_patch_root_stat.stat.exists
+  delegate_to: localhost
+  run_once: true
+  tags: [db_patches, patch_discovery]
+
+- name: "Discover SQL patch files for selected platform"
+  ansible.builtin.find:
+    paths: "{{ db_patches_root }}"
+    patterns: "{{ db_patch_extensions }}"
+    recurse: true
+    file_type: file
+  delegate_to: localhost
+  run_once: true
+  register: db_patch_files
+  tags: [db_patches, patch_discovery]
+
+- name: "Show patch discovery summary"
+  ansible.builtin.debug:
+    msg:
+      - "Patch root: {{ db_patches_root }}"
+      - "Platform: {{ db_patch_platform }}"
+      - "Discovered files: {{ db_patch_files.matched | default(0) }}"
+      - "Apply enabled: {{ db_patch_apply_enabled }}"
+  run_once: true
+  tags: [db_patches, patch_discovery]
+
+- name: "Skip patch execution by design"
+  ansible.builtin.debug:
+    msg: "Patch execution is disabled. Set db_patch_apply_enabled=true when implementation is ready."
+  when: not db_patch_apply_enabled | bool
+  run_once: true
+  tags: [db_patches, patch_apply]
+
+- name: "Block patch execution until role is implemented"
+  ansible.builtin.fail:
+    msg: "Patch execution flow not implemented yet. Keep db_patch_apply_enabled=false for now."
+  when: db_patch_apply_enabled | bool
+  run_once: true
+  tags: [db_patches, patch_apply]

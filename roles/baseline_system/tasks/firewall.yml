@@ -1,0 +1,10 @@
+---
+# 3.2 - Desabilitar Firewalld
+
+- name: "3.2 - Desabilitar Firewalld"
+  ansible.builtin.systemd:
+    name: firewalld
+    enabled: false
+    state: stopped
+    masked: true
+  when: disable_firewalld | bool

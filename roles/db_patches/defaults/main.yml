@@ -1,0 +1,8 @@
+---
+# Shared patching scaffold for current/future database engines.
+db_patch_platform: "generic"               # mysql | sqlserver | postgres | oracle | generic
+db_patches_root: "/opt/patches"
+db_patch_apply_enabled: false              # Safety guard: keep false for now.
+db_patch_extensions:
+  - "*.sql"
+  - "*.ps1"

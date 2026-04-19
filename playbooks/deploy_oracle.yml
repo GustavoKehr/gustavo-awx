@@ -1,0 +1,11 @@
+---
+- name: "Deploy and configure Oracle Database 19c"
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: "Phase 1-6: Install Oracle 19c and create database"
+      ansible.builtin.include_role:
+        name: oracle_install
+      tags: [oracle]

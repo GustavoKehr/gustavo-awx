@@ -1,0 +1,29 @@
+---
+- name: "Instalação silenciosa do SQL Server 2025"
+  ansible.windows.win_package:
+    path: "{{ disk_iso_mount.mount_paths[0] }}setup.exe"
+    arguments: >
+      /ConfigurationFile=C:\ansible_temp\ConfigurationFile.ini
+      /SAPWD="{{ sql_sa_password }}"
+      /IAcceptSQLServerLicenseTerms
+      /Quiet
+    state: present
+  become: yes
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+
+- name: "instalacao silenciosa do SSMS"
+  ansible.windows.win_package:
+    path: 'E:\temp_install\SSMS-Setup-ENU.exe'
+    arguments: '/Quiet /NoRestart'
+    state: present
+  tags: [sql_install, ssms_execute]
+
+- name: "desmontar ISO pós instalacao"
+  community.windows.win_disk_image:
+    image_path: 'E:\temp_install\SQLServer2025-x64-ENU.iso'
+    state: absent
+  when: disk_iso_mount is defined
+  tags: [sql_install, sql_unmount]
+
+

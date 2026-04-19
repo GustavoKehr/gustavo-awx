@@ -1,0 +1,13 @@
+---
+- name: "PING"
+  hosts: all
+  gather_facts: yes
+  tasks:
+
+    - name: "Ping Linux"
+      ansible.builtin.ping:
+      when: ansible_os_family != "Windows"
+
+    - name: "Ping Windows"
+      ansible.windows.win_ping:
+      when: ansible_os_family == "Windows"

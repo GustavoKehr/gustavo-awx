@@ -1,0 +1,33 @@
+---
+- name: "ORACLE | Validate required variables"
+  ansible.builtin.assert:
+    that:
+      - oracle_sys_password | length > 0
+      - oracle_system_password | length > 0
+      - oracle_sid | length > 0
+    fail_msg: "oracle_sys_password, oracle_system_password and oracle_sid must be set."
+  tags: [oracle, oracle_validate]
+
+- name: "ORACLE | Phase 1 - Prerequisites (as root)"
+  ansible.builtin.include_tasks: 01_prereqs.yml
+  tags: [oracle, oracle_prereqs]
+
+- name: "ORACLE | Phase 2 - Directory layout"
+  ansible.builtin.include_tasks: 02_directories.yml
+  tags: [oracle, oracle_dirs]
+
+- name: "ORACLE | Phase 3 - Transfer software to target"
+  ansible.builtin.include_tasks: 03_transfer_software.yml
+  tags: [oracle, oracle_transfer]
+
+- name: "ORACLE | Phase 4 - Install Oracle software (runInstaller)"
+  ansible.builtin.include_tasks: 04_install_software.yml
+  tags: [oracle, oracle_install_sw]
+
+- name: "ORACLE | Phase 5 - Apply OPatches"
+  ansible.builtin.include_tasks: 05_apply_patches.yml
+  tags: [oracle, oracle_patches]
+
+- name: "ORACLE | Phase 6 - Create database"
+  ansible.builtin.include_tasks: 06_create_database.yml
+  tags: [oracle, oracle_dbcreate]

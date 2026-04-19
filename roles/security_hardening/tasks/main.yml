@@ -1,0 +1,42 @@
+---
+- name: "SECURITY: Configurar IPsec Policy Restriction"
+  ansible.windows.win_shell: |
+    # 1. Criar a Política Base
+    netsh ipsec static add policy name="IP restriction policy" description="Ativo" assign=yes 2>$null
+
+    # 2. Criar as Listas de Filtros
+    netsh ipsec static add filterlist name="Inbound SQL Server Connection" 2>$null
+    netsh ipsec static add filterlist name="Inbound RDP Connection" 2>$null
+    netsh ipsec static add filterlist name="Block SQL Server Connection" 2>$null
+    netsh ipsec static add filterlist name="Block RDP" 2>$null
+
+    # 3. Criar as Ações
+    netsh ipsec static add filteraction name="Permit" action=permit 2>$null
+    netsh ipsec static add filteraction name="Block" action=block 2>$null
+
+    # 4. Adicionar Filtros de PERMISSÃO (Inbound SQL e RDP)
+    # Baseado estritamente nos IPs do Survey
+    $allowedIps = "{{ allowed_management_ip }}".Split(',')
+    foreach ($ip in $allowedIps) {
+        $cleanIp = $ip.Trim()
+        if ($cleanIp) {
+            # Inbound SQL Server Connection
+            netsh ipsec static add filter filterlist="Inbound SQL Server Connection" srcaddr=$cleanIp dstaddr=Me proto=tcp dstport=1433 2>$null
+            # Inbound RDP Connection
+            netsh ipsec static add filter filterlist="Inbound RDP Connection" srcaddr=$cleanIp dstaddr=Me proto=tcp dstport=3389 2>$null
+        }
+    }
+
+    # 5. Adicionar Filtros de BLOQUEIO Geral
+    netsh ipsec static add filter filterlist="Block SQL Server Connection" srcaddr=any dstaddr=Me proto=tcp dstport=1433 2>$null
+    netsh ipsec static add filter filterlist="Block RDP" srcaddr=any dstaddr=Me proto=tcp dstport=3389 2>$null
+
+    # 6. Vincular as Regras à Política
+    netsh ipsec static add rule name="Inbound SQL Server Connection" policy="IP restriction policy" filterlist="Inbound SQL Server Connection" filteraction="Permit" 2>$null
+    netsh ipsec static add rule name="Inbound RDP Connection" policy="IP restriction policy" filterlist="Inbound RDP Connection" filteraction="Permit" 2>$null
+    netsh ipsec static add rule name="Block SQL Server Connection" policy="IP restriction policy" filterlist="Block SQL Server Connection" filteraction="Block" 2>$null
+    netsh ipsec static add rule name="Block RDP" policy="IP restriction policy" filterlist="Block RDP" filteraction="Block" 2>$null
+
+    # 7. Ativar a Política
+    netsh ipsec static set policy name="IP restriction policy" assign=y
+  tags: [security, ipsec_policy]

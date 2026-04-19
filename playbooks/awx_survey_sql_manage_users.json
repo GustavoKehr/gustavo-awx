@@ -1,0 +1,100 @@
+{
+  "name": "SQLSERVER | Manage Users",
+  "description": "Survey for sql_manage_users role in install_sql_playbook.yml",
+  "spec": [
+    {
+      "question_name": "SQL login name",
+      "question_description": "SQL Server login name to manage.",
+      "required": true,
+      "type": "text",
+      "variable": "sql_login_name",
+      "min": 1,
+      "max": 128,
+      "default": ""
+    },
+    {
+      "question_name": "Login type",
+      "question_description": "sql uses password; windows creates a Windows login.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "sql_login_type",
+      "choices": "sql\nwindows",
+      "default": "sql"
+    },
+    {
+      "question_name": "SQL login password",
+      "question_description": "Required when login type is sql and state is present.",
+      "required": false,
+      "type": "password",
+      "variable": "sql_login_password",
+      "default": ""
+    },
+    {
+      "question_name": "Login state",
+      "question_description": "present creates/updates login; absent removes login.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "sql_login_state",
+      "choices": "present\nabsent",
+      "default": "present"
+    },
+    {
+      "question_name": "Default database",
+      "question_description": "Default DB assigned to the login.",
+      "required": true,
+      "type": "text",
+      "variable": "sql_login_default_db",
+      "min": 1,
+      "max": 128,
+      "default": "master"
+    },
+    {
+      "question_name": "Target database",
+      "question_description": "Database for mapping user and role membership.",
+      "required": false,
+      "type": "text",
+      "variable": "sql_target_database",
+      "min": 0,
+      "max": 128,
+      "default": ""
+    },
+    {
+      "question_name": "Database user",
+      "question_description": "Optional DB user name; defaults to login name.",
+      "required": false,
+      "type": "text",
+      "variable": "sql_database_user",
+      "min": 0,
+      "max": 128,
+      "default": ""
+    },
+    {
+      "question_name": "Database roles",
+      "question_description": "Comma-separated DB roles (for example db_datareader,db_datawriter).",
+      "required": false,
+      "type": "textarea",
+      "variable": "sql_database_roles",
+      "min": 0,
+      "max": 1024,
+      "default": "db_datareader,db_datawriter"
+    },
+    {
+      "question_name": "Revoke access",
+      "question_description": "true revokes DB roles instead of granting.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "sql_revoke_access",
+      "choices": "false\ntrue",
+      "default": "false"
+    },
+    {
+      "question_name": "Manage database user mapping",
+      "question_description": "true ensures DB user exists and maps to login.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "sql_manage_database_user",
+      "choices": "true\nfalse",
+      "default": "true"
+    }
+  ]
+}

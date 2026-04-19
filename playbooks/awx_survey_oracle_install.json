@@ -1,0 +1,181 @@
+{
+  "name": "Oracle 19c Installation Survey",
+  "description": "All tunable parameters for Oracle 19c silent install and database creation. Patch paths must be updated each quarter when Oracle releases a new RU.",
+  "spec": [
+    {
+      "question_name": "Oracle SID",
+      "question_description": "Database SID and name. Also defines the base directory (/oracle/<SID>). Max 8 chars.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_sid",
+      "default": "TSTOR",
+      "min": 1,
+      "max": 8
+    },
+    {
+      "question_name": "SYS Password",
+      "question_description": "Password for the SYS DBA account.",
+      "required": true,
+      "type": "password",
+      "variable": "oracle_sys_password",
+      "default": "",
+      "min": 8,
+      "max": 30
+    },
+    {
+      "question_name": "SYSTEM Password",
+      "question_description": "Password for the SYSTEM account.",
+      "required": true,
+      "type": "password",
+      "variable": "oracle_system_password",
+      "default": "",
+      "min": 8,
+      "max": 30
+    },
+    {
+      "question_name": "SGA Target",
+      "question_description": "Oracle SGA size. Use G for gigabytes or M for megabytes (e.g. 2G, 4G, 1024M). Must fit within the target VM RAM.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_sga_target",
+      "default": "2G"
+    },
+    {
+      "question_name": "PGA Aggregate Target",
+      "question_description": "Oracle PGA aggregate target. Use G or M suffix (e.g. 512m, 1G).",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_pga_target",
+      "default": "512m"
+    },
+    {
+      "question_name": "HugePages count (0 = auto)",
+      "question_description": "Number of kernel hugepages to reserve. Set to 0 to auto-calculate from SGA size (recommended). Set a fixed value only if you need to override for this VM. Safety check: total hugepage memory cannot exceed 80% of VM RAM.",
+      "required": true,
+      "type": "integer",
+      "variable": "oracle_hugepages",
+      "default": 0,
+      "min": 0,
+      "max": 524288
+    },
+    {
+      "question_name": "Max Processes",
+      "question_description": "Maximum number of OS processes for Oracle (processes init parameter).",
+      "required": true,
+      "type": "integer",
+      "variable": "oracle_processes",
+      "default": 1000,
+      "min": 100,
+      "max": 10000
+    },
+    {
+      "question_name": "Open Cursors",
+      "question_description": "Maximum open cursors per session (open_cursors init parameter).",
+      "required": true,
+      "type": "integer",
+      "variable": "oracle_open_cursors",
+      "default": 3000,
+      "min": 100,
+      "max": 65535
+    },
+    {
+      "question_name": "Character Set",
+      "question_description": "Database character set. WE8MSWIN1252 matches legacy TOTVS installs.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "oracle_character_set",
+      "default": "WE8MSWIN1252",
+      "choices": "WE8MSWIN1252\nAL32UTF8\nWE8ISO8859P1"
+    },
+    {
+      "question_name": "Listener Port",
+      "question_description": "TCP port for the Oracle listener.",
+      "required": true,
+      "type": "integer",
+      "variable": "oracle_listener_port",
+      "default": 1521,
+      "min": 1024,
+      "max": 65535
+    },
+    {
+      "question_name": "OPatch patch dir",
+      "question_description": "Folder name in /opt/oracle containing the replacement OPatch. Update when Oracle releases a newer OPatch version.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_opatch_dir",
+      "default": "p6880880"
+    },
+    {
+      "question_name": "RU patch dir",
+      "question_description": "Top-level folder name for the Release Update patch (e.g. p37641958). Update each quarter.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_ru_patch_dir",
+      "default": "p37641958"
+    },
+    {
+      "question_name": "RU subpath",
+      "question_description": "Path inside RU dir pointing to the RU patch directory (e.g. 37641958/37642901).",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_ru_subpath",
+      "default": "37641958/37642901"
+    },
+    {
+      "question_name": "One-off subpath",
+      "question_description": "Path inside RU dir pointing to the one-off patch directory (e.g. 37641958/37643161).",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_oneoff_subpath",
+      "default": "37641958/37643161"
+    },
+    {
+      "question_name": "Post-patch 1 dir",
+      "question_description": "Top-level folder for post-install opatch #1 (applied first, no oradism change needed).",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_post_patch1_dir",
+      "default": "p38291812"
+    },
+    {
+      "question_name": "Post-patch 1 subdir",
+      "question_description": "Patch number subfolder inside post-patch 1 dir.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_post_patch1_sub",
+      "default": "38291812"
+    },
+    {
+      "question_name": "Post-patch 2 dir",
+      "question_description": "Top-level folder for post-install opatch #2.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_post_patch2_dir",
+      "default": "p32249704"
+    },
+    {
+      "question_name": "Post-patch 2 subdir",
+      "question_description": "Patch number subfolder inside post-patch 2 dir.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_post_patch2_sub",
+      "default": "32249704"
+    },
+    {
+      "question_name": "Post-patch 3 dir",
+      "question_description": "Top-level folder for post-install opatch #3 (requires oradism owner change before/after).",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_post_patch3_dir",
+      "default": "p3467298"
+    },
+    {
+      "question_name": "Post-patch 3 subdir",
+      "question_description": "Patch number subfolder inside post-patch 3 dir.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_post_patch3_sub",
+      "default": "3467298"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+*._audit_file_dest='/oracle/TSTOR/admin/adump'
+*.audit_trail='db'
+*.compatible='19.0.0'
+*.control_files='/oracle/TSTOR/mirrlogA/cntrl/control01.ctl','/oracle/TSTOR/oradata1/cntrl/control02.ctl','/oracle/TSTOR/ologA/cntrl/control03.ctl'
+*.cursor_sharing='EXACT'
+*.db_block_size=8192
+*.db_domain=''
+*.diagnostic_dest='/oracle/TSTOR/admin'
+*.dispatchers='(PROTOCOL=TCP) (SERVICE=TSTORXDB)'
+*.local_listener='LISTENER_TSTOR'
+*.log_archive_dest_1='LOCATION-/oracle/TSTOR/oraarch'
+*.log_archive_format='TSTOR_ARC%S_%R.%T'
+*.nls_language='AMERICAN'
+*.nls_territory='AMERICA'
+*.open_cursors=3000
+*.parallel_threads_per_cpu=2
+*.pga_aggregate_target=512m
+*.processes=1000
+*.remote_login_passwordfile='EXCLUSIVE'
+*.sga_target=2G
+*.undo_tablespace='UNDOTBS1'
+*.use_large_pages='ONLY'

@@ -1,0 +1,14 @@
+---
+# Survey-driven SQL Server login/user management.
+sql_login_name: ""
+sql_login_password: ""
+sql_login_type: "sql"              # sql | windows
+sql_login_state: "present"         # present | absent
+sql_login_default_db: "master"
+
+# Database-level mapping.
+sql_target_database: ""
+sql_database_user: ""              # Defaults to sql_login_name when empty.
+sql_database_roles: []
+sql_revoke_access: false
+sql_manage_database_user: true

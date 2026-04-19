@@ -1,0 +1,81 @@
+{
+  "name": "POSTGRES | Manage Users",
+  "description": "Survey for postgres_manage_users role in deploy_postgres.yml",
+  "spec": [
+    {
+      "question_name": "PostgreSQL username",
+      "question_description": "PostgreSQL role name to manage.",
+      "required": true,
+      "type": "text",
+      "variable": "pg_username",
+      "min": 1,
+      "max": 64,
+      "default": ""
+    },
+    {
+      "question_name": "PostgreSQL password",
+      "question_description": "Password used when pg_user_state=present.",
+      "required": false,
+      "type": "password",
+      "variable": "pg_user_password",
+      "default": ""
+    },
+    {
+      "question_name": "User state",
+      "question_description": "present manages role; absent removes role.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "pg_user_state",
+      "choices": "present\nabsent",
+      "default": "present"
+    },
+    {
+      "question_name": "Target databases",
+      "question_description": "Comma-separated databases for grants/revokes.",
+      "required": false,
+      "type": "textarea",
+      "variable": "pg_target_databases",
+      "min": 0,
+      "max": 1024,
+      "default": "appdb"
+    },
+    {
+      "question_name": "Create target databases",
+      "question_description": "true creates target DBs before grants.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "pg_manage_databases",
+      "choices": "false\ntrue",
+      "default": "false"
+    },
+    {
+      "question_name": "Privileges",
+      "question_description": "Privileges to grant/revoke (e.g. CONNECT,TEMP).",
+      "required": true,
+      "type": "text",
+      "variable": "pg_privileges",
+      "min": 1,
+      "max": 128,
+      "default": "CONNECT"
+    },
+    {
+      "question_name": "Revoke access",
+      "question_description": "true revokes privileges instead of granting.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "pg_revoke_access",
+      "choices": "false\ntrue",
+      "default": "false"
+    },
+    {
+      "question_name": "Role attribute flags",
+      "question_description": "Role flags (for example LOGIN,CREATEDB).",
+      "required": true,
+      "type": "text",
+      "variable": "pg_role_attr_flags",
+      "min": 1,
+      "max": 128,
+      "default": "LOGIN"
+    }
+  ]
+}

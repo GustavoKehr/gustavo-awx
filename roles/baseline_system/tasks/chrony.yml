@@ -1,0 +1,27 @@
+---
+# 3.9 - Configurar Chrony (NTP)
+
+- name: "3.9 - Garantir que chrony está instalado"
+  ansible.builtin.package:
+    name: chrony
+    state: present
+  when: chrony_enabled | bool
+
+- name: "3.9 - Aplicar /etc/chrony.conf"
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony.conf
+    owner: root
+    group: root
+    mode: "0644"
+  when: chrony_enabled | bool
+  notify: restart chronyd
+
+- name: "3.9 - Habilitar e iniciar chronyd"
+  ansible.builtin.systemd:
+    name: chronyd
+    enabled: true
+    state: started
+  when:
+    - chrony_enabled | bool
+    - not ansible_check_mode

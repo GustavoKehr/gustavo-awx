@@ -1,0 +1,47 @@
+---
+- name: "Instalação do Zabbix Agent 5.0 (EL9)"
+  hosts: all
+  become: yes
+  vars:
+    zabbix_server_ip: "192.168.137.159"  
+    zabbix_repo_url: "http://192.168.137.148:8080/zabbix/zabbix-agent-5.0.47-1.el9.x86_64.rpm"
+
+  tasks:
+    - name: "ZABBIX: Instalar pacote RPM do repositório interno"
+      ansible.builtin.dnf:
+        name: "{{ zabbix_repo_url }}"
+        state: present
+        disable_gpg_check: yes
+
+    - name: "ZABBIX: Configurar zabbix_agentd.conf (Server IP)"
+      ansible.builtin.lineinfile:
+        path: /etc/zabbix/zabbix_agentd.conf
+        regexp: '^Server='
+        line: "Server={{ zabbix_server_ip }}"
+      notify: Restart Zabbix Agent
+
+    - name: "ZABBIX: Configurar zabbix_agentd.conf (ServerActive IP)"
+      ansible.builtin.lineinfile:
+        path: /etc/zabbix/zabbix_agentd.conf
+        regexp: '^ServerActive='
+        line: "ServerActive={{ zabbix_server_ip }}"
+      notify: Restart Zabbix Agent
+
+    - name: "ZABBIX: Configurar Hostname no agente"
+      ansible.builtin.lineinfile:
+        path: /etc/zabbix/zabbix_agentd.conf
+        regexp: '^Hostname='
+        line: "Hostname={{ ansible_hostname }}"
+      notify: Restart Zabbix Agent
+
+    - name: "SERVIÇO: Habilitar e Iniciar Zabbix Agent"
+      ansible.builtin.service:
+        name: zabbix-agent
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Restart Zabbix Agent
+      ansible.builtin.service:
+        name: zabbix-agent
+        state: restarted

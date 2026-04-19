@@ -1,0 +1,39 @@
+#!/bin/sh
+# Oracle database creation script — managed by Ansible
+# Replaces interactive TSTOR.sh/TSTOR.sql; passwords injected at deploy time.
+
+OLD_UMASK=`umask`
+umask 0027
+
+# Create any remaining runtime directories
+mkdir -p {{ oracle_base }}/admin/adump
+mkdir -p {{ oracle_base }}/mirrlogA/cntrl
+mkdir -p {{ oracle_base }}/oradata1/cntrl
+mkdir -p {{ oracle_base }}/origlogA/cntrl
+mkdir -p {{ oracle_base }}/origlogA/cntrl
+mkdir -p {{ oracle_base }}/admin/dpdump
+mkdir -p {{ oracle_base }}/admin/pfile
+mkdir -p {{ oracle_base }}/admin/audit
+
+umask ${OLD_UMASK}
+
+PERL5LIB={{ oracle_home }}/rdbms/admin:$PERL5LIB; export PERL5LIB
+ORACLE_SID={{ oracle_sid }}; export ORACLE_SID
+PATH={{ oracle_home }}/bin:{{ oracle_home }}/perl/bin:$PATH; export PATH
+
+# Create password file (non-interactive)
+{{ oracle_home }}/bin/orapwd \
+  file={{ oracle_home }}/dbs/orapw{{ oracle_sid }} \
+  password="{{ oracle_sys_password }}" \
+  force=y
+
+echo "{{ oracle_sid }}:{{ oracle_home }}:Y" >> /etc/oratab 2>/dev/null || true
+
+# Run all creation scripts sequentially via sqlplus
+{{ oracle_home }}/bin/sqlplus /nolog <<EOF
+@{{ oracle_scripts_dir }}/CreateDB.sql
+@{{ oracle_scripts_dir }}/CreateDBFiles.sql
+@{{ oracle_scripts_dir }}/CreateDBCatalog.sql
+@{{ oracle_scripts_dir }}/lockAccount.sql
+@{{ oracle_scripts_dir }}/postDBCreation.sql
+EOF

@@ -1,0 +1,21 @@
+---
+# 3.5 - Desabilitar atalho CTRL+ALT+DEL
+
+- name: "3.5 - Desabilitar atalho CTRL+ALT+DEL"
+  ansible.builtin.systemd:
+    name: ctrl-alt-del.target
+    masked: true
+    enabled: false
+    state: stopped
+    daemon_reload: true
+
+- name: "3.5 - Garantir ctrl-alt-del.target mascarado via /dev/null"
+  ansible.builtin.file:
+    src: /dev/null
+    dest: /etc/systemd/system/ctrl-alt-del.target
+    state: link
+    force: true
+
+- name: "3.5 - Recarregar systemd"
+  ansible.builtin.systemd:
+    daemon_reload: true

@@ -1,0 +1,18 @@
+---
+# 3.4 - Configurar journald para logs persistentes
+
+- name: "3.4 - Garantir diretório persistente do journald (/var/log/journal)"
+  ansible.builtin.file:
+    path: /var/log/journal
+    state: directory
+    owner: root
+    group: systemd-journal
+    mode: "2755"
+
+- name: "3.4 - Configurar journald Storage={{ journald_storage }}"
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/journald.conf
+    regexp: "^#?Storage="
+    line: "Storage={{ journald_storage | lower }}"
+    create: true
+  notify: restart journald

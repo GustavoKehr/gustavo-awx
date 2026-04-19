@@ -1,0 +1,19 @@
+---
+all:
+  children:
+    database_servers:
+      hosts:
+        zabbixvm:
+          ansible_host: 192.168.137.159
+        oraclevm:
+          ansible_host: 192.168.137.163
+        repositoryvm:
+          ansible_host: 192.168.137.148
+        proxmox:
+          ansible_host: 192.168.137.145
+        mysqlvm:
+          ansible_host: 192.168.137.160
+        postgresvm:
+          ansible_host: 192.168.137.158
+        awxvm:
+          ansible_host: 192.168.137.153

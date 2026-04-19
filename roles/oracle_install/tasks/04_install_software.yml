@@ -1,0 +1,62 @@
+---
+- name: "INSTALL | Unzip Oracle installer into ORACLE_HOME"
+  ansible.builtin.unarchive:
+    src: "{{ oracle_software_dst }}/{{ oracle_installer_zip }}"
+    dest: "{{ oracle_home }}"
+    remote_src: true
+    creates: "{{ oracle_home }}/runInstaller"
+  become: true
+  become_user: oracle
+  tags: oracle_install_sw
+
+- name: "INSTALL | Back up bundled OPatch"
+  ansible.builtin.command:
+    cmd: mv "{{ oracle_home }}/OPatch" "{{ oracle_home }}/OPatchOLD"
+    creates: "{{ oracle_home }}/OPatchOLD"
+  become: true
+  become_user: oracle
+  tags: oracle_install_sw
+
+- name: "INSTALL | Install new OPatch"
+  ansible.builtin.copy:
+    src: "{{ oracle_software_dst }}/{{ oracle_opatch_dir }}/OPatch"
+    dest: "{{ oracle_home }}/OPatch"
+    owner: oracle
+    group: oinstall
+    mode: preserve
+    remote_src: true
+  tags: oracle_install_sw
+
+- name: "INSTALL | Deploy runInstaller response file"
+  ansible.builtin.template:
+    src: db_install.rsp.j2
+    dest: "{{ oracle_software_dst }}/db_install.rsp"
+    owner: oracle
+    group: oinstall
+    mode: "0640"
+  tags: oracle_install_sw
+
+- name: "INSTALL | Run silent Oracle software installation"
+  ansible.builtin.shell: |
+    export CV_ASSUME_DISTID=RHEL8
+    export ORACLE_BASE={{ oracle_base }}
+    export ORACLE_HOME={{ oracle_home }}
+    {{ oracle_home }}/runInstaller \
+      -applyRU {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_ru_subpath }} \
+      -applyOneOffs {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_oneoff_subpath }} \
+      -silent \
+      -responseFile {{ oracle_software_dst }}/db_install.rsp \
+      -ignorePrereq \
+      -waitforcompletion
+  become: true
+  become_user: oracle
+  register: oracle_installer_result
+  failed_when:
+    - oracle_installer_result.rc not in [0, 6]
+    - "'Successfully Setup Software' not in oracle_installer_result.stdout"
+  changed_when: "'Successfully Setup Software' in oracle_installer_result.stdout"
+  tags: oracle_install_sw
+
+- name: "INSTALL | Run root.sh (required post-install step)"
+  ansible.builtin.command: "{{ oracle_home }}/root.sh"
+  tags: oracle_install_sw

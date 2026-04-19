@@ -1,0 +1,30 @@
+---
+# 3.10 - Configurar "/etc/rc.local" (sync de tempo forçado no boot)
+
+- name: "3.10 - Garantir /etc/rc.d/rc.local"
+  ansible.builtin.template:
+    src: rc.local.j2
+    dest: /etc/rc.d/rc.local
+    owner: root
+    group: root
+    mode: "0755"
+  when: chrony_rc_local_enabled | bool
+
+- name: "3.10 - Garantir link /etc/rc.local -> /etc/rc.d/rc.local"
+  ansible.builtin.file:
+    src: /etc/rc.d/rc.local
+    dest: /etc/rc.local
+    state: link
+    force: true
+  when: chrony_rc_local_enabled | bool
+
+- name: "3.10 - Recarregar systemd rc-local"
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: chrony_rc_local_enabled | bool
+
+- name: "3.10 - Iniciar rc-local.service"
+  ansible.builtin.systemd:
+    name: rc-local.service
+    state: started
+  when: chrony_rc_local_enabled | bool

@@ -1,0 +1,90 @@
+{
+  "name": "MYSQL | Manage Users",
+  "description": "Survey for mysql_manage_users role in deploy_mysql.yml",
+  "spec": [
+    {
+      "question_name": "MySQL username",
+      "question_description": "MySQL account name to manage.",
+      "required": true,
+      "type": "text",
+      "variable": "db_username",
+      "min": 1,
+      "max": 64,
+      "default": ""
+    },
+    {
+      "question_name": "MySQL user host",
+      "question_description": "Use %, IP or CIDR (for example 10.10.10.5 or 10.10.10.0/24).",
+      "required": true,
+      "type": "text",
+      "variable": "db_user_host",
+      "min": 1,
+      "max": 64,
+      "default": "%"
+    },
+    {
+      "question_name": "MySQL password",
+      "question_description": "Required for create/update; optional for revoke/remove.",
+      "required": false,
+      "type": "password",
+      "variable": "db_password",
+      "default": ""
+    },
+    {
+      "question_name": "Privileges",
+      "question_description": "Comma-separated privileges (e.g. SELECT,INSERT,UPDATE).",
+      "required": true,
+      "type": "text",
+      "variable": "db_privileges",
+      "min": 1,
+      "max": 256,
+      "default": "SELECT"
+    },
+    {
+      "question_name": "Target databases",
+      "question_description": "Comma-separated database names.",
+      "required": true,
+      "type": "textarea",
+      "variable": "db_target_databases",
+      "min": 1,
+      "max": 1024,
+      "default": "appdb"
+    },
+    {
+      "question_name": "User state",
+      "question_description": "present = manage user/grants, absent = remove user.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "db_user_state",
+      "choices": "present\nabsent",
+      "default": "present"
+    },
+    {
+      "question_name": "Revoke access",
+      "question_description": "true revokes privileges instead of granting.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "db_revoke_access",
+      "choices": "false\ntrue",
+      "default": "false"
+    },
+    {
+      "question_name": "Append privileges",
+      "question_description": "true appends privileges instead of replacing current grants.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "db_append_privileges",
+      "choices": "false\ntrue",
+      "default": "false"
+    },
+    {
+      "question_name": "Create target databases",
+      "question_description": "true creates target DBs before grant operations.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "db_manage_databases",
+      "choices": "false\ntrue",
+      "default": "false"
+    }
+  ]
+}

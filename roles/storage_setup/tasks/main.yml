@@ -1,0 +1,51 @@
+---
+- name: "inicializa disco como GPT"
+  ansible.windows.win_shell: |
+    $disk = Get-Disk -Number {{ win_disk_number | int }}
+    if ($disk.partitionstyle -eq 'raw') {
+        Initialize-Disk -Number {{ win_disk_number | int }} -PartitionStyle GPT
+        Write-Output "Disco inicializado como GPT"
+    }
+  tags: [storage, storage_partition]
+
+- name: "criar volume no disco {{ win_disk_number }} como E"
+  community.windows.win_partition:
+    drive_letter: E
+    disk_number: "{{ win_disk_number | int }}"
+    partition_size: -1
+    state: present
+  register: disk_part
+  tags: [storage, storage_partition]
+
+- name: "formatar com NTFS 64K no disco E"
+  community.windows.win_format:
+    drive_letter: E
+    file_system: ntfs
+    new_label: 'SQL_DATA'
+    allocation_unit_size: 65536
+  when: disk_part.changed
+  tags: [storage, storage_format]
+
+- name: "criar pasta da instalacao do SQL no E"
+  ansible.windows.win_file:
+    path: 'E:\SQLServer_Root'
+    state: directory
+  tags: [storage, storage_folders]
+
+- name: "Dar permissão ao Network Service (Ele já existe e o SQL precisa dele)"
+  ansible.windows.win_acl:
+    path: "E:\\SQLServer_Root"
+    user: "S-1-5-20"  # Este é o SID do Network Service, funciona sempre
+    rights: FullControl
+    type: allow
+    state: present
+    inherit: ContainerInherit, ObjectInherit
+
+- name: "Dar permissão ao grupo de Administradores"
+  ansible.windows.win_acl:
+    path: "E:\\SQLServer_Root"
+    user: "BUILTIN\\Administrators"
+    rights: FullControl
+    type: allow
+    state: present
+    inherit: ContainerInherit, ObjectInherit

@@ -1,0 +1,14 @@
+---
+pg_username: ""
+pg_user_password: ""
+pg_user_state: present              # present | absent
+pg_user_login_host: "%"
+
+pg_target_databases: []
+pg_manage_databases: false
+
+pg_privileges: "CONNECT"
+pg_revoke_access: false
+pg_append_privileges: false
+
+pg_role_attr_flags: "LOGIN"

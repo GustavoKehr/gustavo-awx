@@ -1,0 +1,23 @@
+---
+- name: "DATABASE: Criar banco {{ db_name }}"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+    $query = "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '{{ db_name | default('sqldb') }}') CREATE DATABASE [{{ db_name | default('sqldb') }}];"
+    & $sqlcmd -S "." -E -C -Q $query
+  tags: [create_db]
+
+- name: "configura metodo de login (BOTH) Windows e U/P""
+  ansible.windows.win_shell: | 
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+    $query
+
+- name: "ISO: Desmontar imagem"
+  community.windows.win_disk_image:
+    image_path: 'E:\temp_install\SQLServer2025-x64-ENU.iso'
+    state: absent
+
+- name: "CLEANUP: Remover arquivos temporários"
+  ansible.windows.win_file:
+    path: 'E:\temp_install'
+    state: absent
+  ignore_errors: yes

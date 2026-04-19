@@ -1,0 +1,58 @@
+---
+#####################################
+# 3.11 - User Shell Environment Settings
+#####################################
+
+- name: "3.11 - Create /sysadmin directory (0755)"
+  ansible.builtin.file:
+    path: /sysadmin
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: [shell_environment, guide_3_11]
+
+- name: "3.11 - Create /sysadmin/histlog directory (0777)"
+  ansible.builtin.file:
+    path: /sysadmin/histlog
+    state: directory
+    owner: root
+    group: root
+    mode: "0777"
+  tags: [shell_environment, guide_3_11]
+
+- name: "3.11 - Deploy /etc/profile.d/01-prompt-env.sh"
+  ansible.builtin.template:
+    src: 01-prompt-env.sh.j2
+    dest: /etc/profile.d/01-prompt-env.sh
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [shell_environment, guide_3_11]
+
+- name: "3.11 - Deploy /etc/profile.d/02-umask.sh"
+  ansible.builtin.template:
+    src: 02-umask.sh.j2
+    dest: /etc/profile.d/02-umask.sh
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [shell_environment, guide_3_11]
+
+- name: "3.11 - Deploy /etc/profile.d/03-history.sh"
+  ansible.builtin.template:
+    src: 03-history.sh.j2
+    dest: /etc/profile.d/03-history.sh
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [shell_environment, guide_3_11]
+
+- name: "3.11 - Deploy /etc/profile.d/04-autologout.sh"
+  ansible.builtin.template:
+    src: 04-autologout.sh.j2
+    dest: /etc/profile.d/04-autologout.sh
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [shell_environment, guide_3_11]

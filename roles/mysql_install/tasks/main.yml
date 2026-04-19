@@ -1,0 +1,94 @@
+---
+- name: "Validate supported OS family"
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in mysql_server_packages
+      - ansible_os_family in mysql_service_name
+      - ansible_os_family in mysql_config_file
+      - ansible_os_family in mysql_login_unix_socket
+    fail_msg: "Unsupported OS family for mysql_install: {{ ansible_os_family }}"
+  tags: [mysql, mysql_install, mysql_validate]
+
+- name: "Install MySQL server and Python driver"
+  ansible.builtin.package:
+    name: "{{ mysql_server_packages[ansible_os_family] }}"
+    state: present
+  tags: [mysql, mysql_install, mysql_packages]
+
+- name: "Ensure MySQL service is enabled and running"
+  ansible.builtin.service:
+    name: "{{ mysql_service_name[ansible_os_family] }}"
+    state: started
+    enabled: true
+  tags: [mysql, mysql_install, mysql_service]
+
+- name: "Set MySQL server parameters in config file"
+  ansible.builtin.lineinfile:
+    path: "{{ mysql_config_file[ansible_os_family] }}"
+    regexp: "^{{ item.key }}\\s*="
+    line: "{{ item.key }} = {{ item.value }}"
+    insertafter: "^\\[mysqld\\]"
+    create: false
+  loop:
+    - { key: "bind-address", value: "{{ mysql_bind_address }}" }
+    - { key: "port", value: "{{ mysql_port }}" }
+    - { key: "max_connections", value: "{{ mysql_max_connections }}" }
+    - { key: "innodb_buffer_pool_size", value: "{{ mysql_innodb_buffer_pool_size }}" }
+    - { key: "sql_mode", value: "{{ mysql_sql_mode }}" }
+    - { key: "skip_name_resolve", value: "{{ 1 if mysql_skip_name_resolve else 0 }}" }
+    - { key: "local_infile", value: "{{ mysql_local_infile }}" }
+    - { key: "symbolic-links", value: "{{ mysql_symbolic_links }}" }
+  register: mysql_config_changes
+  tags: [mysql, mysql_install, mysql_config, mysql_hardening]
+
+- name: "Restart MySQL when config changes"
+  ansible.builtin.service:
+    name: "{{ mysql_service_name[ansible_os_family] }}"
+    state: restarted
+  when: mysql_config_changes is changed
+  tags: [mysql, mysql_install, mysql_service, mysql_config]
+
+- name: "Set local root password when provided"
+  community.mysql.mysql_user:
+    name: root
+    host: localhost
+    password: "{{ mysql_root_password }}"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    check_implicit_admin: true
+    state: present
+  when: mysql_root_password | length > 0
+  no_log: true
+  tags: [mysql, mysql_install, mysql_hardening, mysql_root]
+
+- name: "Remove anonymous MySQL users"
+  community.mysql.mysql_user:
+    name: ""
+    host_all: true
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    check_implicit_admin: true
+    state: absent
+  when: mysql_remove_anonymous_users | bool
+  tags: [mysql, mysql_install, mysql_hardening, mysql_users]
+
+- name: "Remove MySQL test database"
+  community.mysql.mysql_db:
+    name: test
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    check_implicit_admin: true
+    state: absent
+  when: mysql_remove_test_database | bool
+  tags: [mysql, mysql_install, mysql_hardening, mysql_db]
+
+- name: "Disallow remote root hosts"
+  community.mysql.mysql_user:
+    name: root
+    host: "{{ item }}"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    check_implicit_admin: true
+    state: absent
+  loop:
+    - "%"
+    - "0.0.0.0"
+    - "::"
+  when: mysql_disallow_remote_root | bool
+  tags: [mysql, mysql_install, mysql_hardening, mysql_root]

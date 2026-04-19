@@ -1,0 +1,93 @@
+---
+- name: "Normalize target PostgreSQL databases"
+  ansible.builtin.set_fact:
+    pg_target_databases_effective: >-
+      {{
+        pg_target_databases
+        if (pg_target_databases is sequence and pg_target_databases is not string)
+        else (pg_target_databases | string).split(',')
+      }}
+  tags: [postgres, postgres_users, postgres_users_validate]
+
+- name: "Trim target PostgreSQL database list"
+  ansible.builtin.set_fact:
+    pg_target_databases_effective: "{{ pg_target_databases_effective | map('trim') | reject('equalto', '') | list }}"
+  tags: [postgres, postgres_users, postgres_users_validate]
+
+- name: "Validate PostgreSQL user management input"
+  ansible.builtin.assert:
+    that:
+      - pg_username | length > 0
+      - pg_user_state in ['present', 'absent']
+      - pg_privileges | length > 0
+      - not (pg_user_state == 'present' and pg_user_password | length == 0)
+      - not (pg_revoke_access | bool and pg_user_state == 'absent')
+    fail_msg: "Invalid PostgreSQL user-management variables."
+  tags: [postgres, postgres_users, postgres_users_validate]
+
+- name: "Ensure PostgreSQL login role exists"
+  community.postgresql.postgresql_user:
+    name: "{{ pg_username }}"
+    password: "{{ pg_user_password }}"
+    role_attr_flags: "{{ pg_role_attr_flags }}"
+    state: present
+  become: true
+  become_user: postgres
+  when: pg_user_state == 'present'
+  no_log: true
+  tags: [postgres, postgres_users, postgres_user]
+
+- name: "Optionally create target PostgreSQL databases"
+  community.postgresql.postgresql_db:
+    name: "{{ item }}"
+    state: present
+  become: true
+  become_user: postgres
+  loop: "{{ pg_target_databases_effective }}"
+  when:
+    - pg_manage_databases | bool
+    - pg_user_state == 'present'
+    - pg_target_databases_effective | length > 0
+  tags: [postgres, postgres_users, postgres_db]
+
+- name: "Grant PostgreSQL privileges"
+  community.postgresql.postgresql_privs:
+    database: "{{ item }}"
+    roles: "{{ pg_username }}"
+    type: database
+    privs: "{{ pg_privileges }}"
+    grant_option: false
+    state: present
+  become: true
+  become_user: postgres
+  loop: "{{ pg_target_databases_effective }}"
+  when:
+    - pg_user_state == 'present'
+    - not pg_revoke_access | bool
+    - pg_target_databases_effective | length > 0
+  tags: [postgres, postgres_users, postgres_grants]
+
+- name: "Revoke PostgreSQL privileges"
+  community.postgresql.postgresql_privs:
+    database: "{{ item }}"
+    roles: "{{ pg_username }}"
+    type: database
+    privs: "{{ pg_privileges }}"
+    state: absent
+  become: true
+  become_user: postgres
+  loop: "{{ pg_target_databases_effective }}"
+  when:
+    - pg_user_state == 'present'
+    - pg_revoke_access | bool
+    - pg_target_databases_effective | length > 0
+  tags: [postgres, postgres_users, postgres_revoke]
+
+- name: "Drop PostgreSQL role when requested"
+  community.postgresql.postgresql_user:
+    name: "{{ pg_username }}"
+    state: absent
+  become: true
+  become_user: postgres
+  when: pg_user_state == 'absent'
+  tags: [postgres, postgres_users, postgres_remove_user]

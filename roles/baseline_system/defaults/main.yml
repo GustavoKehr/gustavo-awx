@@ -1,0 +1,66 @@
+---
+disable_ipv6: true
+disable_firewalld: true
+journald_storage: persistent
+
+install_baseline_packages: true
+
+# ------------------------------------------------
+# Baseline packages organized by category
+# ------------------------------------------------
+
+baseline_packages_network:
+  - net-tools
+  - bind-utils
+  - tcpdump
+  - nmap
+
+baseline_packages_tools:
+  - vim-enhanced
+  - curl
+  - wget
+  - tree
+  - unzip
+  - lsof
+  - psmisc
+
+baseline_packages_monitoring:
+  - sysstat
+  - iptraf-ng
+
+baseline_packages_misc:
+  - rsync
+  - bash-completion
+  - ed
+  - ftp
+  - yum-utils
+  - mlocate
+  - bzip2
+  - telnet
+  - perl
+
+# Final merged list used by the role
+baseline_packages: >
+  {{
+    baseline_packages_network +
+    baseline_packages_tools +
+    baseline_packages_monitoring +
+    baseline_packages_misc
+  }}
+
+# ------------------------------------------------
+# Chrony / NTP configuration
+# ------------------------------------------------
+
+chrony_enabled: true
+
+chrony_servers:
+  - "0.pool.ntp.org"
+  - "1.pool.ntp.org"
+  - "2.pool.ntp.org"
+
+chrony_leapsecmode: "slew"
+
+# rc.local requirement for forced time sync on boot
+chrony_rc_local_enabled: true
+chrony_rc_local_server: "0.pool.ntp.org"

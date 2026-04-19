@@ -1,0 +1,73 @@
+---
+# Patch application order (matches oracle_install_guide.txt):
+#   1. opatch post_patch1 (p38291812)
+#   2. opatch post_patch2 (p32249704)
+#   3. root: chown oracle oradism + chmod 0750
+#   4. opatch post_patch3 (p3467298)
+#   5. root: chown root oradism + chmod 4750
+
+- name: "PATCHES | Apply post_patch1 ({{ oracle_post_patch1_dir }})"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH=$PATH:{{ oracle_home }}/OPatch
+    cd {{ oracle_software_dst }}/{{ oracle_post_patch1_dir }}/{{ oracle_post_patch1_sub }}
+    echo -e "y\ny" | opatch apply
+  become: true
+  become_user: oracle
+  register: patch1_result
+  changed_when: "'OPatch succeeded' in patch1_result.stdout"
+  tags: oracle_patches
+
+- name: "PATCHES | Apply post_patch2 ({{ oracle_post_patch2_dir }})"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH=$PATH:{{ oracle_home }}/OPatch
+    cd {{ oracle_software_dst }}/{{ oracle_post_patch2_dir }}/{{ oracle_post_patch2_sub }}
+    echo -e "y\ny" | opatch apply
+  become: true
+  become_user: oracle
+  register: patch2_result
+  changed_when: "'OPatch succeeded' in patch2_result.stdout"
+  tags: oracle_patches
+
+- name: "PATCHES | Set oradism to oracle ownership before post_patch3 (as root)"
+  ansible.builtin.file:
+    path: "{{ oracle_home }}/bin/oradism"
+    owner: oracle
+    mode: "0750"
+  tags: oracle_patches
+
+- name: "PATCHES | Apply post_patch3 ({{ oracle_post_patch3_dir }})"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH=$PATH:{{ oracle_home }}/OPatch
+    cd {{ oracle_software_dst }}/{{ oracle_post_patch3_dir }}/{{ oracle_post_patch3_sub }}
+    echo -e "y\ny" | opatch apply
+  become: true
+  become_user: oracle
+  register: patch3_result
+  changed_when: "'OPatch succeeded' in patch3_result.stdout"
+  tags: oracle_patches
+
+- name: "PATCHES | Restore oradism to root ownership (as root)"
+  ansible.builtin.file:
+    path: "{{ oracle_home }}/bin/oradism"
+    owner: root
+    mode: "4750"
+  tags: oracle_patches
+
+- name: "PATCHES | Verify patch inventory"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH=$PATH:{{ oracle_home }}/OPatch
+    opatch lsinventory
+  become: true
+  become_user: oracle
+  register: opatch_inventory
+  changed_when: false
+  tags: oracle_patches
+
+- name: "PATCHES | Show applied patches"
+  ansible.builtin.debug:
+    msg: "{{ opatch_inventory.stdout_lines | select('match', '.*Patch.*') | list }}"
+  tags: oracle_patches

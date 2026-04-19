@@ -1,0 +1,123 @@
+---
+#####################################
+# 5.1 - logrotate.conf (monthly / rotate 12 / compress)
+#####################################
+
+- name: "5.1 - Ensure logrotate is installed"
+  ansible.builtin.package:
+    name: logrotate
+    state: present
+  tags: [monitoring_logs, logrotate, guide_5_1]
+
+- name: "5.1 - Set 'monthly' in /etc/logrotate.conf"
+  ansible.builtin.lineinfile:
+    path: /etc/logrotate.conf
+    regexp: '^\s*(weekly|daily|monthly)\s*$'
+    line: 'monthly'
+    create: false
+  tags: [monitoring_logs, logrotate, guide_5_1]
+
+- name: "5.1 - Set 'rotate 12' in /etc/logrotate.conf"
+  ansible.builtin.lineinfile:
+    path: /etc/logrotate.conf
+    regexp: '^\s*rotate\s+\d+'
+    line: 'rotate 12'
+    create: false
+  tags: [monitoring_logs, logrotate, guide_5_1]
+
+- name: "5.1 - Ensure 'compress' in /etc/logrotate.conf"
+  ansible.builtin.lineinfile:
+    path: /etc/logrotate.conf
+    regexp: '^\s*compress\s*$'
+    line: 'compress'
+    insertafter: '^rotate'
+    create: false
+  tags: [monitoring_logs, logrotate, guide_5_1]
+
+#####################################
+# 5.2 - logrotate.d rules
+#####################################
+
+- name: "5.2 - Deploy /etc/logrotate.d/btmp"
+  ansible.builtin.template:
+    src: logrotate-btmp.j2
+    dest: /etc/logrotate.d/btmp
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [monitoring_logs, logrotate, guide_5_2]
+
+- name: "5.2 - Deploy /etc/logrotate.d/wtmp"
+  ansible.builtin.template:
+    src: logrotate-wtmp.j2
+    dest: /etc/logrotate.d/wtmp
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [monitoring_logs, logrotate, guide_5_2]
+
+- name: "5.2 - Deploy /etc/logrotate.d/dnf"
+  ansible.builtin.template:
+    src: logrotate-dnf.j2
+    dest: /etc/logrotate.d/dnf
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [monitoring_logs, logrotate, guide_5_2]
+
+#####################################
+# 5.3 - Zabbix repo local
+# Repo VM serve apenas um RPM avulso, não tem estrutura DNF.
+# Removemos o zabbix.repo caso tenha sido deployado anteriormente.
+#####################################
+
+- name: "5.3 - Remove invalid zabbix.repo if present"
+  ansible.builtin.file:
+    path: /etc/yum.repos.d/zabbix.repo
+    state: absent
+  tags: [monitoring_logs, zabbix, guide_5_3]
+
+#####################################
+# 5.4 - Zabbix agent install + configure + enable
+#####################################
+
+- name: "5.4 - Install zabbix-agent from local repo RPM URL"
+  ansible.builtin.dnf:
+    name: "{{ zabbix_agent_rpm_url }}"
+    state: present
+    disable_gpg_check: true
+  tags: [monitoring_logs, zabbix, guide_5_4]
+
+- name: "5.4 - Configure Zabbix agent Server"
+  ansible.builtin.lineinfile:
+    path: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^\s*Server\s*='
+    line: "Server={{ zabbix_server }}"
+    create: false
+  register: zbx_cfg_server
+  tags: [monitoring_logs, zabbix, guide_5_4]
+
+- name: "5.4 - Configure Zabbix agent ServerActive"
+  ansible.builtin.lineinfile:
+    path: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^\s*ServerActive\s*='
+    line: "ServerActive={{ zabbix_server }}"
+    create: false
+  register: zbx_cfg_active
+  tags: [monitoring_logs, zabbix, guide_5_4]
+
+- name: "5.4 - Configure Zabbix agent Hostname"
+  ansible.builtin.lineinfile:
+    path: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^\s*Hostname\s*='
+    line: "Hostname={{ ansible_hostname }}"
+    create: false
+  register: zbx_cfg_host
+  tags: [monitoring_logs, zabbix, guide_5_4]
+
+- name: "5.4 - Enable and start zabbix-agent"
+  ansible.builtin.systemd:
+    name: zabbix-agent
+    enabled: true
+    state: "{{ 'restarted' if (zbx_cfg_server.changed or zbx_cfg_active.changed or zbx_cfg_host.changed) else 'started' }}"
+  tags: [monitoring_logs, zabbix, guide_5_4]

@@ -1,0 +1,23 @@
+SET VERIFY OFF
+connect "SYS"/"{{ oracle_sys_password }}" as SYSDBA
+set echo on
+spool {{ oracle_scripts_dir }}/CreateDB.log append
+startup nomount pfile="{{ oracle_scripts_dir }}/init.ora";
+CREATE DATABASE "{{ oracle_sid }}"
+MAXINSTANCES 8
+MAXLOGHISTORY 1
+MAXLOGFILES 64
+MAXLOGMEMBERS 3
+MAXDATAFILES 1000
+DATAFILE '{{ oracle_base }}/oradata1/system01.dbf' SIZE 1G REUSE
+EXTENT MANAGEMENT LOCAL
+SYSAUX DATAFILE '{{ oracle_base }}/oradata1/sysaux01.dbf' SIZE 1G REUSE
+SMALLFILE DEFAULT TEMPORARY TABLESPACE TEMP TEMPFILE '{{ oracle_base }}/temp/temp01.dbf' SIZE 1G REUSE
+SMALLFILE UNDO TABLESPACE "{{ oracle_undo_tablespace }}" DATAFILE '{{ oracle_base }}/undo/undotbs01.dbf' SIZE 1G REUSE
+CHARACTER SET {{ oracle_character_set }}
+NATIONAL CHARACTER SET {{ oracle_nchar_set }}
+LOGFILE GROUP 1 ('{{ oracle_base }}/origlogA/redo01_a.log','{{ oracle_base }}/mirrlogA/redo01_b.log') SIZE 500M,
+GROUP 2 ('{{ oracle_base }}/origlogB/redo02_a.log','{{ oracle_base }}/mirrlogB/redo02_b.log') SIZE 500M
+USER SYS IDENTIFIED BY "{{ oracle_sys_password }}"
+USER SYSTEM IDENTIFIED BY "{{ oracle_system_password }}";
+spool off

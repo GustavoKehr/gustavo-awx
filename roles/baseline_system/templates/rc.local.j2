@@ -1,0 +1,8 @@
+#!/bin/bash
+# Managed by Ansible - baseline_system
+# Security requirement: force time sync on boot
+
+systemctl stop chronyd
+chronyd -t 6 -q "server {{ chrony_rc_local_server }} iburst"
+hwclock -w
+systemctl start chronyd

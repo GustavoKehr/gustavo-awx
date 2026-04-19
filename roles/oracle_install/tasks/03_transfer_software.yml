@@ -1,0 +1,50 @@
+---
+# Copies Oracle software from /opt/oracle (mounted in AWX EE from awxvm host)
+# to oracle_software_dst on the target VM via rsync over SSH.
+
+- name: "TRANSFER | Sync Oracle installer zip"
+  ansible.posix.synchronize:
+    src: "{{ oracle_software_src }}/{{ oracle_installer_zip }}"
+    dest: "{{ oracle_software_dst }}/{{ oracle_installer_zip }}"
+    checksum: true
+  become: false
+  tags: oracle_transfer
+
+- name: "TRANSFER | Sync OPatch replacement directory"
+  ansible.posix.synchronize:
+    src: "{{ oracle_software_src }}/{{ oracle_opatch_dir }}/"
+    dest: "{{ oracle_software_dst }}/{{ oracle_opatch_dir }}/"
+    checksum: true
+    delete: false
+  become: false
+  tags: oracle_transfer
+
+- name: "TRANSFER | Sync RU + one-off patch directory ({{ oracle_ru_patch_dir }})"
+  ansible.posix.synchronize:
+    src: "{{ oracle_software_src }}/{{ oracle_ru_patch_dir }}/"
+    dest: "{{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/"
+    checksum: true
+    delete: false
+  become: false
+  tags: oracle_transfer
+
+- name: "TRANSFER | Sync post-install patch directories"
+  ansible.posix.synchronize:
+    src: "{{ oracle_software_src }}/{{ item }}/"
+    dest: "{{ oracle_software_dst }}/{{ item }}/"
+    checksum: true
+    delete: false
+  loop:
+    - "{{ oracle_post_patch1_dir }}"
+    - "{{ oracle_post_patch2_dir }}"
+    - "{{ oracle_post_patch3_dir }}"
+  become: false
+  tags: oracle_transfer
+
+- name: "TRANSFER | Fix ownership of transferred software"
+  ansible.builtin.file:
+    path: "{{ oracle_software_dst }}"
+    owner: oracle
+    group: oinstall
+    recurse: true
+  tags: oracle_transfer

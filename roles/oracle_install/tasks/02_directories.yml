@@ -1,0 +1,84 @@
+---
+# Oracle directory layout — all owned by oracle:oinstall
+
+- name: "DIRS | Create Oracle base, home, and data directories"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: "0750"
+  loop:
+    - "{{ oracle_home }}"
+    - "{{ oracle_base }}/oraInventory"
+    - "{{ oracle_base }}/admin/adump"
+    - "{{ oracle_base }}/admin/dpdump"
+    - "{{ oracle_base }}/admin/pfile"
+    - "{{ oracle_base }}/admin/audit"
+    - "{{ oracle_base }}/mirrlogA/cntrl"
+    - "{{ oracle_base }}/oradata1/cntrl"
+    - "{{ oracle_base }}/origlogA/cntrl"
+    - "{{ oracle_base }}/origlogA/cntrl"
+    - "{{ oracle_base }}/origlogA"
+    - "{{ oracle_base }}/origlogB"
+    - "{{ oracle_base }}/mirrlogA"
+    - "{{ oracle_base }}/mirrlogB"
+    - "{{ oracle_base }}/temp"
+    - "{{ oracle_base }}/undo"
+    - "{{ oracle_base }}/oraarch"
+    - "{{ oracle_base }}/oradata1"
+    - "{{ oracle_scripts_dir }}"
+  tags: oracle_dirs
+
+- name: "DIRS | Deploy Oracle bash_profile for oracle user"
+  ansible.builtin.template:
+    src: bash_profile.j2
+    dest: /home/oracle/.bash_profile
+    owner: oracle
+    group: oinstall
+    mode: "0640"
+  tags: oracle_dirs
+
+- name: "DIRS | Deploy init.ora to scripts directory"
+  ansible.builtin.template:
+    src: init.ora.j2
+    dest: "{{ oracle_scripts_dir }}/init.ora"
+    owner: oracle
+    group: oinstall
+    mode: "0640"
+  tags: oracle_dirs
+
+- name: "DIRS | Deploy database creation SQL scripts"
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ oracle_scripts_dir }}/{{ item }}"
+    owner: oracle
+    group: oinstall
+    mode: "0640"
+  loop:
+    - CreateDB.sql
+    - CreateDBFiles.sql
+    - CreateDBCatalog.sql
+    - postDBCreation.sql
+  tags: oracle_dirs
+
+- name: "DIRS | Deploy static SQL scripts (lockAccount, Users_and_Objects)"
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ oracle_scripts_dir }}/{{ item }}"
+    owner: oracle
+    group: oinstall
+    mode: "0640"
+  loop:
+    - lockAccount.sql
+    - Users_and_Objects.sql
+  tags: oracle_dirs
+
+- name: "DIRS | Deploy database creation shell script"
+  ansible.builtin.template:
+    src: db_create.sh.j2
+    dest: "{{ oracle_scripts_dir }}/{{ oracle_sid }}.sh"
+    owner: oracle
+    group: oinstall
+    mode: "0750"
+  tags: oracle_dirs

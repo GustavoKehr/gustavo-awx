@@ -1,0 +1,7 @@
+---
+# Zabbix server/proxy that agents report to
+zabbix_server: "192.168.137.159"
+
+# Internal repo VM — RPM served as flat file (not a DNF repo structure)
+zabbix_repo_host: "192.168.137.148"
+zabbix_agent_rpm_url: "http://{{ zabbix_repo_host }}:8080/zabbix/zabbix-agent-5.0.47-1.el9.x86_64.rpm"

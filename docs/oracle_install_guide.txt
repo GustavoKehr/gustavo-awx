@@ -1,0 +1,72 @@
+documentation steps
+
+as root
+
+1 dnf install oracle-database-preinstall-19c-1.0.2.el9.x86.64.rpm
+
+mv /etc/init.d /etc/initd.back
+
+vi /etc/sysctl.conf
+
+#hugepages
+vm.nr_hugepages=18432
+vm.hugetlb_shm_group=54321
+vm.force_cgroup_v2_swappiness=1
+kernel.sysrq=1
+kernel.unknown_nmi_panic=1
+kernel.panic_on.unrecovered_nmi=1
+net.ipv4.tcp_max_syn_backlog=2048
+vm.swappiness=1
+vm.min_free_kbyes=524288
+
+as oracle 
+
+vi .bash_profile
+
+umask 0022
+TMOUT=1800
+ORACLE_BASE=/oracle/TOTVSQ;export ORACLE_BASE
+ORACLE_HOME=/oracle/TOTVSQ/19.0.0;export ORACLE_HOME
+ORACLE_SID=TOTVSQ;export ORACLE_SID
+PATH=$ORACLE_HOME/bin;'$PATH;export PATH
+LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib;export LD_LIBRARY_PATH
+ORACLE_HOSTNAME=`hostname`;export ORACLE_HOSTNAME
+
+source ~/.bash_profile
+
+mkdir -p /oracle/TOTVSQ/19.0.0
+cd $ORACLE_HOME
+unzip -oq /home/oracle/software/LINUX.X64_193000_db_home.zip
+mv OPatch OPatchOLD
+cp -r /home/oracle/software/p6880880/OPatch .
+export CV_ASSUME_DISTID=RHEL8
+./runInstaller -applyRU /home/oracle/software/p37641958/37641958/37642901 -applyOneOffs /home/oracle/software/p37641958/37641958/37643161 -silent -responseFile ${ORACLE_HOME}/install/response/db_install.rsp -ignorePrereq -waitforcompletion oracle.install.option=INSTALL_DB_SWONLY ORACLE_HOSTNAME=${ORACLE_HOSTNAME} UNIX_GROUP_NAME=oinstall INVENTORY_LOCATION=${ORACLE_BASE}/oraInventory SELECTED_LANGUAGES=en ORACLE_HOME=${ORACLE_HOME} ORACLE_BASE=${ORACLE_BASE} oracle.install.db.InstallEdition=EE oracle.install.db.OSDBA_GROUP=dba oracle.install.db.OSBACKUPDBA_GROUP=dba oracle.install.db.OSDGDBA_GROUP=dba oracle.install.db.OSKMDBA_GROUP=kmdba oracle.install.db.OSRACDBA=dba SECURITY_UPDATES_VIA_MYORACLESUPPORT=false DECLINE_SECURITY_UPDATES=true
+
+export PATH=$PATH:$ORACLE_HOME/OPatch
+cd /home/oracle/software/p38291812/38291812
+opatch apply
+( it will ask for 2 confirmations, hit y for both)
+cd /home/oracle/software/p32249704/32249704
+opatch apply
+( it will ask for 2 confirmations, hit y for both)
+
+as root
+cd /oracle/TOTVSQ/19.0.0/bin
+chown oracle oradism
+chmod 0750 oradism
+
+as oracle
+cd /home/oracle/software/p3467298/3467298
+opatch apply
+( it will ask for 2 confirmations, hit y for both)
+
+as root
+cd /oracle/TOTVSQ/19.0.0/bin
+chown root oradism
+chmod 4750 oradism
+
+as oracle
+
+cd /oracle/TOTVSQ/scripts/db_creation/TOTVSQ/TOVSQ.sh (this is the database creation) all files are in oracle files directory)
+
+

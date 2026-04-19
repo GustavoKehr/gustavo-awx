@@ -1,0 +1,17 @@
+SET VERIFY OFF
+spool {{ oracle_scripts_dir }}/postDBCreation.log append
+host {{ oracle_home }}/OPatch/datapatch -skip_upgrade_check -db {{ oracle_sid }};
+connect "SYS"/"{{ oracle_sys_password }}" as SYSDBA
+set echo on
+create spfile='{{ oracle_home }}/dbs/spfile{{ oracle_sid }}.ora'
+  FROM pfile='{{ oracle_scripts_dir }}/init.ora';
+connect "SYS"/"{{ oracle_sys_password }}" as SYSDBA
+select 'utlrp_begin: ' || to_char(sysdate, 'HH:MI:SS') from dual;
+@{{ oracle_home }}/rdbms/admin/utlrp.sql;
+select 'utlrp_end: ' || to_char(sysdate, 'HH:MI:SS') from dual;
+select comp_id, status from dba_registry;
+shutdown immediate;
+connect "SYS"/"{{ oracle_sys_password }}" as SYSDBA
+startup;
+spool off
+exit;

@@ -1,0 +1,100 @@
+---
+# All tasks here run as root (become: yes inherited from playbook)
+
+- name: "PREREQS | Install Oracle preinstall RPM"
+  ansible.builtin.dnf:
+    name: "{{ oracle_software_src }}/{{ oracle_preinstall_rpm }}"
+    state: present
+    disable_gpg_check: true
+  tags: oracle_prereqs
+
+- name: "PREREQS | Back up /etc/init.d (required for Oracle installer on RHEL9)"
+  ansible.builtin.command:
+    cmd: mv /etc/init.d /etc/initd.back
+    creates: /etc/initd.back
+  tags: oracle_prereqs
+
+# --- HugePages calculation ---
+# When oracle_hugepages == 0, derive the count from oracle_sga_target so the
+# value is always safe for this VM's actual memory.
+# Formula: ceil(SGA_MB / hugepage_size_MB) + overhead%
+# Safety check: total hugepage memory must not exceed 80% of the VM's RAM.
+
+- name: "PREREQS | Parse SGA target to MB"
+  ansible.builtin.set_fact:
+    _oracle_sga_mb: >-
+      {% set v = oracle_sga_target | string | upper %}
+      {% if 'G' in v %}
+        {{ (v | replace('G','') | trim | float * 1024) | int }}
+      {% elif 'M' in v %}
+        {{ v | replace('M','') | trim | int }}
+      {% else %}
+        {{ v | int }}
+      {% endif %}
+  tags: oracle_prereqs
+
+- name: "PREREQS | Calculate recommended hugepages from SGA"
+  ansible.builtin.set_fact:
+    _oracle_hugepages_calc: >-
+      {{ ((_oracle_sga_mb | int / oracle_hugepage_size_mb | int)
+          * (1 + oracle_hugepages_overhead_pct | int / 100))
+         | round(0, 'ceil') | int }}
+  tags: oracle_prereqs
+
+- name: "PREREQS | Resolve final hugepages count (use survey value or auto-calc)"
+  ansible.builtin.set_fact:
+    _oracle_hugepages_final: >-
+      {{ oracle_hugepages | int if oracle_hugepages | int > 0
+         else _oracle_hugepages_calc | int }}
+  tags: oracle_prereqs
+
+- name: "PREREQS | Safety check — hugepages must not exceed 80% of available RAM"
+  ansible.builtin.assert:
+    that:
+      - (_oracle_hugepages_final | int * oracle_hugepage_size_mb | int) <= (ansible_memtotal_mb * 0.8) | int
+    fail_msg: >
+      Requested {{ _oracle_hugepages_final }} hugepages =
+      {{ _oracle_hugepages_final | int * oracle_hugepage_size_mb | int }} MB,
+      but this VM only has {{ ansible_memtotal_mb }} MB RAM
+      (80% limit = {{ (ansible_memtotal_mb * 0.8) | int }} MB).
+      Reduce oracle_sga_target or set oracle_hugepages manually.
+  tags: oracle_prereqs
+
+- name: "PREREQS | Show hugepages that will be applied"
+  ansible.builtin.debug:
+    msg: >
+      HugePages: {{ _oracle_hugepages_final }}
+      ({{ _oracle_hugepages_final | int * oracle_hugepage_size_mb | int }} MB reserved)
+      | SGA: {{ oracle_sga_target }}
+      | VM RAM: {{ ansible_memtotal_mb }} MB
+      | Source: {{ 'survey/override' if oracle_hugepages | int > 0 else 'auto-calculated' }}
+  tags: oracle_prereqs
+
+- name: "PREREQS | Deploy Oracle sysctl settings"
+  ansible.builtin.template:
+    src: sysctl_oracle.conf.j2
+    dest: /etc/sysctl.d/97-oracle.conf
+    owner: root
+    group: root
+    mode: "0644"
+  tags: oracle_prereqs
+
+- name: "PREREQS | Apply sysctl immediately"
+  ansible.builtin.command: sysctl --system
+  changed_when: false
+  tags: oracle_prereqs
+
+- name: "PREREQS | Set oracle user password (created by preinstall RPM)"
+  ansible.builtin.user:
+    name: oracle
+    password: "{{ oracle_sys_password | password_hash('sha512') }}"
+  tags: oracle_prereqs
+
+- name: "PREREQS | Ensure software staging directory exists on target"
+  ansible.builtin.file:
+    path: "{{ oracle_software_dst }}"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: "0750"
+  tags: oracle_prereqs
