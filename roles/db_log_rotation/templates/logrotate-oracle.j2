@@ -1,0 +1,10 @@
+{{ db_log_oracle_diag_path }}/rdbms/*/trace/alert_*.log {
+    daily
+    rotate {{ db_log_retention_days }}
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    su oracle oinstall
+}

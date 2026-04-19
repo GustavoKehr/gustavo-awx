@@ -6,3 +6,9 @@ db_patch_apply_enabled: false              # Safety guard: keep false for now.
 db_patch_extensions:
   - "*.sql"
   - "*.ps1"
+  - "*.sh"
+
+# Repository VM where patches are stored (http server).
+db_patch_repo_host: "192.168.137.148"
+db_patch_repo_port: 8080
+db_patch_repo_path: "/patches"

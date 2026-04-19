@@ -1,6 +1,6 @@
 # SQL Server AWX Runbook
 
-This runbook documents how to execute `playbooks/install_sql_playbook.yml` with modular tags.
+This runbook documents how to execute `playbooks/deploy_sqlserver.yml` with modular tags.
 
 ## Standard job patterns
 

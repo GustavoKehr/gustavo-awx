@@ -1,0 +1,34 @@
+---
+- name: "PostgreSQL | Gather schemas to maintain"
+  community.postgresql.postgresql_query:
+    query: >
+      SELECT schema_name FROM information_schema.schemata
+      WHERE schema_name NOT IN ('information_schema','pg_catalog','pg_toast')
+      {% if db_index_target_schemas | length > 0 %}
+        AND schema_name = ANY(ARRAY['{{ db_index_target_schemas | join("','") }}'])
+      {% endif %}
+      ORDER BY schema_name
+  become: true
+  become_user: postgres
+  register: _pg_schemas
+  tags: [db_index_maintenance]
+
+- name: "PostgreSQL | VACUUM ANALYZE schema {{ item.schema_name }}"
+  community.postgresql.postgresql_query:
+    query: "VACUUM ANALYZE"
+  become: true
+  become_user: postgres
+  loop: "{{ _pg_schemas.query_result | default([]) }}"
+  loop_control:
+    label: "{{ item.schema_name }}"
+  tags: [db_index_maintenance]
+
+- name: "PostgreSQL | REINDEX SCHEMA {{ item.schema_name }}"
+  community.postgresql.postgresql_query:
+    query: "REINDEX SCHEMA {{ item.schema_name }}"
+  become: true
+  become_user: postgres
+  loop: "{{ _pg_schemas.query_result | default([]) }}"
+  loop_control:
+    label: "{{ item.schema_name }}"
+  tags: [db_index_maintenance]

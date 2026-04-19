@@ -1,0 +1,11 @@
+---
+- name: "Validate db_type for index maintenance"
+  ansible.builtin.assert:
+    that:
+      - db_type in ['mysql', 'postgres', 'oracle', 'sqlserver']
+    fail_msg: "db_type must be one of: mysql, postgres, oracle, sqlserver"
+  tags: [db_index_maintenance]
+
+- name: "Run index maintenance for {{ db_type }}"
+  ansible.builtin.include_tasks: "{{ db_type }}.yml"
+  tags: [db_index_maintenance]

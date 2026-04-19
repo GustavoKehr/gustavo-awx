@@ -5,6 +5,16 @@
   gather_facts: true
 
   tasks:
+    - name: "Phase 0a: OS baseline"
+      ansible.builtin.include_role:
+        name: baseline_system
+      tags: [os_prep, bootstrap]
+
+    - name: "Phase 0b: Shell environment"
+      ansible.builtin.include_role:
+        name: shell_environment
+      tags: [os_prep, bootstrap]
+
     - name: "Phase 1: Install and harden MySQL"
       ansible.builtin.include_role:
         name: mysql_install
@@ -18,7 +28,7 @@
           or ('mysql_users' in (ansible_run_tags | default([])))
       tags: [mysql, mysql_users, post_install]
 
-    - name: "Phase 3: Discover local DB patches (no apply)"
+    - name: "Phase 3: Discover patches (no apply)"
       ansible.builtin.include_role:
         name: db_patches
       when:

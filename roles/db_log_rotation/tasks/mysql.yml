@@ -1,0 +1,16 @@
+---
+- name: "MySQL | Deploy logrotate rule"
+  ansible.builtin.template:
+    src: logrotate-mysql.j2
+    dest: /etc/logrotate.d/mysql-db
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [db_log_rotation, mysql_logs]
+
+- name: "MySQL | Purge binary logs older than {{ db_log_retention_days }} days"
+  community.mysql.mysql_query:
+    login_unix_socket: /var/lib/mysql/mysql.sock
+    query: "PURGE BINARY LOGS BEFORE DATE_SUB(NOW(), INTERVAL {{ db_log_retention_days }} DAY)"
+  ignore_errors: true
+  tags: [db_log_rotation, mysql_logs]

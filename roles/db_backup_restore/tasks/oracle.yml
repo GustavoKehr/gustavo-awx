@@ -1,0 +1,107 @@
+---
+# Phase 1: Insert test data
+- name: "Oracle | Create validation table and insert test data"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s {{ db_schema }}/{{ oracle_schema_password | default('change_me') }} <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    BEGIN
+      EXECUTE IMMEDIATE 'CREATE TABLE {{ validation_table }}
+        (id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+         val VARCHAR2(64) NOT NULL,
+         created_at TIMESTAMP DEFAULT SYSTIMESTAMP)';
+    EXCEPTION WHEN OTHERS THEN
+      IF SQLCODE = -955 THEN NULL; END IF;
+    END;
+    /
+    DELETE FROM {{ validation_table }};
+    {% for i in range(1, validation_row_count + 1) %}
+    INSERT INTO {{ validation_table }} (val) VALUES ('row_{{ i }}');
+    {% endfor %}
+    COMMIT;
+    EXIT;
+    EOF
+  become: true
+  become_user: oracle
+  no_log: true
+  tags: [db_backup_restore, backup_insert]
+
+# Phase 2: Backup
+- name: "Oracle | Ensure Data Pump directory exists"
+  ansible.builtin.file:
+    path: "{{ oracle_data_pump_path }}"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: "0750"
+  tags: [db_backup_restore, backup_create]
+
+- name: "Oracle | Export schema with Data Pump"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    expdp / as sysdba \
+      schemas={{ db_schema | upper }} \
+      directory={{ oracle_data_pump_dir }} \
+      dumpfile={{ db_schema }}_validate.dmp \
+      logfile={{ db_schema }}_validate_exp.log \
+      reuse_dumpfiles=YES
+  become: true
+  become_user: oracle
+  tags: [db_backup_restore, backup_create]
+
+# Phase 3: Transfer backup to sandbox
+- name: "Oracle | Transfer Data Pump dump to sandbox"
+  ansible.posix.synchronize:
+    src: "{{ oracle_data_pump_path }}/{{ db_schema }}_validate.dmp"
+    dest: "{{ oracle_data_pump_path }}/{{ db_schema }}_validate.dmp"
+    mode: push
+  delegate_to: "{{ inventory_hostname }}"
+  tags: [db_backup_restore, backup_transfer]
+
+# Phase 5: Restore
+- name: "Oracle | Import schema on sandbox with Data Pump"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    impdp / as sysdba \
+      schemas={{ db_schema | upper }} \
+      directory={{ oracle_data_pump_dir }} \
+      dumpfile={{ db_schema }}_validate.dmp \
+      logfile={{ db_schema }}_validate_imp.log \
+      table_exists_action=replace
+  become: true
+  become_user: oracle
+  delegate_to: "{{ sandbox_host }}"
+  tags: [db_backup_restore, restore]
+
+# Phase 6: Validate
+- name: "Oracle | Count validation rows on sandbox"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET HEADING OFF FEEDBACK OFF PAGESIZE 0;
+    SELECT COUNT(*) FROM {{ db_schema | upper }}.{{ validation_table }};
+    EXIT;
+    EOF
+  become: true
+  become_user: oracle
+  delegate_to: "{{ sandbox_host }}"
+  register: _oracle_validate_result
+  tags: [db_backup_restore, restore_validate]
+
+- name: "Oracle | Assert row count matches expected"
+  ansible.builtin.assert:
+    that:
+      - _oracle_validate_result.stdout | trim | int == validation_row_count | int
+    fail_msg: >-
+      Restore validation FAILED: expected {{ validation_row_count }} rows,
+      got {{ _oracle_validate_result.stdout | trim }}
+    success_msg: "Restore validation PASSED: {{ validation_row_count }} rows confirmed on sandbox."
+  tags: [db_backup_restore, restore_validate]

@@ -92,3 +92,12 @@
     - "::"
   when: mysql_disallow_remote_root | bool
   tags: [mysql, mysql_install, mysql_hardening, mysql_root]
+
+- name: "Create initial application database"
+  community.mysql.mysql_db:
+    name: "{{ mysql_initial_db_name }}"
+    state: present
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    check_implicit_admin: true
+  when: create_initial_db | bool
+  tags: [mysql, mysql_install, mysql_db, create_initial_db]

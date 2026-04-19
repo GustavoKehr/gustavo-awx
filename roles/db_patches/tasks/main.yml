@@ -1,4 +1,27 @@
 ---
+- name: "Fetch remote patch catalog from repositoryvm"
+  ansible.builtin.uri:
+    url: "http://{{ db_patch_repo_host }}:{{ db_patch_repo_port }}{{ db_patch_repo_path }}/{{ db_patch_platform }}/"
+    method: GET
+    return_content: true
+    status_code: [200, 404]
+    timeout: 10
+  delegate_to: localhost
+  run_once: true
+  register: db_patch_remote_catalog
+  ignore_errors: true
+  tags: [db_patches, patch_discovery]
+
+- name: "Show remote patch catalog result"
+  ansible.builtin.debug:
+    msg: >-
+      Remote catalog for {{ db_patch_platform }}:
+      {{ 'reachable (' ~ db_patch_remote_catalog.status | string ~ ')'
+         if db_patch_remote_catalog is not failed
+         else 'unreachable (offline mode)' }}
+  run_once: true
+  tags: [db_patches, patch_discovery]
+
 - name: "Ensure patch repository path exists on controller"
   ansible.builtin.stat:
     path: "{{ db_patches_root }}"

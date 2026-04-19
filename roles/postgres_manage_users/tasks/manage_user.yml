@@ -1,0 +1,106 @@
+---
+- name: "Validate user entry: {{ db_user.username }}"
+  ansible.builtin.assert:
+    that:
+      - db_user.username | length > 0
+      - db_user.state | default('present') in ['present', 'absent']
+      - not (db_user.state | default('present') == 'present' and (db_user.password | default('')) | length == 0)
+      - not (db_user.revoke | default(false) | bool and db_user.state | default('present') == 'absent')
+    fail_msg: "Invalid entry for user {{ db_user.username }}: password required when state=present"
+  tags: [postgres, postgres_users, postgres_users_validate]
+
+- name: "Normalize database list for {{ db_user.username }}"
+  ansible.builtin.set_fact:
+    _pg_dbs: >-
+      {{
+        db_user.databases | default([])
+        if (db_user.databases | default([]) is sequence and db_user.databases | default([]) is not string)
+        else (db_user.databases | default('') | string).split(',')
+        | map('trim') | reject('equalto', '') | list
+      }}
+  tags: [postgres, postgres_users]
+
+- name: "Create or update PostgreSQL role {{ db_user.username }}"
+  community.postgresql.postgresql_user:
+    name: "{{ db_user.username }}"
+    password: "{{ db_user.password }}"
+    role_attr_flags: "{{ db_user.role_attr_flags | default('LOGIN') }}"
+    state: present
+  become: true
+  become_user: postgres
+  when: db_user.state | default('present') == 'present'
+  no_log: true
+  tags: [postgres, postgres_users, postgres_user]
+
+- name: "Create target databases for {{ db_user.username }}"
+  community.postgresql.postgresql_db:
+    name: "{{ item }}"
+    state: present
+  become: true
+  become_user: postgres
+  loop: "{{ _pg_dbs }}"
+  when:
+    - db_user.manage_databases | default(false) | bool
+    - db_user.state | default('present') == 'present'
+    - _pg_dbs | length > 0
+  tags: [postgres, postgres_users, postgres_db]
+
+- name: "Grant privileges to {{ db_user.username }}"
+  community.postgresql.postgresql_privs:
+    database: "{{ item }}"
+    roles: "{{ db_user.username }}"
+    type: database
+    privs: "{{ db_user.privileges | default('CONNECT') }}"
+    grant_option: false
+    state: present
+  become: true
+  become_user: postgres
+  loop: "{{ _pg_dbs }}"
+  when:
+    - db_user.state | default('present') == 'present'
+    - not db_user.revoke | default(false) | bool
+    - _pg_dbs | length > 0
+  tags: [postgres, postgres_users, postgres_grants]
+
+- name: "Revoke privileges from {{ db_user.username }}"
+  community.postgresql.postgresql_privs:
+    database: "{{ item }}"
+    roles: "{{ db_user.username }}"
+    type: database
+    privs: "{{ db_user.privileges | default('CONNECT') }}"
+    state: absent
+  become: true
+  become_user: postgres
+  loop: "{{ _pg_dbs }}"
+  when:
+    - db_user.state | default('present') == 'present'
+    - db_user.revoke | default(false) | bool
+    - _pg_dbs | length > 0
+  tags: [postgres, postgres_users, postgres_revoke]
+
+- name: "Add pg_hba.conf entries for {{ db_user.username }} (append-only)"
+  community.postgresql.postgresql_pg_hba:
+    dest: "{{ postgres_config_dir[ansible_os_family] }}/pg_hba.conf"
+    contype: host
+    users: "{{ db_user.username }}"
+    source: "{{ item }}"
+    databases: "{{ _pg_dbs | join(',') if _pg_dbs | length > 0 else 'all' }}"
+    method: scram-sha-256
+    state: present
+  become: true
+  become_user: postgres
+  loop: "{{ db_user.allowed_ips | default([]) }}"
+  when:
+    - db_user.state | default('present') == 'present'
+    - db_user.allowed_ips | default([]) | length > 0
+  notify: Reload PostgreSQL
+  tags: [postgres, postgres_users, postgres_hba]
+
+- name: "Drop PostgreSQL role {{ db_user.username }}"
+  community.postgresql.postgresql_user:
+    name: "{{ db_user.username }}"
+    state: absent
+  become: true
+  become_user: postgres
+  when: db_user.state | default('present') == 'absent'
+  tags: [postgres, postgres_users, postgres_remove_user]

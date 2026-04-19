@@ -1,6 +1,6 @@
 {
   "name": "SQLSERVER | Manage Users",
-  "description": "Survey for sql_manage_users role in install_sql_playbook.yml",
+  "description": "Survey for sql_manage_users role in deploy_sqlserver.yml",
   "spec": [
     {
       "question_name": "SQL login name",

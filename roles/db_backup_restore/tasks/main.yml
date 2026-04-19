@@ -1,0 +1,13 @@
+---
+- name: "Validate required variables"
+  ansible.builtin.assert:
+    that:
+      - db_type in ['mysql', 'postgres', 'oracle', 'sqlserver']
+      - sandbox_host | length > 0
+      - db_name | length > 0
+    fail_msg: "Set db_type (mysql|postgres|oracle|sqlserver), sandbox_host and db_name."
+  tags: [db_backup_restore]
+
+- name: "Run backup/restore validation for {{ db_type }}"
+  ansible.builtin.include_tasks: "{{ db_type }}.yml"
+  tags: [db_backup_restore]

@@ -1,0 +1,84 @@
+---
+- name: "Validate user entry: {{ db_user.username }}"
+  ansible.builtin.assert:
+    that:
+      - db_user.username | length > 0
+      - db_user.state | default('present') in ['present', 'absent']
+      - db_user.host | default('%') == '%'
+          or (db_user.host | default('%') is match('^(([0-9]{1,3}\.){3}[0-9]{1,3})(/[0-9]{1,2})?$'))
+      - not (db_user.state | default('present') == 'absent' and db_user.revoke | default(false) | bool)
+    fail_msg: "Invalid entry for user {{ db_user.username }}"
+  tags: [mysql, mysql_users, mysql_users_validate]
+
+- name: "Normalize database list for {{ db_user.username }}"
+  ansible.builtin.set_fact:
+    _mysql_dbs: >-
+      {{
+        db_user.databases
+        if (db_user.databases is sequence and db_user.databases is not string)
+        else (db_user.databases | string).split(',')
+        | map('trim') | reject('equalto', '') | list
+      }}
+  tags: [mysql, mysql_users]
+
+- name: "Build privilege scope string for {{ db_user.username }}"
+  ansible.builtin.set_fact:
+    _mysql_priv_scope: >-
+      {{
+        _mysql_dbs
+        | map('regex_replace', '^(.*)$', '\1.*:' ~ (db_user.privileges | default('SELECT')))
+        | join('/')
+      }}
+  tags: [mysql, mysql_users]
+
+- name: "Create target databases for {{ db_user.username }}"
+  community.mysql.mysql_db:
+    name: "{{ item }}"
+    state: present
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] | default('/var/run/mysqld/mysqld.sock') }}"
+    check_implicit_admin: true
+  loop: "{{ _mysql_dbs }}"
+  when:
+    - db_user.manage_databases | default(false) | bool
+    - db_user.state | default('present') == 'present'
+  tags: [mysql, mysql_users, mysql_db]
+
+- name: "Create or update user {{ db_user.username }}@{{ db_user.host | default('%') }}"
+  community.mysql.mysql_user:
+    name: "{{ db_user.username }}"
+    host: "{{ db_user.host | default('%') }}"
+    password: "{{ db_user.password | default(omit) }}"
+    priv: "{{ _mysql_priv_scope }}"
+    append_privs: "{{ db_user.append_privileges | default(true) | bool }}"
+    state: present
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] | default('/var/run/mysqld/mysqld.sock') }}"
+    check_implicit_admin: true
+  when:
+    - db_user.state | default('present') == 'present'
+    - not db_user.revoke | default(false) | bool
+  no_log: true
+  tags: [mysql, mysql_users, mysql_grants]
+
+- name: "Revoke privileges from {{ db_user.username }}@{{ db_user.host | default('%') }}"
+  community.mysql.mysql_user:
+    name: "{{ db_user.username }}"
+    host: "{{ db_user.host | default('%') }}"
+    priv: "{{ _mysql_priv_scope }}"
+    subtract_privs: true
+    state: present
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] | default('/var/run/mysqld/mysqld.sock') }}"
+    check_implicit_admin: true
+  when:
+    - db_user.state | default('present') == 'present'
+    - db_user.revoke | default(false) | bool
+  tags: [mysql, mysql_users, mysql_revoke]
+
+- name: "Drop user {{ db_user.username }}@{{ db_user.host | default('%') }}"
+  community.mysql.mysql_user:
+    name: "{{ db_user.username }}"
+    host: "{{ db_user.host | default('%') }}"
+    state: absent
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] | default('/var/run/mysqld/mysqld.sock') }}"
+    check_implicit_admin: true
+  when: db_user.state | default('present') == 'absent'
+  tags: [mysql, mysql_users, mysql_remove_user]

@@ -91,3 +91,12 @@
   when:
     - postgres_config_changes is changed or (postgres_hba_changes is defined and postgres_hba_changes is changed)
   tags: [postgres, postgres_install, postgres_service]
+
+- name: "Create initial application database"
+  community.postgresql.postgresql_db:
+    name: "{{ postgres_initial_db_name }}"
+    state: present
+  become: true
+  become_user: postgres
+  when: create_initial_db | bool
+  tags: [postgres, postgres_install, postgres_db, create_initial_db]

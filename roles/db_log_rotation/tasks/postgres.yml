@@ -1,0 +1,30 @@
+---
+- name: "PostgreSQL | Configure built-in log rotation parameters"
+  community.postgresql.postgresql_set:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+  become: true
+  become_user: postgres
+  loop:
+    - { name: log_rotation_age,  value: "1d" }
+    - { name: log_rotation_size, value: "100MB" }
+    - { name: log_filename,      value: "postgresql-%Y-%m-%d.log" }
+    - { name: log_truncate_on_rotation, value: "on" }
+  register: _pg_log_config
+  tags: [db_log_rotation, postgres_logs]
+
+- name: "PostgreSQL | Reload to apply log config"
+  ansible.builtin.service:
+    name: postgresql
+    state: reloaded
+  when: _pg_log_config is changed
+  tags: [db_log_rotation, postgres_logs]
+
+- name: "PostgreSQL | Deploy logrotate rule for pg_log"
+  ansible.builtin.template:
+    src: logrotate-postgres.j2
+    dest: /etc/logrotate.d/postgres-db
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [db_log_rotation, postgres_logs]

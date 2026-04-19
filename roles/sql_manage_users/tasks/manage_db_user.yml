@@ -1,0 +1,67 @@
+---
+# Called per-database per-user. Loop vars: db_user (outer), _sql_db (inner), _sql_db_user, _sql_roles.
+
+- name: "Create DB user {{ _sql_db_user }} in [{{ _sql_db }}]"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse |
+              Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    USE [{{ _sql_db }}];
+    IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'{{ _sql_db_user }}')
+    BEGIN
+      CREATE USER [{{ _sql_db_user }}] FOR LOGIN [{{ db_user.username }}];
+      PRINT 'CHANGED';
+    END
+    ELSE
+      PRINT 'OK';
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  register: _sql_db_user_result
+  changed_when: "'CHANGED' in (_sql_db_user_result.stdout | default(''))"
+  tags: [sql_users, sql_db_user]
+
+- name: "Grant roles to {{ _sql_db_user }} in [{{ _sql_db }}]"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse |
+              Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    USE [{{ _sql_db }}];
+    IF IS_ROLEMEMBER(N'{{ item }}', N'{{ _sql_db_user }}') <> 1
+    BEGIN
+      ALTER ROLE [{{ item }}] ADD MEMBER [{{ _sql_db_user }}];
+      PRINT 'CHANGED';
+    END
+    ELSE
+      PRINT 'OK';
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  loop: "{{ _sql_roles }}"
+  register: _sql_grant_result
+  changed_when: "'CHANGED' in (_sql_grant_result.stdout | default(''))"
+  when:
+    - not db_user.revoke | default(false) | bool
+    - _sql_roles | length > 0
+  tags: [sql_users, sql_grants]
+
+- name: "Revoke roles from {{ _sql_db_user }} in [{{ _sql_db }}]"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse |
+              Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    USE [{{ _sql_db }}];
+    IF IS_ROLEMEMBER(N'{{ item }}', N'{{ _sql_db_user }}') = 1
+    BEGIN
+      ALTER ROLE [{{ item }}] DROP MEMBER [{{ _sql_db_user }}];
+      PRINT 'CHANGED';
+    END
+    ELSE
+      PRINT 'OK';
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  loop: "{{ _sql_roles }}"
+  register: _sql_revoke_result
+  changed_when: "'CHANGED' in (_sql_revoke_result.stdout | default(''))"
+  when:
+    - db_user.revoke | default(false) | bool
+    - _sql_roles | length > 0
+  tags: [sql_users, sql_revoke]

@@ -1,0 +1,13 @@
+{{ oracle_home }}/network/log/listener.log {
+    daily
+    rotate {{ db_log_retention_days }}
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    postrotate
+        su - oracle -c "{{ oracle_home }}/bin/lsnrctl reload" > /dev/null 2>&1 || true
+    endscript
+    su oracle oinstall
+}

@@ -1,0 +1,9 @@
+{{ db_log_postgres_path }}/postgresql-*.log {
+    daily
+    rotate {{ db_log_retention_days }}
+    compress
+    delaycompress
+    missingok
+    notifempty
+    su postgres postgres
+}

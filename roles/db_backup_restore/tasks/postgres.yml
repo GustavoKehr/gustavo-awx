@@ -1,0 +1,82 @@
+---
+# Phase 1: Insert test data
+- name: "PostgreSQL | Create validation table and insert test data"
+  community.postgresql.postgresql_query:
+    db: "{{ db_name }}"
+    query: |
+      CREATE TABLE IF NOT EXISTS {{ validation_table }} (
+        id SERIAL PRIMARY KEY,
+        val TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      DELETE FROM {{ validation_table }};
+      INSERT INTO {{ validation_table }} (val)
+        SELECT 'row_' || generate_series(1, {{ validation_row_count }});
+  become: true
+  become_user: postgres
+  tags: [db_backup_restore, backup_insert]
+
+# Phase 2: Backup
+- name: "PostgreSQL | Create backup directory"
+  ansible.builtin.file:
+    path: "{{ backup_path }}"
+    state: directory
+    owner: postgres
+    mode: "0750"
+  tags: [db_backup_restore, backup_create]
+
+- name: "PostgreSQL | Dump database (custom format)"
+  ansible.builtin.command: >
+    pg_dump -Fc -d {{ db_name }} -f {{ backup_path }}/{{ db_name }}_validate.dump
+  become: true
+  become_user: postgres
+  tags: [db_backup_restore, backup_create]
+
+# Phase 3: Transfer backup to sandbox
+- name: "PostgreSQL | Transfer backup to sandbox"
+  ansible.posix.synchronize:
+    src: "{{ backup_path }}/{{ db_name }}_validate.dump"
+    dest: "{{ backup_path }}/{{ db_name }}_validate.dump"
+    mode: push
+  delegate_to: "{{ inventory_hostname }}"
+  tags: [db_backup_restore, backup_transfer]
+
+# Phase 5: Restore
+- name: "PostgreSQL | Create database on sandbox for restore"
+  community.postgresql.postgresql_db:
+    name: "{{ db_name }}"
+    state: present
+  become: true
+  become_user: postgres
+  delegate_to: "{{ sandbox_host }}"
+  tags: [db_backup_restore, restore]
+
+- name: "PostgreSQL | Restore backup on sandbox"
+  ansible.builtin.command: >
+    pg_restore -d {{ db_name }} {{ backup_path }}/{{ db_name }}_validate.dump
+  become: true
+  become_user: postgres
+  delegate_to: "{{ sandbox_host }}"
+  failed_when: false
+  tags: [db_backup_restore, restore]
+
+# Phase 6: Validate
+- name: "PostgreSQL | Count validation rows on sandbox"
+  community.postgresql.postgresql_query:
+    db: "{{ db_name }}"
+    query: "SELECT COUNT(*) AS cnt FROM {{ validation_table }}"
+  become: true
+  become_user: postgres
+  delegate_to: "{{ sandbox_host }}"
+  register: _pg_validate_result
+  tags: [db_backup_restore, restore_validate]
+
+- name: "PostgreSQL | Assert row count matches expected"
+  ansible.builtin.assert:
+    that:
+      - _pg_validate_result.query_result[0].cnt | int == validation_row_count | int
+    fail_msg: >-
+      Restore validation FAILED: expected {{ validation_row_count }} rows,
+      got {{ _pg_validate_result.query_result[0].cnt }}
+    success_msg: "Restore validation PASSED: {{ validation_row_count }} rows confirmed on sandbox."
+  tags: [db_backup_restore, restore_validate]

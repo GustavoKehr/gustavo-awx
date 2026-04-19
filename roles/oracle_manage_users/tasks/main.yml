@@ -1,0 +1,42 @@
+---
+- name: "Build db_users from flat survey vars when list not provided"
+  ansible.builtin.set_fact:
+    db_users:
+      - username: "{{ oracle_username }}"
+        password: "{{ oracle_password | default('') }}"
+        state: "{{ oracle_user_state | default('present') }}"
+        privileges: "{{ oracle_privileges | default('CONNECT,RESOURCE') }}"
+        roles: >-
+          {{
+            (oracle_roles | default(''))
+            | string | split(',')
+            | map('trim') | reject('equalto', '') | list
+          }}
+        revoke: "{{ oracle_revoke_access | default(false) | bool }}"
+        default_tablespace: "{{ oracle_default_tablespace | default('USERS') }}"
+        temp_tablespace: "{{ oracle_temp_tablespace | default('TEMP') }}"
+        allowed_ips: >-
+          {{
+            (oracle_allowed_ips | default(''))
+            | string | split(',')
+            | map('trim') | reject('equalto', '') | list
+          }}
+  when:
+    - db_users | default([]) | length == 0
+    - oracle_username | default('') | length > 0
+  tags: [oracle, oracle_users]
+
+- name: "Validate db_users list is not empty"
+  ansible.builtin.assert:
+    that:
+      - db_users | length > 0
+    fail_msg: "db_users list is empty. Provide at least one user entry."
+  tags: [oracle, oracle_users, oracle_users_validate]
+
+- name: "Manage each Oracle user"
+  ansible.builtin.include_tasks: manage_user.yml
+  loop: "{{ db_users }}"
+  loop_control:
+    loop_var: db_user
+    label: "{{ db_user.username }}"
+  tags: [oracle, oracle_users]

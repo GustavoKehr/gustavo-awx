@@ -28,6 +28,8 @@
     - name: "FASE 5: Post-Install"
       ansible.builtin.include_role:
         name: sql_post_config
+      vars:
+        create_initial_db: "{{ create_initial_db | default(true) | bool }}"
       tags: [sql_post, database]
 
     - name: "FASE 6: Gerenciar usuários SQL Server (opcional)"

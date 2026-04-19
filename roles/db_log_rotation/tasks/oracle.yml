@@ -1,0 +1,39 @@
+---
+- name: "Oracle | Deploy logrotate rule for alert log"
+  ansible.builtin.template:
+    src: logrotate-oracle.j2
+    dest: /etc/logrotate.d/oracle-db
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [db_log_rotation, oracle_logs]
+
+- name: "Oracle | Deploy logrotate rule for listener log"
+  ansible.builtin.template:
+    src: logrotate-oracle-listener.j2
+    dest: /etc/logrotate.d/oracle-listener
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [db_log_rotation, oracle_logs]
+
+- name: "Oracle | Remove trace files older than {{ db_log_retention_days }} days"
+  ansible.builtin.find:
+    paths: "{{ db_log_oracle_diag_path }}"
+    patterns:
+      - "*.trc"
+      - "*.trm"
+    recurse: true
+    age: "{{ db_log_retention_days }}d"
+    file_type: file
+  register: _oracle_old_traces
+  tags: [db_log_rotation, oracle_logs]
+
+- name: "Oracle | Delete old trace files"
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ _oracle_old_traces.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+  tags: [db_log_rotation, oracle_logs]

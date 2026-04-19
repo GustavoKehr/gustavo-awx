@@ -1,0 +1,110 @@
+{
+  "name": "SQLSERVER | Manage Users v2",
+  "description": "Individual survey questions for sql_manage_users role.",
+  "spec": [
+    {
+      "question_name": "SQL login name",
+      "question_description": "SQL Server login name to manage.",
+      "required": true,
+      "type": "text",
+      "variable": "sql_login_name",
+      "min": 1,
+      "max": 128,
+      "default": ""
+    },
+    {
+      "question_name": "Login type",
+      "question_description": "sql = SQL authentication (password); windows = Windows/AD login (no password needed).",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "sql_login_type",
+      "choices": "sql\nwindows",
+      "default": "sql"
+    },
+    {
+      "question_name": "SQL login password",
+      "question_description": "Required when login type is sql and state is present.",
+      "required": false,
+      "type": "password",
+      "variable": "sql_login_password",
+      "default": ""
+    },
+    {
+      "question_name": "Login state",
+      "question_description": "present = create or update login; absent = drop login.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "sql_login_state",
+      "choices": "present\nabsent",
+      "default": "present"
+    },
+    {
+      "question_name": "Default database",
+      "question_description": "Default database assigned to this login.",
+      "required": true,
+      "type": "text",
+      "variable": "sql_login_default_db",
+      "min": 1,
+      "max": 128,
+      "default": "master"
+    },
+    {
+      "question_name": "Target database",
+      "question_description": "Database where the user mapping and role membership will be applied. Leave blank to skip DB user operations.",
+      "required": false,
+      "type": "text",
+      "variable": "sql_target_database",
+      "min": 0,
+      "max": 128,
+      "default": ""
+    },
+    {
+      "question_name": "Database user name (optional)",
+      "question_description": "DB user name; when blank, the login name is reused.",
+      "required": false,
+      "type": "text",
+      "variable": "sql_database_user",
+      "min": 0,
+      "max": 128,
+      "default": ""
+    },
+    {
+      "question_name": "Database roles",
+      "question_description": "Comma-separated DB roles to grant/revoke (e.g. db_datareader,db_datawriter).",
+      "required": false,
+      "type": "textarea",
+      "variable": "sql_database_roles",
+      "min": 0,
+      "max": 1024,
+      "default": "db_datareader,db_datawriter"
+    },
+    {
+      "question_name": "Revoke access",
+      "question_description": "true = revoke DB role memberships instead of granting.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "sql_revoke_access",
+      "choices": "false\ntrue",
+      "default": "false"
+    },
+    {
+      "question_name": "Manage database user mapping",
+      "question_description": "true = ensure DB user exists and is mapped to the login.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "sql_manage_database_user",
+      "choices": "true\nfalse",
+      "default": "true"
+    },
+    {
+      "question_name": "Allowed IPs (optional)",
+      "question_description": "Comma-separated IPs to append to the IPsec SQL Server filter (port 1433). Leave blank to skip.",
+      "required": false,
+      "type": "textarea",
+      "variable": "sql_allowed_ips",
+      "min": 0,
+      "max": 2048,
+      "default": ""
+    }
+  ]
+}

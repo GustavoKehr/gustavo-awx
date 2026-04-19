@@ -1,0 +1,11 @@
+---
+- name: "Validate db_type for log rotation"
+  ansible.builtin.assert:
+    that:
+      - db_type in ['oracle', 'mysql', 'postgres', 'sqlserver']
+    fail_msg: "db_type must be one of: oracle, mysql, postgres, sqlserver"
+  tags: [db_log_rotation]
+
+- name: "Run log rotation tasks for {{ db_type }}"
+  ansible.builtin.include_tasks: "{{ db_type }}.yml"
+  tags: [db_log_rotation]

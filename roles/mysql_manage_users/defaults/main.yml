@@ -1,16 +1,16 @@
 ---
-# Survey-driven inputs.
-db_username: ""
-db_user_host: ""
-db_password: ""
-db_privileges: "SELECT"
-db_target_databases: []
-
-# Operation behavior.
-db_user_state: present         # present | absent
-db_revoke_access: false        # true = revoke db_privileges from db_target_databases
-db_append_privileges: false    # true = append grants instead of replacing
-db_manage_databases: false     # true = create db_target_databases when state=present
+# List of users to manage. Each item uses the schema below.
+# db_users:
+#   - username: appuser
+#     password: "Secure#123"       # omit to skip password update
+#     state: present               # present | absent
+#     host: "%"                    # user@host (% = any host; or specific IP/CIDR)
+#     databases: ["appdb"]         # target databases (list or comma-separated string)
+#     privileges: "SELECT,INSERT"  # MySQL privilege string
+#     append_privileges: true      # true = append; false = replace existing grants
+#     revoke: false                # true = revoke privileges (state must be present)
+#     manage_databases: false      # true = create databases when state=present
+db_users: []
 
 # Connection for community.mysql modules.
 mysql_login_unix_socket:

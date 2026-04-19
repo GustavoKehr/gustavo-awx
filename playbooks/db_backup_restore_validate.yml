@@ -1,0 +1,16 @@
+---
+# Backup & Restore Validation Playbook
+# Pre-requisite: sandbox VM must already be provisioned and have the DB engine installed.
+# Usage:
+#   ansible-playbook playbooks/db_backup_restore_validate.yml \
+#     -e "db_type=mysql db_name=appdb sandbox_host=sandboxvm" -l mysqlvm
+- name: "Backup, restore, and validate database integrity"
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: "Run backup/restore validation"
+      ansible.builtin.include_role:
+        name: db_backup_restore
+      tags: [db_backup_restore]

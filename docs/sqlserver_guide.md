@@ -5,7 +5,7 @@ Parte do conjunto: `general_guide.md` · `mysql_guide.md` · `postgres_guide.md`
 
 ---
 
-## Playbook — install_sql_playbook.yml
+## Playbook — deploy_sqlserver.yml
 
 ```
 Phase 1: storage_setup      → inicializar disco, formatar NTFS 64K, ACLs

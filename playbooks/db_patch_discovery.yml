@@ -1,0 +1,13 @@
+---
+- name: "Database patch discovery (no apply)"
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: "Discover patches for targeted database engine"
+      ansible.builtin.include_role:
+        name: db_patches
+      vars:
+        db_patch_apply_enabled: false
+      tags: [db_patches, patch_discovery]

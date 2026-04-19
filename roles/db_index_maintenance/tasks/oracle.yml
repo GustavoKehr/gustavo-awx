@@ -1,0 +1,70 @@
+---
+- name: "Oracle | Gather schemas to maintain"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET HEADING OFF FEEDBACK OFF PAGESIZE 0 LINESIZE 128;
+    SELECT username FROM dba_users
+    WHERE account_status = 'OPEN'
+    {% if db_index_target_schemas | length > 0 %}
+      AND username IN ('{{ db_index_target_schemas | map("upper") | join("','") }}')
+    {% else %}
+      AND username NOT IN ('SYS','SYSTEM','DBSNMP','SYSMAN','OUTLN','DIP','ORACLE_OCM',
+                           'APPQOSSYS','WMSYS','XDB','CTXSYS','MDSYS','EXFSYS')
+    {% endif %}
+    ORDER BY username;
+    EXIT;
+    EOF
+  become: true
+  become_user: oracle
+  register: _oracle_schemas
+  tags: [db_index_maintenance]
+
+- name: "Oracle | Gather schema statistics (DBMS_STATS)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    EXEC DBMS_STATS.GATHER_SCHEMA_STATS(ownname => '{{ item | trim | upper }}', cascade => TRUE, degree => 4);
+    EXIT;
+    EOF
+  become: true
+  become_user: oracle
+  loop: "{{ _oracle_schemas.stdout_lines | map('trim') | reject('equalto', '') | list }}"
+  loop_control:
+    label: "{{ item | trim }}"
+  tags: [db_index_maintenance]
+
+- name: "Oracle | Rebuild fragmented indexes (blevel > 3)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET HEADING OFF FEEDBACK OFF PAGESIZE 0 LINESIZE 256;
+    BEGIN
+      FOR r IN (
+        SELECT owner, index_name FROM dba_indexes
+        WHERE owner = '{{ item | trim | upper }}'
+          AND blevel > 3
+          AND status = 'VALID'
+      ) LOOP
+        BEGIN
+          EXECUTE IMMEDIATE 'ALTER INDEX "' || r.owner || '"."' || r.index_name || '" REBUILD ONLINE';
+        EXCEPTION
+          WHEN OTHERS THEN NULL;
+        END;
+      END LOOP;
+    END;
+    /
+    EXIT;
+    EOF
+  become: true
+  become_user: oracle
+  loop: "{{ _oracle_schemas.stdout_lines | map('trim') | reject('equalto', '') | list }}"
+  loop_control:
+    label: "{{ item | trim }}"
+  tags: [db_index_maintenance]

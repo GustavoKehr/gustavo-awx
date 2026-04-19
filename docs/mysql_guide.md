@@ -15,7 +15,7 @@ Phase 3: db_patches          → tags: mysql, db_patches   (quando db_patches_en
 
 ```bash
 ansible-playbook playbooks/deploy_mysql.yml                        # tudo
-ansible-playbook playbooks/deploy_mysql.yml --tags mysql_install   # só instalar
+ansible-playbook playbooks/deploy_mysql.yml --tags mysql_install   # só instalar 
 ansible-playbook playbooks/deploy_mysql.yml --tags mysql_users     # só usuários
 ansible-playbook playbooks/deploy_mysql.yml -l mysqlvm             # limitado a um host
 ansible-playbook playbooks/deploy_mysql.yml --check                # dry run
@@ -25,9 +25,9 @@ ansible-playbook playbooks/deploy_mysql.yml --check                # dry run
 
 ## Módulos community.mysql
 
-```yaml
+
 # Criar/atualizar usuário e grants em uma operação
-community.mysql.mysql_user:
+community.mysql.mysql_user:pl
   login_user: root
   login_password: "{{ mysql_root_password }}"
   name: "{{ db_username }}"

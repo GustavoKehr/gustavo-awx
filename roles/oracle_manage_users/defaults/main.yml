@@ -1,0 +1,18 @@
+---
+# List of users to manage. Each item uses the schema below.
+# db_users:
+#   - username: APPUSER
+#     password: "Secure#123"       # required when state=present
+#     state: present               # present | absent
+#     privileges: "CONNECT,RESOURCE"  # system privileges (comma-separated)
+#     roles: []                    # Oracle roles to grant (e.g. ["DBA"])
+#     revoke: false                # true = revoke privileges (state must be present)
+#     default_tablespace: USERS    # optional default tablespace
+#     temp_tablespace: TEMP        # optional temp tablespace
+#     allowed_ips: []              # IPs to append to sqlnet.ora TCP.INVITED_NODES
+db_users: []
+
+oracle_sid: "TSTOR"
+oracle_home: "/oracle/{{ oracle_sid }}/19.0.0"
+oracle_network_admin: "{{ oracle_home }}/network/admin"
+oracle_sqlnet_ora: "{{ oracle_network_admin }}/sqlnet.ora"

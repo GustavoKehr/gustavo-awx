@@ -1,0 +1,24 @@
+---
+- name: "SQL Server | Rebuild fragmented indexes and update statistics"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse |
+              Select-Object -First 1 -ExpandProperty FullName
+    $threshold = {{ db_index_frag_threshold }}
+    $schemaFilter = {% if db_index_target_schemas | length > 0 %}"AND s.name IN ('{{ db_index_target_schemas | join("','") }}')"{% else %}""{% endif %}
+
+    $query = @"
+    DECLARE @sql NVARCHAR(MAX) = N'';
+    SELECT @sql = @sql +
+      N'ALTER INDEX [' + i.name + N'] ON [' + s.name + N'].[' + t.name + N'] REBUILD WITH (ONLINE = ON);' + CHAR(13) +
+      N'UPDATE STATISTICS [' + s.name + N'].[' + t.name + N'] [' + i.name + N'];' + CHAR(13)
+    FROM sys.indexes i
+    JOIN sys.tables t ON i.object_id = t.object_id
+    JOIN sys.schemas s ON t.schema_id = s.schema_id
+    CROSS APPLY sys.dm_db_index_physical_stats(DB_ID(), i.object_id, i.index_id, NULL, 'LIMITED') ips
+    WHERE i.type > 0
+      AND ips.avg_fragmentation_in_percent > $threshold
+      $schemaFilter;
+    EXEC sp_executesql @sql;
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  tags: [db_index_maintenance]

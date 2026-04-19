@@ -62,3 +62,7 @@ oracle_listener_port: 1521
 # --- Passwords (always set via survey — never hardcode) ---
 oracle_sys_password: ""
 oracle_system_password: ""
+
+# Gate Phase 6 (database creation). Default true — Oracle always creates a DB.
+# Set to false to install software only (useful for standby node prep).
+create_initial_db: true

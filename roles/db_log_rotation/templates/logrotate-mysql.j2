@@ -1,0 +1,12 @@
+{{ db_log_mysql_error_log }} {{ db_log_mysql_slow_log }} {
+    daily
+    rotate {{ db_log_retention_days }}
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 mysql mysql
+    postrotate
+        /usr/bin/mysqladmin --login-path=client flush-logs 2>/dev/null || true
+    endscript
+}

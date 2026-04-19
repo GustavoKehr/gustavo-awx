@@ -1,0 +1,134 @@
+---
+- name: "Validate user entry: {{ db_user.username }}"
+  ansible.builtin.assert:
+    that:
+      - db_user.username | length > 0
+      - db_user.state | default('present') in ['present', 'absent']
+      - not (db_user.state | default('present') == 'present' and (db_user.password | default('')) | length == 0)
+      - not (db_user.revoke | default(false) | bool and db_user.state | default('present') == 'absent')
+    fail_msg: "Invalid entry for Oracle user {{ db_user.username }}"
+  tags: [oracle, oracle_users, oracle_users_validate]
+
+- name: "Create Oracle user {{ db_user.username }}"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    DECLARE
+      v_count NUMBER;
+    BEGIN
+      SELECT COUNT(*) INTO v_count FROM dba_users WHERE username = UPPER('{{ db_user.username }}');
+      IF v_count = 0 THEN
+        EXECUTE IMMEDIATE 'CREATE USER {{ db_user.username | upper }} IDENTIFIED BY "{{ db_user.password }}"
+          DEFAULT TABLESPACE {{ db_user.default_tablespace | default("USERS") }}
+          TEMPORARY TABLESPACE {{ db_user.temp_tablespace | default("TEMP") }}';
+        DBMS_OUTPUT.PUT_LINE('CHANGED');
+      ELSE
+        EXECUTE IMMEDIATE 'ALTER USER {{ db_user.username | upper }} IDENTIFIED BY "{{ db_user.password }}"';
+        DBMS_OUTPUT.PUT_LINE('CHANGED');
+      END IF;
+    END;
+    /
+    EXIT;
+    EOF
+  register: _oracle_create_result
+  changed_when: "'CHANGED' in (_oracle_create_result.stdout | default(''))"
+  become: true
+  become_user: oracle
+  no_log: true
+  when: db_user.state | default('present') == 'present'
+  tags: [oracle, oracle_users, oracle_user_create]
+
+- name: "Grant system privileges to {{ db_user.username }}"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    GRANT {{ item }} TO {{ db_user.username | upper }};
+    EXIT;
+    EOF
+  loop: "{{ (db_user.privileges | default('CONNECT')) | split(',') | map('trim') | list }}"
+  become: true
+  become_user: oracle
+  when:
+    - db_user.state | default('present') == 'present'
+    - not db_user.revoke | default(false) | bool
+    - db_user.privileges | default('') | length > 0
+  tags: [oracle, oracle_users, oracle_grants]
+
+- name: "Grant Oracle roles to {{ db_user.username }}"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    GRANT {{ item }} TO {{ db_user.username | upper }};
+    EXIT;
+    EOF
+  loop: "{{ db_user.roles | default([]) }}"
+  become: true
+  become_user: oracle
+  when:
+    - db_user.state | default('present') == 'present'
+    - not db_user.revoke | default(false) | bool
+    - db_user.roles | default([]) | length > 0
+  tags: [oracle, oracle_users, oracle_role_grants]
+
+- name: "Revoke system privileges from {{ db_user.username }}"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR CONTINUE;
+    REVOKE {{ item }} FROM {{ db_user.username | upper }};
+    EXIT;
+    EOF
+  loop: "{{ (db_user.privileges | default('CONNECT')) | split(',') | map('trim') | list }}"
+  become: true
+  become_user: oracle
+  when:
+    - db_user.state | default('present') == 'present'
+    - db_user.revoke | default(false) | bool
+    - db_user.privileges | default('') | length > 0
+  tags: [oracle, oracle_users, oracle_revoke]
+
+- name: "Manage sqlnet.ora IP access for {{ db_user.username }}"
+  ansible.builtin.include_tasks: manage_ip.yml
+  when:
+    - db_user.state | default('present') == 'present'
+    - db_user.allowed_ips | default([]) | length > 0
+  tags: [oracle, oracle_users, oracle_sqlnet]
+
+- name: "Drop Oracle user {{ db_user.username }}"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    DECLARE
+      v_count NUMBER;
+    BEGIN
+      SELECT COUNT(*) INTO v_count FROM dba_users WHERE username = UPPER('{{ db_user.username }}');
+      IF v_count > 0 THEN
+        EXECUTE IMMEDIATE 'DROP USER {{ db_user.username | upper }} CASCADE';
+        DBMS_OUTPUT.PUT_LINE('CHANGED');
+      ELSE
+        DBMS_OUTPUT.PUT_LINE('OK');
+      END IF;
+    END;
+    /
+    EXIT;
+    EOF
+  register: _oracle_drop_result
+  changed_when: "'CHANGED' in (_oracle_drop_result.stdout | default(''))"
+  become: true
+  become_user: oracle
+  when: db_user.state | default('present') == 'absent'
+  tags: [oracle, oracle_users, oracle_user_drop]

@@ -1,0 +1,34 @@
+---
+- name: "MySQL | Gather tables to maintain"
+  community.mysql.mysql_query:
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] | default('/var/run/mysqld/mysqld.sock') }}"
+    query: >
+      SELECT table_schema, table_name
+      FROM information_schema.tables
+      WHERE table_type = 'BASE TABLE'
+      {% if db_index_target_schemas | length > 0 %}
+        AND table_schema IN ('{{ db_index_target_schemas | join("','") }}')
+      {% else %}
+        AND table_schema NOT IN ('information_schema','mysql','performance_schema','sys')
+      {% endif %}
+      ORDER BY table_schema, table_name
+  register: _mysql_tables
+  tags: [db_index_maintenance]
+
+- name: "MySQL | ANALYZE TABLE (update statistics)"
+  community.mysql.mysql_query:
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] | default('/var/run/mysqld/mysqld.sock') }}"
+    query: "ANALYZE TABLE `{{ item.table_schema }}`.`{{ item.table_name }}`"
+  loop: "{{ _mysql_tables.query_result[0] | default([]) }}"
+  loop_control:
+    label: "{{ item.table_schema }}.{{ item.table_name }}"
+  tags: [db_index_maintenance]
+
+- name: "MySQL | OPTIMIZE TABLE (rebuild fragmented indexes)"
+  community.mysql.mysql_query:
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] | default('/var/run/mysqld/mysqld.sock') }}"
+    query: "OPTIMIZE TABLE `{{ item.table_schema }}`.`{{ item.table_name }}`"
+  loop: "{{ _mysql_tables.query_result[0] | default([]) }}"
+  loop_control:
+    label: "{{ item.table_schema }}.{{ item.table_name }}"
+  tags: [db_index_maintenance]

@@ -1,0 +1,69 @@
+---
+# Phase 1: Insert test data
+- name: "MySQL | Create validation table and insert test data"
+  community.mysql.mysql_query:
+    login_unix_socket: /var/lib/mysql/mysql.sock
+    login_db: "{{ db_name }}"
+    query:
+      - "CREATE TABLE IF NOT EXISTS {{ validation_table }}
+           (id INT AUTO_INCREMENT PRIMARY KEY,
+            val VARCHAR(64) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+      - "DELETE FROM {{ validation_table }}"
+      - "INSERT INTO {{ validation_table }} (val)
+           SELECT CONCAT('row_', n) FROM
+           (SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5) t
+           LIMIT {{ validation_row_count }}"
+  tags: [db_backup_restore, backup_insert]
+
+# Phase 2: Backup
+- name: "MySQL | Create backup directory"
+  ansible.builtin.file:
+    path: "{{ backup_path }}"
+    state: directory
+    mode: "0750"
+  tags: [db_backup_restore, backup_create]
+
+- name: "MySQL | Dump database to file"
+  ansible.builtin.shell: >
+    mysqldump --single-transaction --routines --triggers
+    {{ db_name }} > {{ backup_path }}/{{ db_name }}_validate.sql
+  tags: [db_backup_restore, backup_create]
+
+# Phase 3: Transfer backup to sandbox
+- name: "MySQL | Transfer backup to sandbox host"
+  ansible.posix.synchronize:
+    src: "{{ backup_path }}/{{ db_name }}_validate.sql"
+    dest: "{{ backup_path }}/{{ db_name }}_validate.sql"
+    mode: push
+  delegate_to: "{{ inventory_hostname }}"
+  tags: [db_backup_restore, backup_transfer]
+
+# Phase 4: Install DB on sandbox (handled by playbook via include_role on sandbox_host)
+# Phase 5: Restore
+- name: "MySQL | Restore backup on sandbox"
+  ansible.builtin.shell: >
+    mysql -e "CREATE DATABASE IF NOT EXISTS {{ db_name }};"
+    && mysql {{ db_name }} < {{ backup_path }}/{{ db_name }}_validate.sql
+  delegate_to: "{{ sandbox_host }}"
+  tags: [db_backup_restore, restore]
+
+# Phase 6: Validate
+- name: "MySQL | Count validation rows on sandbox"
+  community.mysql.mysql_query:
+    login_unix_socket: /var/lib/mysql/mysql.sock
+    login_db: "{{ db_name }}"
+    query: "SELECT COUNT(*) AS cnt FROM {{ validation_table }}"
+  delegate_to: "{{ sandbox_host }}"
+  register: _mysql_validate_result
+  tags: [db_backup_restore, restore_validate]
+
+- name: "MySQL | Assert row count matches expected"
+  ansible.builtin.assert:
+    that:
+      - _mysql_validate_result.query_result[0][0].cnt | int == validation_row_count | int
+    fail_msg: >-
+      Restore validation FAILED: expected {{ validation_row_count }} rows,
+      got {{ _mysql_validate_result.query_result[0][0].cnt }}
+    success_msg: "Restore validation PASSED: {{ validation_row_count }} rows confirmed on sandbox."
+  tags: [db_backup_restore, restore_validate]

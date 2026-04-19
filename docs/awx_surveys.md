@@ -19,12 +19,12 @@ This file centralizes which playbook, job tags, and survey spec to use for each 
   - Survey file: `playbooks/awx_survey_mysql_manage_users.json`
 
 - `SQLSERVER | Deploy Base`
-  - Playbook: `playbooks/install_sql_playbook.yml`
+  - Playbook: `playbooks/deploy_sqlserver.yml`
   - Job tags: *(empty)*
   - Survey file: optional (not required for base install)
 
 - `SQLSERVER | Manage Users`
-  - Playbook: `playbooks/install_sql_playbook.yml`
+  - Playbook: `playbooks/deploy_sqlserver.yml`
   - Job tags: `sql_users`
   - Survey file: `playbooks/awx_survey_sql_manage_users.json`
 
@@ -46,7 +46,7 @@ This file centralizes which playbook, job tags, and survey spec to use for each 
   - **Requires:** `/opt/oracle` staged on awxvm before running
 
 - `DB | Patch Discovery (no apply)`
-  - Playbook: `deploy_mysql.yml` or `install_sql_playbook.yml` or `deploy_postgres.yml`
+  - Playbook: `deploy_mysql.yml` or `deploy_sqlserver.yml` or `deploy_postgres.yml`
   - Job tags: `db_patches`
   - Survey vars:
     - `db_patches_enabled=true` (optional if tag already used)

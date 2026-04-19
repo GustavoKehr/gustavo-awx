@@ -1,14 +1,15 @@
 ---
-# Survey-driven SQL Server login/user management.
-sql_login_name: ""
-sql_login_password: ""
-sql_login_type: "sql"              # sql | windows
-sql_login_state: "present"         # present | absent
-sql_login_default_db: "master"
-
-# Database-level mapping.
-sql_target_database: ""
-sql_database_user: ""              # Defaults to sql_login_name when empty.
-sql_database_roles: []
-sql_revoke_access: false
-sql_manage_database_user: true
+# List of users to manage. Each item uses the schema below.
+# db_users:
+#   - username: appuser
+#     password: "Secure#123"          # required when state=present and login_type=sql
+#     login_type: sql                 # sql | windows
+#     state: present                  # present | absent
+#     default_db: master              # login default database
+#     databases: ["sqldb"]            # databases to map user into (list or comma-separated)
+#     db_user: ""                     # DB-level username if different from login name
+#     roles: ["db_datareader"]        # database roles to grant
+#     revoke: false                   # true = revoke roles (state must be present)
+#     manage_db_user: true            # true = create DB user mapping
+#     allowed_ips: []                 # IPs to append to IPsec SQL Server filter
+db_users: []

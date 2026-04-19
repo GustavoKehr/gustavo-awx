@@ -1,0 +1,72 @@
+---
+# Appends IPs from db_user.allowed_ips to Oracle sqlnet.ora TCP.INVITED_NODES.
+# Never removes existing IPs — always uses union of old + new.
+
+- name: "Read current sqlnet.ora content"
+  ansible.builtin.slurp:
+    src: "{{ oracle_sqlnet_ora }}"
+  register: _sqlnet_raw
+  become: true
+  become_user: oracle
+  ignore_errors: true
+
+- name: "Initialize sqlnet.ora if missing"
+  ansible.builtin.file:
+    path: "{{ oracle_network_admin }}"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: "0750"
+  become: true
+  when: _sqlnet_raw is failed
+
+- name: "Create empty sqlnet.ora if missing"
+  ansible.builtin.copy:
+    content: ""
+    dest: "{{ oracle_sqlnet_ora }}"
+    owner: oracle
+    group: oinstall
+    mode: "0640"
+    force: false
+  become: true
+  when: _sqlnet_raw is failed
+
+- name: "Parse existing TCP.INVITED_NODES from sqlnet.ora"
+  ansible.builtin.set_fact:
+    _sqlnet_content: "{{ _sqlnet_raw.content | default('') | b64decode }}"
+    _existing_nodes_raw: >-
+      {{
+        (_sqlnet_raw.content | default('') | b64decode)
+        | regex_search('TCP\.INVITED_NODES\s*=\s*\(([^)]+)\)', '\1')
+        | default([''])
+        | first
+      }}
+
+- name: "Build merged TCP.INVITED_NODES list (append-only)"
+  ansible.builtin.set_fact:
+    _merged_nodes: >-
+      {{
+        (
+          (_existing_nodes_raw | split(',') | map('trim') | reject('equalto', '') | list)
+          + (db_user.allowed_ips | default([]))
+        ) | unique | sort | join(', ')
+      }}
+
+- name: "Ensure TCP.VALIDNODE_CHECKING = YES in sqlnet.ora"
+  ansible.builtin.lineinfile:
+    path: "{{ oracle_sqlnet_ora }}"
+    regexp: '^TCP\.VALIDNODE_CHECKING\s*='
+    line: 'TCP.VALIDNODE_CHECKING = YES'
+    state: present
+  become: true
+  become_user: oracle
+
+- name: "Update TCP.INVITED_NODES in sqlnet.ora"
+  ansible.builtin.lineinfile:
+    path: "{{ oracle_sqlnet_ora }}"
+    regexp: '^TCP\.INVITED_NODES\s*='
+    line: "TCP.INVITED_NODES = ({{ _merged_nodes }})"
+    state: present
+    insertafter: '^TCP\.VALIDNODE_CHECKING'
+  become: true
+  become_user: oracle

@@ -1,0 +1,83 @@
+---
+# Phase 1: Insert test data
+- name: "SQL Server | Create validation table and insert test data"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse |
+              Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    USE [{{ db_name }}];
+    IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = '{{ validation_table }}')
+      CREATE TABLE [{{ validation_table }}]
+        (id INT IDENTITY(1,1) PRIMARY KEY, val NVARCHAR(64) NOT NULL, created_at DATETIME DEFAULT GETDATE());
+    DELETE FROM [{{ validation_table }}];
+    {% for i in range(1, validation_row_count + 1) %}
+    INSERT INTO [{{ validation_table }}] (val) VALUES (N'row_{{ i }}');
+    {% endfor %}
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  tags: [db_backup_restore, backup_insert]
+
+# Phase 2: Backup
+- name: "SQL Server | Create backup directory"
+  ansible.windows.win_file:
+    path: "{{ sql_server_backup_path }}"
+    state: directory
+  tags: [db_backup_restore, backup_create]
+
+- name: "SQL Server | Take full database backup"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse |
+              Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    BACKUP DATABASE [{{ db_name }}]
+    TO DISK = N'{{ sql_server_backup_path }}\{{ db_name }}_validate.bak'
+    WITH FORMAT, COMPRESSION, STATS = 10;
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  tags: [db_backup_restore, backup_create]
+
+# Phase 3: Transfer backup to sandbox (Windows to Windows via win_copy or share)
+- name: "SQL Server | Copy backup to sandbox"
+  ansible.windows.win_shell: |
+    robocopy "{{ sql_server_backup_path }}" "\\{{ sandbox_host }}\SQLBackups$" `
+      {{ db_name }}_validate.bak /NJH /NJS /NFL
+  ignore_errors: true
+  tags: [db_backup_restore, backup_transfer]
+
+# Phase 5: Restore
+- name: "SQL Server | Restore database on sandbox"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse |
+              Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    IF EXISTS (SELECT 1 FROM sys.databases WHERE name = N'{{ db_name }}')
+      ALTER DATABASE [{{ db_name }}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    RESTORE DATABASE [{{ db_name }}]
+    FROM DISK = N'{{ sql_server_backup_path }}\{{ db_name }}_validate.bak'
+    WITH REPLACE, STATS = 10;
+    ALTER DATABASE [{{ db_name }}] SET MULTI_USER;
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  delegate_to: "{{ sandbox_host }}"
+  tags: [db_backup_restore, restore]
+
+# Phase 6: Validate
+- name: "SQL Server | Count validation rows on sandbox"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse |
+              Select-Object -First 1 -ExpandProperty FullName
+    $result = & $sqlcmd -S "." -E -C -h -1 -Q "USE [{{ db_name }}]; SELECT COUNT(*) FROM [{{ validation_table }}]"
+    Write-Output $result.Trim()
+  delegate_to: "{{ sandbox_host }}"
+  register: _sql_validate_result
+  tags: [db_backup_restore, restore_validate]
+
+- name: "SQL Server | Assert row count matches expected"
+  ansible.builtin.assert:
+    that:
+      - _sql_validate_result.stdout | trim | int == validation_row_count | int
+    fail_msg: >-
+      Restore validation FAILED: expected {{ validation_row_count }} rows,
+      got {{ _sql_validate_result.stdout | trim }}
+    success_msg: "Restore validation PASSED: {{ validation_row_count }} rows confirmed on sandbox."
+  tags: [db_backup_restore, restore_validate]

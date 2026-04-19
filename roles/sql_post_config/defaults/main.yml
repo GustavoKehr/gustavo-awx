@@ -1,0 +1,3 @@
+---
+create_initial_db: true
+sql_initial_db_name: "sqldb"

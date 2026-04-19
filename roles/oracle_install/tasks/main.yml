@@ -30,4 +30,5 @@
 
 - name: "ORACLE | Phase 6 - Create database"
   ansible.builtin.include_tasks: 06_create_database.yml
+  when: create_initial_db | default(true) | bool
   tags: [oracle, oracle_dbcreate]

@@ -9,7 +9,7 @@
 | [general_guide.md](general_guide.md) | ansible.cfg, inventário, módulos universais, comandos frequentes, decisões de design globais |
 | [mysql_guide.md](mysql_guide.md) | Playbook deploy_mysql.yml, módulos community.mysql, variáveis e survey |
 | [postgres_guide.md](postgres_guide.md) | Playbook deploy_postgres.yml, módulos community.postgresql, variáveis e survey |
-| [sqlserver_guide.md](sqlserver_guide.md) | Playbook install_sql_playbook.yml, módulos Windows, variáveis e survey |
+| [sqlserver_guide.md](sqlserver_guide.md) | Playbook deploy_sqlserver.yml, módulos Windows, variáveis e survey |
 | [oracle_guide.md](oracle_guide.md) | Playbook deploy_oracle.yml, 6 fases, módulos, variáveis e design decisions |
 
 ## Notas de estudo (vault Obsidian)

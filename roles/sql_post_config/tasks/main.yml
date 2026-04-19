@@ -1,23 +1,61 @@
 ---
-- name: "DATABASE: Criar banco {{ db_name }}"
+- name: "Enable SQL Server mixed authentication (Windows + SQL login)"
   ansible.windows.win_shell: |
     $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
-    $query = "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '{{ db_name | default('sqldb') }}') CREATE DATABASE [{{ db_name | default('sqldb') }}];"
+    $query = @"
+    DECLARE @current INT;
+    EXEC master.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE',
+      N'Software\Microsoft\MSSQLServer\MSSQLServer',
+      N'LoginMode', @current OUTPUT;
+    IF @current <> 2
+    BEGIN
+      EXEC master.dbo.xp_instance_regwrite N'HKEY_LOCAL_MACHINE',
+        N'Software\Microsoft\MSSQLServer\MSSQLServer',
+        N'LoginMode', REG_DWORD, 2;
+      PRINT 'CHANGED';
+    END
+    ELSE
+      PRINT 'OK';
+    "@
     & $sqlcmd -S "." -E -C -Q $query
-  tags: [create_db]
+  register: sql_auth_mode_result
+  changed_when: "'CHANGED' in (sql_auth_mode_result.stdout | default(''))"
+  tags: [sql_post, database, sql_auth]
 
-- name: "configura metodo de login (BOTH) Windows e U/P""
-  ansible.windows.win_shell: | 
+- name: "Restart SQL Server to apply authentication mode change"
+  ansible.windows.win_service:
+    name: MSSQLSERVER
+    state: restarted
+  when: sql_auth_mode_result is changed
+  tags: [sql_post, database, sql_auth]
+
+- name: "Create initial database"
+  ansible.windows.win_shell: |
     $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
-    $query
+    $query = @"
+    IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'{{ sql_initial_db_name }}')
+    BEGIN
+      CREATE DATABASE [{{ sql_initial_db_name }}];
+      PRINT 'CHANGED';
+    END
+    ELSE
+      PRINT 'OK';
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  register: sql_create_db_result
+  changed_when: "'CHANGED' in (sql_create_db_result.stdout | default(''))"
+  when: create_initial_db | bool
+  tags: [sql_post, database, create_initial_db]
 
-- name: "ISO: Desmontar imagem"
+- name: "Unmount SQL Server ISO"
   community.windows.win_disk_image:
     image_path: 'E:\temp_install\SQLServer2025-x64-ENU.iso'
     state: absent
+  tags: [sql_post, cleanup]
 
-- name: "CLEANUP: Remover arquivos temporários"
+- name: "Remove temporary install files"
   ansible.windows.win_file:
     path: 'E:\temp_install'
     state: absent
-  ignore_errors: yes
+  ignore_errors: true
+  tags: [sql_post, cleanup]

@@ -1,0 +1,21 @@
+---
+db_type: "mysql"               # mysql | postgres | oracle | sqlserver
+backup_path: "/opt/backups"    # local path on source host (and sandbox for restore)
+sandbox_host: ""               # target sandbox hostname (must be in [sandbox] inventory group)
+
+# Database to backup/restore.
+db_name: "appdb"
+db_schema: "APPUSER"           # Oracle schema name (maps to db_name for other engines)
+
+# Test data validation.
+validation_table: "ansible_validate_test"
+validation_row_count: 5
+
+# Oracle-specific.
+oracle_sid: "TSTOR"
+oracle_home: "/oracle/{{ oracle_sid }}/19.0.0"
+oracle_data_pump_dir: "DATA_PUMP_DIR"
+oracle_data_pump_path: "/oracle/{{ oracle_sid }}/datapump"
+
+# SQL Server-specific.
+sql_server_backup_path: 'C:\SQLBackups'

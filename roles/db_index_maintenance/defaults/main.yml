@@ -1,0 +1,13 @@
+---
+db_type: "mysql"                  # mysql | postgres | oracle | sqlserver
+db_index_target_schemas: []       # empty = all user schemas; list schema names to restrict
+db_index_frag_threshold: 30       # SQL Server: only rebuild indexes with frag% above this
+
+# MySQL connection.
+mysql_login_unix_socket:
+  RedHat: /var/lib/mysql/mysql.sock
+  Debian: /var/run/mysqld/mysqld.sock
+
+# Oracle.
+oracle_sid: "TSTOR"
+oracle_home: "/oracle/{{ oracle_sid }}/19.0.0"

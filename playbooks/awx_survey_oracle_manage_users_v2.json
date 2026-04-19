@@ -1,0 +1,102 @@
+{
+  "name": "ORACLE | Manage Users v2",
+  "description": "Individual survey questions for oracle_manage_users role.",
+  "spec": [
+    {
+      "question_name": "Oracle SID",
+      "question_description": "Oracle instance identifier (SID).",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_sid",
+      "min": 1,
+      "max": 8,
+      "default": "TSTOR"
+    },
+    {
+      "question_name": "Oracle username",
+      "question_description": "Oracle schema/user to manage. Will be uppercased automatically.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_username",
+      "min": 1,
+      "max": 30,
+      "default": ""
+    },
+    {
+      "question_name": "Oracle password",
+      "question_description": "Required when state is present.",
+      "required": false,
+      "type": "password",
+      "variable": "oracle_password",
+      "default": ""
+    },
+    {
+      "question_name": "User state",
+      "question_description": "present = create or update user; absent = drop user.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "oracle_user_state",
+      "choices": "present\nabsent",
+      "default": "present"
+    },
+    {
+      "question_name": "System privileges",
+      "question_description": "Comma-separated Oracle system privileges to grant (e.g. CONNECT,RESOURCE,CREATE SESSION).",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_privileges",
+      "min": 1,
+      "max": 256,
+      "default": "CONNECT,RESOURCE"
+    },
+    {
+      "question_name": "Oracle roles (optional)",
+      "question_description": "Comma-separated Oracle roles to grant (e.g. DBA,SELECT_CATALOG_ROLE). Leave blank to skip.",
+      "required": false,
+      "type": "textarea",
+      "variable": "oracle_roles",
+      "min": 0,
+      "max": 1024,
+      "default": ""
+    },
+    {
+      "question_name": "Revoke access",
+      "question_description": "true = revoke the specified privileges/roles instead of granting.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "oracle_revoke_access",
+      "choices": "false\ntrue",
+      "default": "false"
+    },
+    {
+      "question_name": "Default tablespace",
+      "question_description": "Default tablespace for the user.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_default_tablespace",
+      "min": 1,
+      "max": 30,
+      "default": "USERS"
+    },
+    {
+      "question_name": "Temporary tablespace",
+      "question_description": "Temporary tablespace for sort operations.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_temp_tablespace",
+      "min": 1,
+      "max": 30,
+      "default": "TEMP"
+    },
+    {
+      "question_name": "Allowed IPs (optional)",
+      "question_description": "Comma-separated IPs to append to sqlnet.ora TCP.INVITED_NODES. Leave blank to skip.",
+      "required": false,
+      "type": "textarea",
+      "variable": "oracle_allowed_ips",
+      "min": 0,
+      "max": 2048,
+      "default": ""
+    }
+  ]
+}

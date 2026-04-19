@@ -1,14 +1,18 @@
 ---
-pg_username: ""
-pg_user_password: ""
-pg_user_state: present              # present | absent
-pg_user_login_host: "%"
+# List of users to manage. Each item uses the schema below.
+# db_users:
+#   - username: appuser
+#     password: "Secure#123"       # required when state=present
+#     state: present               # present | absent
+#     databases: ["appdb"]         # target databases (list or comma-separated string)
+#     privileges: "CONNECT"        # database-level privileges
+#     role_attr_flags: "LOGIN"     # PostgreSQL role attributes
+#     append_privileges: true      # kept for schema compatibility (postgresql_privs is always additive)
+#     revoke: false                # true = revoke privileges (state must be present)
+#     manage_databases: false      # true = create databases when state=present
+#     allowed_ips: []              # IPs/CIDRs to add to pg_hba.conf (append-only)
+db_users: []
 
-pg_target_databases: []
-pg_manage_databases: false
-
-pg_privileges: "CONNECT"
-pg_revoke_access: false
-pg_append_privileges: false
-
-pg_role_attr_flags: "LOGIN"
+postgres_config_dir:
+  RedHat: /var/lib/pgsql/data
+  Debian: /etc/postgresql/16/main

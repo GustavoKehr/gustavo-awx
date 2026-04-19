@@ -1,0 +1,135 @@
+---
+- name: "Validate user entry: {{ db_user.username }}"
+  ansible.builtin.assert:
+    that:
+      - db_user.username | length > 0
+      - db_user.login_type | default('sql') in ['sql', 'windows']
+      - db_user.state | default('present') in ['present', 'absent']
+      - not (db_user.login_type | default('sql') == 'sql'
+            and db_user.state | default('present') == 'present'
+            and (db_user.password | default('')) | length == 0)
+      - not (db_user.revoke | default(false) | bool and db_user.state | default('present') == 'absent')
+    fail_msg: "Invalid entry for SQL user {{ db_user.username }}"
+  tags: [sql_users, sql_users_validate]
+
+- name: "Normalize database list for {{ db_user.username }}"
+  ansible.builtin.set_fact:
+    _sql_dbs: >-
+      {{
+        db_user.databases | default([])
+        if (db_user.databases | default([]) is sequence and db_user.databases | default([]) is not string)
+        else (db_user.databases | default('') | string).split(',')
+        | map('trim') | reject('equalto', '') | list
+      }}
+    _sql_roles: >-
+      {{
+        db_user.roles | default([])
+        if (db_user.roles | default([]) is sequence and db_user.roles | default([]) is not string)
+        else (db_user.roles | default('') | string).split(',')
+        | map('trim') | reject('equalto', '') | list
+      }}
+    _sql_db_user: >-
+      {{
+        db_user.db_user | default('') | length > 0
+        | ternary(db_user.db_user | default(''), db_user.username)
+      }}
+  tags: [sql_users]
+
+- name: "Create or update SQL login {{ db_user.username }} (SQL auth)"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse |
+              Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'{{ db_user.username }}')
+    BEGIN
+      CREATE LOGIN [{{ db_user.username }}] WITH PASSWORD = N'{{ db_user.password }}',
+        CHECK_POLICY = ON, CHECK_EXPIRATION = ON,
+        DEFAULT_DATABASE = [{{ db_user.default_db | default('master') }}];
+      PRINT 'CHANGED';
+    END
+    ELSE
+    BEGIN
+      ALTER LOGIN [{{ db_user.username }}] WITH PASSWORD = N'{{ db_user.password }}',
+        CHECK_POLICY = ON, CHECK_EXPIRATION = ON,
+        DEFAULT_DATABASE = [{{ db_user.default_db | default('master') }}];
+      PRINT 'CHANGED';
+    END
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  register: _sql_login_result
+  changed_when: "'CHANGED' in (_sql_login_result.stdout | default(''))"
+  no_log: true
+  when:
+    - db_user.state | default('present') == 'present'
+    - db_user.login_type | default('sql') == 'sql'
+  tags: [sql_users, sql_login]
+
+- name: "Create Windows login {{ db_user.username }} if missing"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse |
+              Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'{{ db_user.username }}')
+    BEGIN
+      CREATE LOGIN [{{ db_user.username }}] FROM WINDOWS;
+      PRINT 'CHANGED';
+    END
+    ELSE
+      PRINT 'OK';
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  register: _sql_win_login_result
+  changed_when: "'CHANGED' in (_sql_win_login_result.stdout | default(''))"
+  when:
+    - db_user.state | default('present') == 'present'
+    - db_user.login_type | default('sql') == 'windows'
+  tags: [sql_users, sql_login]
+
+- name: "Manage DB user mapping and roles for {{ db_user.username }}"
+  ansible.builtin.include_tasks: manage_db_user.yml
+  loop: "{{ _sql_dbs }}"
+  loop_control:
+    loop_var: _sql_db
+    label: "{{ db_user.username }} -> {{ _sql_db }}"
+  when:
+    - db_user.state | default('present') == 'present'
+    - db_user.manage_db_user | default(true) | bool
+    - _sql_dbs | length > 0
+  tags: [sql_users, sql_db_user]
+
+- name: "Append allowed IPs to IPsec SQL Server filter for {{ db_user.username }}"
+  ansible.windows.win_shell: |
+    netsh ipsec static add policy name="IP restriction policy" description="DB access control" assign=yes 2>$null
+    netsh ipsec static add filterlist name="Inbound SQL Server Connection" 2>$null
+    netsh ipsec static add filteraction name="Permit" action=permit 2>$null
+    netsh ipsec static add filter filterlist="Inbound SQL Server Connection" `
+      srcaddr={{ item }} dstaddr=Me proto=tcp dstport=1433 2>$null
+    netsh ipsec static add rule name="Inbound SQL Server Connection" `
+      policy="IP restriction policy" `
+      filterlist="Inbound SQL Server Connection" `
+      filteraction="Permit" 2>$null
+    netsh ipsec static set policy name="IP restriction policy" assign=y 2>$null
+  loop: "{{ db_user.allowed_ips | default([]) }}"
+  when:
+    - db_user.state | default('present') == 'present'
+    - db_user.allowed_ips | default([]) | length > 0
+  tags: [sql_users, sql_ipsec]
+
+- name: "Drop SQL login {{ db_user.username }}"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse |
+              Select-Object -First 1 -ExpandProperty FullName
+    $query = @"
+    IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'{{ db_user.username }}')
+    BEGIN
+      DROP LOGIN [{{ db_user.username }}];
+      PRINT 'CHANGED';
+    END
+    ELSE
+      PRINT 'OK';
+    "@
+    & $sqlcmd -S "." -E -C -Q $query
+  register: _sql_drop_result
+  changed_when: "'CHANGED' in (_sql_drop_result.stdout | default(''))"
+  when: db_user.state | default('present') == 'absent'
+  tags: [sql_users, sql_remove_user]

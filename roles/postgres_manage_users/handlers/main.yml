@@ -1,0 +1,6 @@
+---
+- name: Reload PostgreSQL
+  ansible.builtin.service:
+    name: "{{ postgres_service_name[ansible_os_family] | default('postgresql') }}"
+    state: reloaded
+  become: true

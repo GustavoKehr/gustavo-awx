@@ -1,0 +1,11 @@
+---
+- name: "Manage Oracle users (list-based)"
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: "Oracle: manage users from db_users list"
+      ansible.builtin.include_role:
+        name: oracle_manage_users
+      tags: [oracle, oracle_users]

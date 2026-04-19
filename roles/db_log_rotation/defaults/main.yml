@@ -1,0 +1,18 @@
+---
+db_type: "oracle"                  # oracle | mysql | postgres | sqlserver
+db_log_retention_days: 30
+
+# Oracle paths.
+oracle_sid: "TSTOR"
+oracle_home: "/oracle/{{ oracle_sid }}/19.0.0"
+db_log_oracle_diag_path: "/oracle/{{ oracle_sid }}/diag"
+
+# MySQL paths.
+db_log_mysql_error_log: "/var/log/mysql/mysqld.log"
+db_log_mysql_slow_log: "/var/log/mysql/slow.log"
+
+# PostgreSQL paths.
+db_log_postgres_path: "/var/lib/pgsql/data/log"
+
+# SQL Server paths (Windows).
+db_log_sqlserver_path: 'C:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\Log'

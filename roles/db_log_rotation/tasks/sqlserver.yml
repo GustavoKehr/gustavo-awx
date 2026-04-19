@@ -1,0 +1,15 @@
+---
+- name: "SQL Server | Cycle error log (sp_cycle_errorlog)"
+  ansible.windows.win_shell: |
+    $sqlcmd = Get-ChildItem -Path "C:\Program Files\Microsoft SQL Server" -Filter "sqlcmd.exe" -Recurse |
+              Select-Object -First 1 -ExpandProperty FullName
+    & $sqlcmd -S "." -E -C -Q "EXEC sp_cycle_errorlog"
+  tags: [db_log_rotation, sqlserver_logs]
+
+- name: "SQL Server | Remove log files older than {{ db_log_retention_days }} days"
+  ansible.windows.win_shell: |
+    $cutoff = (Get-Date).AddDays(-{{ db_log_retention_days }})
+    Get-ChildItem -Path "{{ db_log_sqlserver_path }}" -Include "*.log","ERRORLOG.*" -File |
+      Where-Object { $_.LastWriteTime -lt $cutoff } |
+      Remove-Item -Force
+  tags: [db_log_rotation, sqlserver_logs]
