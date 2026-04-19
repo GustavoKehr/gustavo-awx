@@ -10,6 +10,7 @@
         role_attr_flags: "{{ pg_role_attr_flags | default('LOGIN') }}"
         revoke: "{{ pg_revoke_access | default(false) | bool }}"
         manage_databases: "{{ pg_manage_databases | default(false) | bool }}"
+        pg_roles: "{{ pg_predefined_roles | default('') }}"
         allowed_ips: >-
           {{
             (pg_allowed_ips | default(''))

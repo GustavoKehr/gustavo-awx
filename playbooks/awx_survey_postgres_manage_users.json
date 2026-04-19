@@ -78,6 +78,16 @@
       "default": "false"
     },
     {
+      "question_name": "Predefined roles (optional)",
+      "question_description": "Comma-separated PostgreSQL predefined roles to GRANT to the user (e.g. pg_read_all_data,pg_write_all_data). Leave blank to skip.",
+      "required": false,
+      "type": "text",
+      "variable": "pg_predefined_roles",
+      "min": 0,
+      "max": 256,
+      "default": ""
+    },
+    {
       "question_name": "Allowed IPs (optional)",
       "question_description": "Comma-separated IPs/CIDRs to append to pg_hba.conf for this user. Leave blank to skip.",
       "required": false,

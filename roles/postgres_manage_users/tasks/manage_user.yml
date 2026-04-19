@@ -75,6 +75,23 @@
     - _pg_dbs | length > 0
   tags: [postgres, postgres_users, postgres_grants]
 
+- name: "Grant predefined roles to {{ db_user.username }}"
+  ansible.builtin.shell: |
+    psql -p {{ postgres_port }} -v ON_ERROR_STOP=1 -c "GRANT {{ item }} TO {{ db_user.username }};"
+  become: true
+  become_user: postgres
+  loop: >-
+    {{
+      (db_user.pg_roles | default(''))
+      | string | split(',')
+      | map('trim') | reject('equalto', '') | list
+    }}
+  when:
+    - db_user.state | default('present') == 'present'
+    - db_user.pg_roles | default('') | length > 0
+  changed_when: true
+  tags: [postgres, postgres_users, postgres_pg_roles]
+
 - name: "Revoke privileges from {{ db_user.username }}"
   community.postgresql.postgresql_privs:
     database: "{{ item }}"

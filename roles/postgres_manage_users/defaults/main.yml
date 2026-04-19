@@ -8,6 +8,7 @@
 #     privileges: "CONNECT"        # database-level privileges
 #     role_attr_flags: "LOGIN"     # PostgreSQL role attributes
 #     append_privileges: true      # kept for schema compatibility (postgresql_privs is always additive)
+#     pg_roles: "pg_read_all_data,pg_write_all_data"  # predefined roles to GRANT (comma-separated)
 #     revoke: false                # true = revoke privileges (state must be present)
 #     manage_databases: false      # true = create databases when state=present
 #     allowed_ips: []              # IPs/CIDRs to add to pg_hba.conf (append-only)
