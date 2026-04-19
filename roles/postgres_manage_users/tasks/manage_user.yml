@@ -98,7 +98,7 @@
     dest: "{{ postgres_config_dir[ansible_os_family] }}/pg_hba.conf"
     contype: host
     users: "{{ db_user.username }}"
-    source: "{{ item }}"
+    source: "{{ item if '/' in item else item ~ '/32' }}"
     databases: "{{ _pg_dbs | join(',') if _pg_dbs | length > 0 else 'all' }}"
     method: scram-sha-256
     state: present
