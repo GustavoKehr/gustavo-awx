@@ -21,17 +21,24 @@
   tags: [postgres, postgres_users]
 
 - name: "Create or update PostgreSQL role {{ db_user.username }}"
-  community.postgresql.postgresql_user:
-    name: "{{ db_user.username }}"
-    password: "{{ db_user.password }}"
-    role_attr_flags: "{{ db_user.role_attr_flags | default('LOGIN') }}"
-    login_unix_socket: /var/run/postgresql
-    login_port: "{{ postgres_port }}"
-    state: present
+  ansible.builtin.shell: |
+    psql -p {{ postgres_port }} -v ON_ERROR_STOP=1 -c "
+    DO \$\$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ db_user.username }}') THEN
+        EXECUTE format('CREATE ROLE %I WITH {{ db_user.role_attr_flags | default("LOGIN") }} PASSWORD %L',
+                       '{{ db_user.username }}', '{{ db_user.password }}');
+      ELSE
+        EXECUTE format('ALTER ROLE %I WITH {{ db_user.role_attr_flags | default("LOGIN") }} PASSWORD %L',
+                       '{{ db_user.username }}', '{{ db_user.password }}');
+      END IF;
+    END;
+    \$\$;"
   become: true
   become_user: postgres
-  when: db_user.state | default('present') == 'present'
   no_log: true
+  changed_when: true
+  when: db_user.state | default('present') == 'present'
   tags: [postgres, postgres_users, postgres_user]
 
 - name: "Create target databases for {{ db_user.username }}"
@@ -106,12 +113,17 @@
   tags: [postgres, postgres_users, postgres_hba]
 
 - name: "Drop PostgreSQL role {{ db_user.username }}"
-  community.postgresql.postgresql_user:
-    name: "{{ db_user.username }}"
-    login_unix_socket: /var/run/postgresql
-    login_port: "{{ postgres_port }}"
-    state: absent
+  ansible.builtin.shell: |
+    psql -p {{ postgres_port }} -v ON_ERROR_STOP=1 -c "
+    DO \$\$
+    BEGIN
+      IF EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ db_user.username }}') THEN
+        EXECUTE format('DROP ROLE %I', '{{ db_user.username }}');
+      END IF;
+    END;
+    \$\$;"
   become: true
   become_user: postgres
+  changed_when: true
   when: db_user.state | default('present') == 'absent'
   tags: [postgres, postgres_users, postgres_remove_user]
