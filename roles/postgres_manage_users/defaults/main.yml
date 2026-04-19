@@ -13,6 +13,8 @@
 #     allowed_ips: []              # IPs/CIDRs to add to pg_hba.conf (append-only)
 db_users: []
 
+postgres_port: 5432
+
 postgres_config_dir:
   RedHat: /var/lib/pgsql/data
   Debian: /etc/postgresql/16/main

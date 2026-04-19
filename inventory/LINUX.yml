@@ -13,7 +13,9 @@ all:
           ansible_host: 192.168.137.145
         mysqlvm:
           ansible_host: 192.168.137.160
+          mysql_port: 13306
         postgresvm:
           ansible_host: 192.168.137.158
+          postgres_port: 15432
         awxvm:
           ansible_host: 192.168.137.153

@@ -25,6 +25,8 @@
     name: "{{ db_user.username }}"
     password: "{{ db_user.password }}"
     role_attr_flags: "{{ db_user.role_attr_flags | default('LOGIN') }}"
+    login_unix_socket: /var/run/postgresql
+    login_port: "{{ postgres_port }}"
     state: present
   become: true
   become_user: postgres
@@ -35,6 +37,8 @@
 - name: "Create target databases for {{ db_user.username }}"
   community.postgresql.postgresql_db:
     name: "{{ item }}"
+    login_unix_socket: /var/run/postgresql
+    login_port: "{{ postgres_port }}"
     state: present
   become: true
   become_user: postgres
@@ -52,6 +56,8 @@
     type: database
     privs: "{{ db_user.privileges | default('CONNECT') }}"
     grant_option: false
+    login_unix_socket: /var/run/postgresql
+    login_port: "{{ postgres_port }}"
     state: present
   become: true
   become_user: postgres
@@ -68,6 +74,8 @@
     roles: "{{ db_user.username }}"
     type: database
     privs: "{{ db_user.privileges | default('CONNECT') }}"
+    login_unix_socket: /var/run/postgresql
+    login_port: "{{ postgres_port }}"
     state: absent
   become: true
   become_user: postgres
@@ -81,6 +89,7 @@
 - name: "Add pg_hba.conf entries for {{ db_user.username }} (append-only)"
   community.postgresql.postgresql_pg_hba:
     dest: "{{ postgres_config_dir[ansible_os_family] }}/pg_hba.conf"
+    port: "{{ postgres_port }}"
     contype: host
     users: "{{ db_user.username }}"
     source: "{{ item }}"
@@ -99,6 +108,8 @@
 - name: "Drop PostgreSQL role {{ db_user.username }}"
   community.postgresql.postgresql_user:
     name: "{{ db_user.username }}"
+    login_unix_socket: /var/run/postgresql
+    login_port: "{{ postgres_port }}"
     state: absent
   become: true
   become_user: postgres
