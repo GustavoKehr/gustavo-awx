@@ -1,6 +1,6 @@
 {
-  "name": "MYSQL | Manage Users",
-  "description": "Survey for mysql_manage_users role in deploy_mysql.yml",
+  "name": "MYSQL | Manage Users v2",
+  "description": "Individual survey questions for mysql_manage_users role.",
   "spec": [
     {
       "question_name": "MySQL username",
@@ -14,7 +14,7 @@
     },
     {
       "question_name": "MySQL user host",
-      "question_description": "Use %, IP or CIDR (for example 10.10.10.5 or 10.10.10.0/24).",
+      "question_description": "Use % for any host, or specific IP/CIDR (e.g. 10.10.10.5 or 10.10.10.0/24).",
       "required": true,
       "type": "text",
       "variable": "db_user_host",
@@ -24,15 +24,24 @@
     },
     {
       "question_name": "MySQL password",
-      "question_description": "Required for create/update; optional for revoke/remove.",
+      "question_description": "Required for create/update; leave blank for revoke/remove operations.",
       "required": false,
       "type": "password",
       "variable": "db_password",
       "default": ""
     },
     {
+      "question_name": "User state",
+      "question_description": "present = create/update/grant/revoke; absent = drop user account.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "db_user_state",
+      "choices": "present\nabsent",
+      "default": "present"
+    },
+    {
       "question_name": "Privileges",
-      "question_description": "Comma-separated privileges (e.g. SELECT,INSERT,UPDATE).",
+      "question_description": "Comma-separated privileges (e.g. SELECT,INSERT,UPDATE). Use ALL for full access.",
       "required": true,
       "type": "text",
       "variable": "db_privileges",
@@ -42,7 +51,7 @@
     },
     {
       "question_name": "Target databases",
-      "question_description": "Comma-separated database names.",
+      "question_description": "Comma-separated database names where privileges apply.",
       "required": true,
       "type": "textarea",
       "variable": "db_target_databases",
@@ -51,17 +60,8 @@
       "default": "appdb"
     },
     {
-      "question_name": "User state",
-      "question_description": "present = manage user/grants, absent = remove user.",
-      "required": true,
-      "type": "multiplechoice",
-      "variable": "db_user_state",
-      "choices": "present\nabsent",
-      "default": "present"
-    },
-    {
       "question_name": "Revoke access",
-      "question_description": "true revokes privileges instead of granting.",
+      "question_description": "true = revoke the specified privileges instead of granting. User state must be present.",
       "required": true,
       "type": "multiplechoice",
       "variable": "db_revoke_access",
@@ -70,21 +70,31 @@
     },
     {
       "question_name": "Append privileges",
-      "question_description": "true appends privileges instead of replacing current grants.",
+      "question_description": "true = add privileges without replacing existing grants. false = replace current grants.",
       "required": true,
       "type": "multiplechoice",
       "variable": "db_append_privileges",
-      "choices": "false\ntrue",
-      "default": "false"
+      "choices": "true\nfalse",
+      "default": "true"
     },
     {
       "question_name": "Create target databases",
-      "question_description": "true creates target DBs before grant operations.",
+      "question_description": "true = create target databases before performing grant operations.",
       "required": true,
       "type": "multiplechoice",
       "variable": "db_manage_databases",
       "choices": "false\ntrue",
       "default": "false"
+    },
+    {
+      "question_name": "Allowed IPs (optional)",
+      "question_description": "Comma-separated IPs or CIDRs to whitelist. Leave blank to skip IP restriction.",
+      "required": false,
+      "type": "textarea",
+      "variable": "db_allowed_ips",
+      "min": 0,
+      "max": 2048,
+      "default": ""
     }
   ]
 }

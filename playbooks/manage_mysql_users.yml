@@ -1,11 +1,11 @@
 ---
-- name: "Manage MySQL users (list-based)"
+- name: "Manage MySQL users"
   hosts: all
   become: true
   gather_facts: true
 
   tasks:
-    - name: "MySQL: manage users from db_users list"
+    - name: "MySQL: manage user via survey vars"
       ansible.builtin.include_role:
         name: mysql_manage_users
       tags: [mysql, mysql_users]

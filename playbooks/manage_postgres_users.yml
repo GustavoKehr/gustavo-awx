@@ -1,11 +1,11 @@
 ---
-- name: "Manage PostgreSQL users (list-based)"
+- name: "Manage PostgreSQL users"
   hosts: all
   become: true
   gather_facts: true
 
   tasks:
-    - name: "PostgreSQL: manage users from db_users list"
+    - name: "PostgreSQL: manage user via survey vars"
       ansible.builtin.include_role:
         name: postgres_manage_users
       tags: [postgres, postgres_users]

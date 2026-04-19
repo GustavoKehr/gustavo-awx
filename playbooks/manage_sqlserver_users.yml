@@ -1,11 +1,11 @@
 ---
-- name: "Manage SQL Server users (list-based)"
+- name: "Manage SQL Server users"
   hosts: all
   become: true
   gather_facts: true
 
   tasks:
-    - name: "SQL Server: manage users from db_users list"
+    - name: "SQL Server: manage user via survey vars"
       ansible.builtin.include_role:
         name: sql_manage_users
       tags: [sqlserver, sql_users]

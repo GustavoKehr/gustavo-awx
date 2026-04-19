@@ -1,6 +1,6 @@
 {
-  "name": "POSTGRES | Manage Users",
-  "description": "Survey for postgres_manage_users role in deploy_postgres.yml",
+  "name": "POSTGRES | Manage Users v2",
+  "description": "Individual survey questions for postgres_manage_users role.",
   "spec": [
     {
       "question_name": "PostgreSQL username",
@@ -14,7 +14,7 @@
     },
     {
       "question_name": "PostgreSQL password",
-      "question_description": "Password used when pg_user_state=present.",
+      "question_description": "Required when state is present.",
       "required": false,
       "type": "password",
       "variable": "pg_user_password",
@@ -22,7 +22,7 @@
     },
     {
       "question_name": "User state",
-      "question_description": "present manages role; absent removes role.",
+      "question_description": "present = create/update role and grants; absent = drop role.",
       "required": true,
       "type": "multiplechoice",
       "variable": "pg_user_state",
@@ -30,27 +30,18 @@
       "default": "present"
     },
     {
-      "question_name": "Target databases",
-      "question_description": "Comma-separated databases for grants/revokes.",
-      "required": false,
-      "type": "textarea",
-      "variable": "pg_target_databases",
-      "min": 0,
-      "max": 1024,
-      "default": "appdb"
-    },
-    {
-      "question_name": "Create target databases",
-      "question_description": "true creates target DBs before grants.",
+      "question_name": "Role attribute flags",
+      "question_description": "PostgreSQL role flags (e.g. LOGIN, LOGIN,CREATEDB). LOGIN is required for a login account.",
       "required": true,
-      "type": "multiplechoice",
-      "variable": "pg_manage_databases",
-      "choices": "false\ntrue",
-      "default": "false"
+      "type": "text",
+      "variable": "pg_role_attr_flags",
+      "min": 1,
+      "max": 128,
+      "default": "LOGIN"
     },
     {
       "question_name": "Privileges",
-      "question_description": "Privileges to grant/revoke (e.g. CONNECT,TEMP).",
+      "question_description": "Database-level privileges to grant/revoke (e.g. CONNECT,TEMP). CONNECT only allows connection; table access requires separate grants.",
       "required": true,
       "type": "text",
       "variable": "pg_privileges",
@@ -59,8 +50,18 @@
       "default": "CONNECT"
     },
     {
+      "question_name": "Target databases",
+      "question_description": "Comma-separated database names for privilege operations.",
+      "required": false,
+      "type": "textarea",
+      "variable": "pg_target_databases",
+      "min": 0,
+      "max": 1024,
+      "default": "appdb"
+    },
+    {
       "question_name": "Revoke access",
-      "question_description": "true revokes privileges instead of granting.",
+      "question_description": "true = revoke the specified privileges instead of granting.",
       "required": true,
       "type": "multiplechoice",
       "variable": "pg_revoke_access",
@@ -68,14 +69,23 @@
       "default": "false"
     },
     {
-      "question_name": "Role attribute flags",
-      "question_description": "Role flags (for example LOGIN,CREATEDB).",
+      "question_name": "Create target databases",
+      "question_description": "true = create target databases before grant operations.",
       "required": true,
-      "type": "text",
-      "variable": "pg_role_attr_flags",
-      "min": 1,
-      "max": 128,
-      "default": "LOGIN"
+      "type": "multiplechoice",
+      "variable": "pg_manage_databases",
+      "choices": "false\ntrue",
+      "default": "false"
+    },
+    {
+      "question_name": "Allowed IPs (optional)",
+      "question_description": "Comma-separated IPs/CIDRs to append to pg_hba.conf for this user. Leave blank to skip.",
+      "required": false,
+      "type": "textarea",
+      "variable": "pg_allowed_ips",
+      "min": 0,
+      "max": 2048,
+      "default": ""
     }
   ]
 }
