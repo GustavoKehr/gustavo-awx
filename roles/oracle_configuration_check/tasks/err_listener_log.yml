@@ -1,0 +1,45 @@
+---
+# 2.5 - Listener.log — REPORT ONLY
+# PASS: No error repeated more than oracle_listener_error_threshold times in last 30 days
+# FAIL: Any error message repeated > threshold in last 30 days
+
+- name: "2.5 - [CHECK] Verify listener.log exists"
+  ansible.builtin.stat:
+    path: "{{ oracle_listener_log_path }}"
+  register: _sec_2_5_log_stat
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_err, sec_2_5]
+
+- name: "2.5 - [CHECK] Find repeated errors in listener.log (last 30 days)"
+  ansible.builtin.shell: |
+    grep -i 'error\|TNS-\|ORA-' "{{ oracle_listener_log_path }}" \
+      2>/dev/null | tail -n 100000 | \
+    awk '{for(i=1;i<=NF;i++) if($i~/^(TNS|ORA)-[0-9]/) print $i}' | \
+    sort | uniq -c | sort -rn | awk '$1 > {{ oracle_listener_error_threshold }} {print $1, $2}' | head -20
+  register: _sec_2_5_errors
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  when: _sec_2_5_log_stat.stat.exists
+  tags: [oracle_configuration_check, sec_err, sec_2_5]
+
+- name: "2.5 - [PARSE] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_2_5_compliant: >-
+      {{
+        not _sec_2_5_log_stat.stat.exists or
+        (_sec_2_5_errors.stdout | default('') | trim | length == 0)
+      }}
+    _sec_2_5_repeated_errors: "{{ _sec_2_5_errors.stdout | default('') | trim }}"
+  tags: [oracle_configuration_check, sec_err, sec_2_5]
+
+- name: "2.5 - [STATUS] Listener.log repeated errors"
+  ansible.builtin.debug:
+    msg: >-
+      sec_2_5 Listener.log: {{ 'PASS' if _sec_2_5_compliant else 'FAIL' }}
+      | log_exists={{ _sec_2_5_log_stat.stat.exists }}
+      | errors_above_threshold_{{ oracle_listener_error_threshold }}:
+      {{ _sec_2_5_repeated_errors if _sec_2_5_repeated_errors else 'none' }}
+      | Action (if FAIL): investigate root cause of repeated errors manually
+  tags: [oracle_configuration_check, sec_err, sec_2_5]

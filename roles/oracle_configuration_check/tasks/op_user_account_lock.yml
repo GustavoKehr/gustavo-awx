@@ -1,0 +1,87 @@
+---
+# 5.1 - User Account Lock
+# PASS: For application DB users, FAILED_LOGIN_ATTEMPTS=UNLIMITED on their profiles
+# FAIL: FAILED_LOGIN_ATTEMPTS != UNLIMITED on profiles listed in oracle_app_profiles
+# Fix: alter profile to set FAILED_LOGIN_ATTEMPTS=UNLIMITED
+
+- name: "5.1 - [CHECK] Query FAILED_LOGIN_ATTEMPTS for all profiles"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
+    SELECT profile || '=' || limit
+    FROM dba_profiles
+    WHERE resource_name = 'FAILED_LOGIN_ATTEMPTS'
+    AND profile NOT IN ('DEFAULT', 'ORA_STIG_PROFILE');
+    EXIT;
+    EOF
+  register: _sec_5_1_result
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_op, sec_5_1]
+
+- name: "5.1 - [PARSE] Build list of non-compliant profiles"
+  ansible.builtin.set_fact:
+    _sec_5_1_all_profiles: >-
+      {{
+        _sec_5_1_result.stdout_lines
+        | map('trim') | reject('equalto', '') | list
+      }}
+    _sec_5_1_target_profiles: >-
+      {{
+        oracle_app_profiles | map('upper') | list
+        if oracle_app_profiles | length > 0
+        else []
+      }}
+  tags: [oracle_configuration_check, sec_op, sec_5_1]
+
+- name: "5.1 - [PARSE] Find profiles with restricted login attempts"
+  ansible.builtin.set_fact:
+    _sec_5_1_non_compliant: >-
+      {{
+        _sec_5_1_all_profiles
+        | select('search', '(?i)^(' + (_sec_5_1_target_profiles | join('|')) + ')=')
+        | reject('search', '=UNLIMITED')
+        | list
+        if _sec_5_1_target_profiles | length > 0
+        else _sec_5_1_all_profiles | reject('search', '=UNLIMITED') | list
+      }}
+    _sec_5_1_compliant: >-
+      {{
+        (_sec_5_1_all_profiles | reject('search', '=UNLIMITED') | list | length == 0)
+        if oracle_app_profiles | length == 0
+        else
+        (_sec_5_1_all_profiles
+          | select('search', '(?i)^(' + (_sec_5_1_target_profiles | join('|')) + ')=')
+          | reject('search', '=UNLIMITED') | list | length == 0)
+      }}
+  tags: [oracle_configuration_check, sec_op, sec_5_1]
+
+- name: "5.1 - [STATUS] User Account Lock"
+  ansible.builtin.debug:
+    msg: >-
+      sec_5_1 User Account Lock: {{ 'PASS' if _sec_5_1_compliant else 'FAIL' }}
+      | non_compliant_profiles={{ _sec_5_1_non_compliant | join(', ') if _sec_5_1_non_compliant else 'none' }}
+  tags: [oracle_configuration_check, sec_op, sec_5_1]
+
+- name: "5.1 - [FIX] Set FAILED_LOGIN_ATTEMPTS=UNLIMITED for non-compliant profiles"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    PROFILE=$(echo "{{ item }}" | cut -d'=' -f1)
+    sqlplus -s / as sysdba <<EOF
+    ALTER PROFILE ${PROFILE} LIMIT FAILED_LOGIN_ATTEMPTS UNLIMITED;
+    EXIT;
+    EOF
+  loop: "{{ _sec_5_1_non_compliant }}"
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  when:
+    - not _sec_5_1_compliant
+    - oracle_configuration_check_remediate | bool
+    - _sec_5_1_non_compliant | length > 0
+  tags: [oracle_configuration_check, sec_op, sec_5_1]

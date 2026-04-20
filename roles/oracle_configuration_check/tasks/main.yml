@@ -1,0 +1,92 @@
+---
+# ── Configuration ──────────────────────────────────────────────────────────────
+- import_tasks: conf_aud_table.yml
+  tags: [oracle_configuration_check, sec_conf, sec_1_1]
+
+- import_tasks: conf_dba_role.yml
+  tags: [oracle_configuration_check, sec_conf, sec_1_2]
+
+- import_tasks: conf_oradism.yml
+  tags: [oracle_configuration_check, sec_conf, sec_1_3]
+
+- import_tasks: conf_swappiness.yml
+  tags: [oracle_configuration_check, sec_conf, sec_1_4]
+
+- import_tasks: conf_selinux.yml
+  tags: [oracle_configuration_check, sec_conf, sec_1_5]
+
+- import_tasks: conf_page_table.yml
+  tags: [oracle_configuration_check, sec_conf, sec_1_6]
+
+- import_tasks: conf_logon_delay.yml
+  tags: [oracle_configuration_check, sec_conf, sec_1_7]
+
+- import_tasks: conf_cleanup_rollback.yml
+  tags: [oracle_configuration_check, sec_conf, sec_1_8]
+
+- import_tasks: conf_deferred_segment.yml
+  tags: [oracle_configuration_check, sec_conf, sec_1_9]
+
+- import_tasks: conf_disable_system_state.yml
+  tags: [oracle_configuration_check, sec_conf, sec_1_10]
+
+# ── Defect & Error ─────────────────────────────────────────────────────────────
+- import_tasks: err_rowsets_enabled.yml
+  tags: [oracle_configuration_check, sec_err, sec_2_1]
+
+- import_tasks: err_drop_stat_segment.yml
+  tags: [oracle_configuration_check, sec_err, sec_2_2]
+
+- import_tasks: err_lslt_bug.yml
+  tags: [oracle_configuration_check, sec_err, sec_2_3]
+
+- import_tasks: err_min_free_memory.yml
+  tags: [oracle_configuration_check, sec_err, sec_2_4]
+
+- import_tasks: err_listener_log.yml
+  tags: [oracle_configuration_check, sec_err, sec_2_5]
+
+# ── Availability ───────────────────────────────────────────────────────────────
+- import_tasks: avail_rac_config.yml
+  tags: [oracle_configuration_check, sec_avail, sec_3_1]
+
+- import_tasks: avail_dual_archive_dest.yml
+  tags: [oracle_configuration_check, sec_avail, sec_3_2]
+
+- import_tasks: avail_server_redundancy.yml
+  tags: [oracle_configuration_check, sec_avail, sec_3_3]
+
+# ── Performance & Capacity ─────────────────────────────────────────────────────
+- import_tasks: perf_checkpoint.yml
+  tags: [oracle_configuration_check, sec_perf, sec_4_1]
+
+- import_tasks: perf_pga_limit.yml
+  tags: [oracle_configuration_check, sec_perf, sec_4_2]
+
+- import_tasks: perf_parallel_adaptive.yml
+  tags: [oracle_configuration_check, sec_perf, sec_4_3]
+
+- import_tasks: perf_filesystemio.yml
+  tags: [oracle_configuration_check, sec_perf, sec_4_4]
+
+# ── Operation ──────────────────────────────────────────────────────────────────
+- import_tasks: op_user_account_lock.yml
+  tags: [oracle_configuration_check, sec_op, sec_5_1]
+
+- import_tasks: op_dba_registry.yml
+  tags: [oracle_configuration_check, sec_op, sec_5_2]
+
+- import_tasks: op_os_watcher.yml
+  tags: [oracle_configuration_check, sec_op, sec_5_3]
+
+- import_tasks: op_nologging.yml
+  tags: [oracle_configuration_check, sec_op, sec_5_4]
+
+- import_tasks: op_full_backup.yml
+  tags: [oracle_configuration_check, sec_op, sec_5_5]
+
+- import_tasks: op_controlfile_backup.yml
+  tags: [oracle_configuration_check, sec_op, sec_5_6]
+
+- import_tasks: op_awr_config.yml
+  tags: [oracle_configuration_check, sec_op, sec_5_7]

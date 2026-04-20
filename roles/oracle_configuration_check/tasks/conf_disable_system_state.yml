@@ -1,0 +1,51 @@
+---
+# 1.10 - _disable_system_state
+# PASS: _disable_system_state=10
+# FAIL: _disable_system_state=4294967294 (default — suppresses systemstate dump)
+# Fix: online change
+
+- name: "1.10 - [CHECK] Query _disable_system_state"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
+    SELECT max(ksppstvl) FROM x$ksppi a, x$ksppsv b
+    WHERE a.indx = b.indx AND ksppinm = '_disable_system_state';
+    EXIT;
+    EOF
+  register: _sec_1_10_result
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_conf, sec_1_10]
+
+- name: "1.10 - [PARSE] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_1_10_value: "{{ _sec_1_10_result.stdout | trim }}"
+    _sec_1_10_compliant: "{{ _sec_1_10_result.stdout | trim == '10' }}"
+  tags: [oracle_configuration_check, sec_conf, sec_1_10]
+
+- name: "1.10 - [STATUS] _disable_system_state"
+  ansible.builtin.debug:
+    msg: >-
+      sec_1_10 _disable_system_state: {{ 'PASS' if _sec_1_10_compliant else 'FAIL' }}
+      | current={{ _sec_1_10_value }} required=10
+  tags: [oracle_configuration_check, sec_conf, sec_1_10]
+
+- name: "1.10 - [FIX] Set _disable_system_state=10"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    ALTER SYSTEM SET "_disable_system_state"=10 SCOPE=BOTH;
+    EXIT;
+    EOF
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  when:
+    - not _sec_1_10_compliant
+    - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_conf, sec_1_10]

@@ -1,0 +1,50 @@
+---
+# 1.9 - deferred_segment_creation
+# PASS: deferred_segment_creation=false
+# FAIL: deferred_segment_creation=true (default)
+# Fix: online change, scope=both
+
+- name: "1.9 - [CHECK] Query deferred_segment_creation"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
+    SELECT value FROM v$parameter WHERE name = 'deferred_segment_creation';
+    EXIT;
+    EOF
+  register: _sec_1_9_result
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_conf, sec_1_9]
+
+- name: "1.9 - [PARSE] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_1_9_value: "{{ _sec_1_9_result.stdout | trim | lower }}"
+    _sec_1_9_compliant: "{{ _sec_1_9_result.stdout | trim | lower == 'false' }}"
+  tags: [oracle_configuration_check, sec_conf, sec_1_9]
+
+- name: "1.9 - [STATUS] deferred_segment_creation"
+  ansible.builtin.debug:
+    msg: >-
+      sec_1_9 deferred_segment_creation: {{ 'PASS' if _sec_1_9_compliant else 'FAIL' }}
+      | current={{ _sec_1_9_value }} required=false
+  tags: [oracle_configuration_check, sec_conf, sec_1_9]
+
+- name: "1.9 - [FIX] Set deferred_segment_creation=false"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    ALTER SYSTEM SET deferred_segment_creation=FALSE SCOPE=BOTH;
+    EXIT;
+    EOF
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  when:
+    - not _sec_1_9_compliant
+    - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_conf, sec_1_9]

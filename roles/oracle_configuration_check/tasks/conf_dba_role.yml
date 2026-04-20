@@ -1,0 +1,49 @@
+---
+# 1.2 - DB User (DBA Role) — REPORT ONLY
+# PASS: No non-SYSTEM users with DBA role (or all have SR exception approval)
+# FAIL: Non-SYSTEM DBA users exist without SR exception
+
+- name: "1.2 - [CHECK] Query non-SYSTEM users with DBA role"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
+    SELECT grantee FROM dba_role_privs
+    WHERE granted_role = 'DBA'
+    AND grantee NOT IN ('SYS', 'SYSTEM', 'SYSDG', 'SYSBACKUP', 'SYSKM', 'SYSRAC', 'DBA',
+                        'IMP_FULL_DATABASE', 'EXP_FULL_DATABASE', 'DV_ADMIN', 'DATAPUMP_IMP_FULL_DATABASE');
+    EXIT;
+    EOF
+  register: _sec_1_2_result
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_conf, sec_1_2]
+
+- name: "1.2 - [PARSE] Build list of non-approved DBA users"
+  ansible.builtin.set_fact:
+    _sec_1_2_dba_users: >-
+      {{
+        _sec_1_2_result.stdout_lines
+        | map('trim') | reject('equalto', '') | list
+      }}
+    _sec_1_2_approved: "{{ oracle_dba_role_approved_users | map('upper') | list }}"
+  tags: [oracle_configuration_check, sec_conf, sec_1_2]
+
+- name: "1.2 - [PARSE] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_1_2_unapproved: >-
+      {{
+        _sec_1_2_dba_users | difference(_sec_1_2_approved)
+      }}
+  tags: [oracle_configuration_check, sec_conf, sec_1_2]
+
+- name: "1.2 - [STATUS] DB User (DBA Role)"
+  ansible.builtin.debug:
+    msg: >-
+      sec_1_2 DB User DBA Role: {{ 'PASS' if _sec_1_2_unapproved | length == 0 else 'FAIL' }}
+      | Unapproved DBA users: {{ _sec_1_2_unapproved | join(', ') if _sec_1_2_unapproved | length > 0 else 'none' }}
+      | Action: Revoke DBA from unapproved users, then GRANT UNLIMITED TABLESPACE explicitly
+  tags: [oracle_configuration_check, sec_conf, sec_1_2]

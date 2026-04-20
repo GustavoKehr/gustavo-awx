@@ -1,0 +1,29 @@
+---
+# 3.3 - DB Server Redundancy — REPORT ONLY
+# PASS: RAC or OS Cluster daemon running
+# FAIL: No cluster detected
+
+- name: "3.3 - [CHECK] Check for cluster daemon (crsd, corosync, pacemaker)"
+  ansible.builtin.shell: |
+    pgrep -x crsd > /dev/null 2>&1 && echo "crsd" && exit 0
+    pgrep -x corosync > /dev/null 2>&1 && echo "corosync" && exit 0
+    pgrep -x pacemakerd > /dev/null 2>&1 && echo "pacemaker" && exit 0
+    echo "none"
+  register: _sec_3_3_result
+  changed_when: false
+  failed_when: false
+  tags: [oracle_configuration_check, sec_avail, sec_3_3]
+
+- name: "3.3 - [PARSE] Evaluate redundancy"
+  ansible.builtin.set_fact:
+    _sec_3_3_cluster: "{{ _sec_3_3_result.stdout | trim }}"
+    _sec_3_3_compliant: "{{ _sec_3_3_result.stdout | trim != 'none' }}"
+  tags: [oracle_configuration_check, sec_avail, sec_3_3]
+
+- name: "3.3 - [STATUS] DB Server Redundancy"
+  ansible.builtin.debug:
+    msg: >-
+      sec_3_3 DB Server Redundancy: {{ 'PASS' if _sec_3_3_compliant else 'FAIL' }}
+      | cluster_detected={{ _sec_3_3_cluster }}
+      | Action (if FAIL): configure HA system based on service requirements (RAC or OS cluster)
+  tags: [oracle_configuration_check, sec_avail, sec_3_3]

@@ -1,0 +1,74 @@
+---
+# 5.4 - Nologging — REPORT ONLY
+# PASS: No nologging objects or unrecoverable datafiles
+# FAIL: Nologging LOB columns or recently unrecoverable datafiles found
+# Fix: change to logging mode AND back up affected datafiles (manual decision)
+
+- name: "5.4 - [CHECK] Find LOB columns with NOLOGGING"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
+    SELECT owner || '.' || table_name || '.' || column_name
+    FROM dba_lobs
+    WHERE logging = 'NO'
+    AND owner NOT IN ('SYS','SYSTEM','MDSYS','OLAPSYS','WMSYS','XDB','APEX_030200',
+                      'APEX_040000','ORDDATA','ORDPLUGINS','ORDSYS','SI_INFORMTN_SCHEMA');
+    EXIT;
+    EOF
+  register: _sec_5_4_lob_result
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_op, sec_5_4]
+
+- name: "5.4 - [CHECK] Find recently unrecoverable datafiles (last 5 days)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
+    SELECT name FROM v$datafile
+    WHERE sysdate - unrecoverable_time < 5
+    AND unrecoverable_time IS NOT NULL;
+    EXIT;
+    EOF
+  register: _sec_5_4_datafile_result
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_op, sec_5_4]
+
+- name: "5.4 - [PARSE] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_5_4_nologging_lobs: >-
+      {{
+        _sec_5_4_lob_result.stdout_lines | map('trim') | reject('equalto', '') | list
+      }}
+    _sec_5_4_unrecoverable_files: >-
+      {{
+        _sec_5_4_datafile_result.stdout_lines | map('trim') | reject('equalto', '') | list
+      }}
+  tags: [oracle_configuration_check, sec_op, sec_5_4]
+
+- name: "5.4 - [PARSE] Set compliance flag"
+  ansible.builtin.set_fact:
+    _sec_5_4_compliant: >-
+      {{
+        _sec_5_4_nologging_lobs | length == 0 and
+        _sec_5_4_unrecoverable_files | length == 0
+      }}
+  tags: [oracle_configuration_check, sec_op, sec_5_4]
+
+- name: "5.4 - [STATUS] Nologging"
+  ansible.builtin.debug:
+    msg: >-
+      sec_5_4 Nologging: {{ 'PASS' if _sec_5_4_compliant else 'FAIL' }}
+      | nologging_lob_columns={{ _sec_5_4_nologging_lobs | length }}
+      | unrecoverable_datafiles={{ _sec_5_4_unrecoverable_files | length }}
+      | nologging_objects={{ _sec_5_4_nologging_lobs | join(', ') if _sec_5_4_nologging_lobs else 'none' }}
+      | Action (if FAIL): change to LOGGING mode and backup affected datafiles
+  tags: [oracle_configuration_check, sec_op, sec_5_4]

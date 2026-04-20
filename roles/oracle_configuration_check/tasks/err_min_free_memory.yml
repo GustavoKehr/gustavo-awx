@@ -1,0 +1,72 @@
+---
+# 2.4 - Minimum OS Free Memory
+# PASS: vm.min_free_kbytes >= 524288 AND loopback MTU=16436
+# FAIL: either condition not met
+
+- name: "2.4 - [CHECK] Get vm.min_free_kbytes"
+  ansible.builtin.command: sysctl -n vm.min_free_kbytes
+  register: _sec_2_4_min_free
+  changed_when: false
+  tags: [oracle_configuration_check, sec_err, sec_2_4]
+
+- name: "2.4 - [CHECK] Get loopback MTU"
+  ansible.builtin.shell: "ip link show lo | awk '/mtu/ {print $5}' | head -1"
+  register: _sec_2_4_mtu
+  changed_when: false
+  tags: [oracle_configuration_check, sec_err, sec_2_4]
+
+- name: "2.4 - [PARSE] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_2_4_current_min_free: "{{ _sec_2_4_min_free.stdout | trim | int }}"
+    _sec_2_4_current_mtu: "{{ _sec_2_4_mtu.stdout | trim | int }}"
+    _sec_2_4_compliant: >-
+      {{
+        _sec_2_4_min_free.stdout | trim | int >= oracle_min_free_kbytes | int and
+        _sec_2_4_mtu.stdout | trim | int == oracle_loopback_mtu | int
+      }}
+  tags: [oracle_configuration_check, sec_err, sec_2_4]
+
+- name: "2.4 - [STATUS] Minimum OS Free Memory"
+  ansible.builtin.debug:
+    msg: >-
+      sec_2_4 Min OS Free Memory: {{ 'PASS' if _sec_2_4_compliant else 'FAIL' }}
+      | min_free_kbytes={{ _sec_2_4_current_min_free }} required>={{ oracle_min_free_kbytes }}
+      | loopback_mtu={{ _sec_2_4_current_mtu }} required={{ oracle_loopback_mtu }}
+  tags: [oracle_configuration_check, sec_err, sec_2_4]
+
+- name: "2.4 - [FIX] Set vm.min_free_kbytes at runtime"
+  ansible.builtin.command: "sysctl -w vm.min_free_kbytes={{ oracle_min_free_kbytes }}"
+  when:
+    - not _sec_2_4_compliant
+    - oracle_configuration_check_remediate | bool
+    - _sec_2_4_current_min_free | int < oracle_min_free_kbytes | int
+  tags: [oracle_configuration_check, sec_err, sec_2_4]
+
+- name: "2.4 - [FIX] Persist vm.min_free_kbytes in /etc/sysctl.conf"
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^vm\.min_free_kbytes\s*='
+    line: "vm.min_free_kbytes = {{ oracle_min_free_kbytes }}"
+    create: true
+  when:
+    - not _sec_2_4_compliant
+    - oracle_configuration_check_remediate | bool
+    - _sec_2_4_current_min_free | int < oracle_min_free_kbytes | int
+  tags: [oracle_configuration_check, sec_err, sec_2_4]
+
+- name: "2.4 - [FIX] Set loopback MTU to {{ oracle_loopback_mtu }}"
+  ansible.builtin.command: "ip link set lo mtu {{ oracle_loopback_mtu }}"
+  when:
+    - not _sec_2_4_compliant
+    - oracle_configuration_check_remediate | bool
+    - _sec_2_4_current_mtu | int != oracle_loopback_mtu | int
+  tags: [oracle_configuration_check, sec_err, sec_2_4]
+
+- name: "2.4 - [FIX] Persist loopback MTU via nmcli"
+  ansible.builtin.command: "nmcli connection modify lo 802-3-ethernet.mtu {{ oracle_loopback_mtu }}"
+  failed_when: false
+  when:
+    - not _sec_2_4_compliant
+    - oracle_configuration_check_remediate | bool
+    - _sec_2_4_current_mtu | int != oracle_loopback_mtu | int
+  tags: [oracle_configuration_check, sec_err, sec_2_4]

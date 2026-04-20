@@ -1,0 +1,34 @@
+---
+# 3.1 - RAC Configuration — REPORT ONLY
+# PASS: RAC (parallel=YES in v$instance)
+# FAIL: Single Instance or HA Active-Standby (no RAC)
+
+- name: "3.1 - [CHECK] Query RAC status from v$instance"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
+    SELECT parallel FROM v$instance;
+    EXIT;
+    EOF
+  register: _sec_3_1_result
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_avail, sec_3_1]
+
+- name: "3.1 - [PARSE] Evaluate RAC compliance"
+  ansible.builtin.set_fact:
+    _sec_3_1_parallel: "{{ _sec_3_1_result.stdout | trim | upper }}"
+    _sec_3_1_compliant: "{{ _sec_3_1_result.stdout | trim | upper == 'YES' }}"
+  tags: [oracle_configuration_check, sec_avail, sec_3_1]
+
+- name: "3.1 - [STATUS] RAC Configuration"
+  ansible.builtin.debug:
+    msg: >-
+      sec_3_1 RAC Configuration: {{ 'PASS' if _sec_3_1_compliant else 'FAIL' }}
+      | parallel={{ _sec_3_1_parallel }}
+      | Action (if FAIL): infrastructure decision — contact account team for RAC licensing
+  tags: [oracle_configuration_check, sec_avail, sec_3_1]

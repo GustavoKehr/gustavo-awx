@@ -1,0 +1,68 @@
+---
+# 2.3 - LSLT (Last Successful Login Time) Bug — REPORT ONLY
+# PASS: patch 33121934 (or 19.16+ RU) applied AND _disable_last_successful_login_time=true
+# FAIL: patch not applied OR parameter not set
+# Fix: apply patch manually (out of scope), then set parameter
+
+- name: "2.3 - [CHECK] Check for patch 33121934 or 19.16+ RU"
+  ansible.builtin.shell: "{{ oracle_home }}/OPatch/opatch lsinventory 2>/dev/null | grep -c 33121934 || true"
+  register: _sec_2_3_patch_result
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_err, sec_2_3]
+
+- name: "2.3 - [CHECK] Query _disable_last_successful_login_time"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
+    SELECT max(ksppstvl) FROM x$ksppi a, x$ksppsv b
+    WHERE a.indx = b.indx AND ksppinm = '_disable_last_successful_login_time';
+    EXIT;
+    EOF
+  register: _sec_2_3_param_result
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_err, sec_2_3]
+
+- name: "2.3 - [PARSE] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_2_3_patch_applied: "{{ _sec_2_3_patch_result.stdout | trim | int > 0 }}"
+    _sec_2_3_param_value: "{{ _sec_2_3_param_result.stdout | trim | lower }}"
+    _sec_2_3_compliant: >-
+      {{
+        _sec_2_3_patch_result.stdout | trim | int > 0 and
+        _sec_2_3_param_result.stdout | trim | lower == 'true'
+      }}
+  tags: [oracle_configuration_check, sec_err, sec_2_3]
+
+- name: "2.3 - [STATUS] LSLT Bug"
+  ansible.builtin.debug:
+    msg: >-
+      sec_2_3 LSLT Bug: {{ 'PASS' if _sec_2_3_compliant else 'FAIL' }}
+      | patch_33121934={{ _sec_2_3_patch_applied }}
+      | _disable_last_successful_login_time={{ _sec_2_3_param_value }}
+      | Action (if FAIL and patch missing): apply patch 33121934 or upgrade to 19.16+ RU first
+  tags: [oracle_configuration_check, sec_err, sec_2_3]
+
+- name: "2.3 - [FIX] Set _disable_last_successful_login_time=true (only if patch already applied)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    ALTER SYSTEM SET "_disable_last_successful_login_time"=TRUE SCOPE=BOTH;
+    EXIT;
+    EOF
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  when:
+    - not _sec_2_3_compliant
+    - oracle_configuration_check_remediate | bool
+    - _sec_2_3_patch_applied
+    - _sec_2_3_param_value != 'true'
+  tags: [oracle_configuration_check, sec_err, sec_2_3]

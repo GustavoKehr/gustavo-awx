@@ -1,0 +1,72 @@
+---
+# 1.3 - oradism File Permission
+# PASS: owner=root, group=<oracle group>, mode=4750 (-rwsr-x---)
+# FAIL: any deviation from recommended settings
+
+- name: "1.3 - [CHECK] oradism permissions in ORACLE_HOME"
+  ansible.builtin.stat:
+    path: "{{ oracle_home }}/bin/oradism"
+  register: _sec_1_3_oracle_stat
+  tags: [oracle_configuration_check, sec_conf, sec_1_3]
+
+- name: "1.3 - [CHECK] oradism permissions in GRID_HOME"
+  ansible.builtin.stat:
+    path: "{{ oracle_grid_home }}/bin/oradism"
+  register: _sec_1_3_grid_stat
+  when: oracle_grid_home | length > 0
+  tags: [oracle_configuration_check, sec_conf, sec_1_3]
+
+- name: "1.3 - [PARSE] Evaluate ORACLE_HOME oradism compliance"
+  ansible.builtin.set_fact:
+    _sec_1_3_oracle_compliant: >-
+      {{
+        _sec_1_3_oracle_stat.stat.exists and
+        _sec_1_3_oracle_stat.stat.pw_name == 'root' and
+        (_sec_1_3_oracle_stat.stat.mode | int(base=8)) == 0o4750
+      }}
+  tags: [oracle_configuration_check, sec_conf, sec_1_3]
+
+- name: "1.3 - [PARSE] Evaluate GRID_HOME oradism compliance"
+  ansible.builtin.set_fact:
+    _sec_1_3_grid_compliant: >-
+      {{
+        (oracle_grid_home | length == 0) or (
+          _sec_1_3_grid_stat.stat.exists and
+          _sec_1_3_grid_stat.stat.pw_name == 'root' and
+          (_sec_1_3_grid_stat.stat.mode | int(base=8)) == 0o4750
+        )
+      }}
+  tags: [oracle_configuration_check, sec_conf, sec_1_3]
+
+- name: "1.3 - [STATUS] oradism File Permission"
+  ansible.builtin.debug:
+    msg: >-
+      sec_1_3 oradism Permission: {{ 'PASS' if _sec_1_3_oracle_compliant and _sec_1_3_grid_compliant else 'FAIL' }}
+      | ORACLE_HOME={{ 'OK' if _sec_1_3_oracle_compliant else 'FAIL' }}
+      | GRID_HOME={{ 'OK' if _sec_1_3_grid_compliant else 'FAIL' }}
+  tags: [oracle_configuration_check, sec_conf, sec_1_3]
+
+- name: "1.3 - [FIX] Set oradism permission in ORACLE_HOME"
+  ansible.builtin.file:
+    path: "{{ oracle_home }}/bin/oradism"
+    owner: root
+    group: "{{ oracle_os_group }}"
+    mode: "4750"
+  when:
+    - not _sec_1_3_oracle_compliant
+    - oracle_configuration_check_remediate | bool
+    - _sec_1_3_oracle_stat.stat.exists
+  tags: [oracle_configuration_check, sec_conf, sec_1_3]
+
+- name: "1.3 - [FIX] Set oradism permission in GRID_HOME"
+  ansible.builtin.file:
+    path: "{{ oracle_grid_home }}/bin/oradism"
+    owner: root
+    group: "{{ oracle_os_group }}"
+    mode: "4750"
+  when:
+    - not _sec_1_3_grid_compliant
+    - oracle_configuration_check_remediate | bool
+    - oracle_grid_home | length > 0
+    - _sec_1_3_grid_stat.stat.exists
+  tags: [oracle_configuration_check, sec_conf, sec_1_3]

@@ -1,0 +1,51 @@
+---
+# 4.3 - _parallel_adaptive_max_users
+# PASS: _parallel_adaptive_max_users=2
+# FAIL: value != 2
+# Fix: online change
+
+- name: "4.3 - [CHECK] Query _parallel_adaptive_max_users"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
+    SELECT max(ksppstvl) FROM x$ksppi a, x$ksppsv b
+    WHERE a.indx = b.indx AND ksppinm = '_parallel_adaptive_max_users';
+    EXIT;
+    EOF
+  register: _sec_4_3_result
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_perf, sec_4_3]
+
+- name: "4.3 - [PARSE] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_4_3_value: "{{ _sec_4_3_result.stdout | trim | int }}"
+    _sec_4_3_compliant: "{{ _sec_4_3_result.stdout | trim | int == 2 }}"
+  tags: [oracle_configuration_check, sec_perf, sec_4_3]
+
+- name: "4.3 - [STATUS] _parallel_adaptive_max_users"
+  ansible.builtin.debug:
+    msg: >-
+      sec_4_3 _parallel_adaptive_max_users: {{ 'PASS' if _sec_4_3_compliant else 'FAIL' }}
+      | current={{ _sec_4_3_value }} required=2
+  tags: [oracle_configuration_check, sec_perf, sec_4_3]
+
+- name: "4.3 - [FIX] Set _parallel_adaptive_max_users=2"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    ALTER SYSTEM SET "_parallel_adaptive_max_users"=2 SCOPE=BOTH;
+    EXIT;
+    EOF
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  when:
+    - not _sec_4_3_compliant
+    - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_perf, sec_4_3]

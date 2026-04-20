@@ -1,0 +1,120 @@
+---
+# 1.7 - DB Logon Delay
+# 11.2.0.1-11.2.0.4: event "28401 trace name context forever, level 1"
+# 12.1.0.2+:         _sys_logon_delay=0
+# Fix for 11.2: set in spfile (restart required); for 12.1+: online
+
+- name: "1.7 - [CHECK] Query logon delay settings"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
+    SELECT 'EVENT=' || value FROM v$parameter WHERE name = 'event';
+    SELECT 'LOGON_DELAY=' || max(ksppstvl)
+    FROM x$ksppi a, x$ksppsv b
+    WHERE a.indx = b.indx AND ksppinm = '_sys_logon_delay';
+    EXIT;
+    EOF
+  register: _sec_1_7_result
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_conf, sec_1_7]
+
+- name: "1.7 - [PARSE] Extract logon delay values"
+  ansible.builtin.set_fact:
+    _sec_1_7_event: >-
+      {{
+        _sec_1_7_result.stdout | regex_search('EVENT=(.+)', '\1') | default(['']) | first | trim
+      }}
+    _sec_1_7_logon_delay: >-
+      {{
+        (_sec_1_7_result.stdout | regex_search('LOGON_DELAY=(\S+)', '\1') | default(['1']) | first) | int
+      }}
+    _sec_1_7_is_12plus: "{{ oracle_db_version | int >= 12 }}"
+  tags: [oracle_configuration_check, sec_conf, sec_1_7]
+
+- name: "1.7 - [PARSE] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_1_7_compliant: >-
+      {{
+        (_sec_1_7_is_12plus and _sec_1_7_logon_delay == 0) or
+        (not _sec_1_7_is_12plus and '28401' in _sec_1_7_event)
+      }}
+  tags: [oracle_configuration_check, sec_conf, sec_1_7]
+
+- name: "1.7 - [STATUS] DB Logon Delay"
+  ansible.builtin.debug:
+    msg: >-
+      sec_1_7 DB Logon Delay: {{ 'PASS' if _sec_1_7_compliant else 'FAIL' }}
+      | db_version={{ oracle_db_version }}
+      | _sys_logon_delay={{ _sec_1_7_logon_delay }}
+      | event_28401={{ '28401' in _sec_1_7_event }}
+  tags: [oracle_configuration_check, sec_conf, sec_1_7]
+
+- name: "1.7 - [FIX] Set _sys_logon_delay=0 (12.1.0.2+, online)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    ALTER SYSTEM SET "_sys_logon_delay"=0 SCOPE=BOTH;
+    EXIT;
+    EOF
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  when:
+    - not _sec_1_7_compliant
+    - oracle_configuration_check_remediate | bool
+    - _sec_1_7_is_12plus
+  tags: [oracle_configuration_check, sec_conf, sec_1_7]
+
+- name: "1.7 - [FIX] Set event 28401 in spfile (11.2, requires restart)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    ALTER SYSTEM SET EVENT='28401 trace name context forever, level 1' SCOPE=SPFILE;
+    EXIT;
+    EOF
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  when:
+    - not _sec_1_7_compliant
+    - oracle_configuration_check_remediate | bool
+    - not _sec_1_7_is_12plus
+  tags: [oracle_configuration_check, sec_conf, sec_1_7]
+
+- name: "1.7 - [WARN] DB restart required to activate event 28401 (11.2)"
+  ansible.builtin.debug:
+    msg: >-
+      sec_1_7 WARNING: event 28401 set in spfile.
+      DB restart required to activate. Set oracle_configuration_check_allow_restart=true to auto-restart.
+  when:
+    - not _sec_1_7_compliant
+    - oracle_configuration_check_remediate | bool
+    - not _sec_1_7_is_12plus
+    - not oracle_configuration_check_allow_restart | bool
+  tags: [oracle_configuration_check, sec_conf, sec_1_7]
+
+- name: "1.7 - [FIX] Restart DB to activate event 28401 (11.2)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SHUTDOWN IMMEDIATE;
+    STARTUP;
+    EXIT;
+    EOF
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  when:
+    - not _sec_1_7_compliant
+    - oracle_configuration_check_remediate | bool
+    - not _sec_1_7_is_12plus
+    - oracle_configuration_check_allow_restart | bool
+  tags: [oracle_configuration_check, sec_conf, sec_1_7]

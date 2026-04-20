@@ -1,0 +1,62 @@
+---
+# 3.2 - Dual Archive Log Destination
+# PASS: >= 2 valid/normal archive destinations (includes DataGuard)
+# FAIL: only 1 archive destination
+# Fix: set log_archive_dest_2 (requires oracle_archive_dest_2 variable)
+
+- name: "3.2 - [CHECK] Count valid archive destinations"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
+    SELECT COUNT(*) FROM v$archive_dest WHERE status IN ('VALID','NORMAL');
+    EXIT;
+    EOF
+  register: _sec_3_2_result
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_avail, sec_3_2]
+
+- name: "3.2 - [PARSE] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_3_2_dest_count: "{{ _sec_3_2_result.stdout | trim | int }}"
+    _sec_3_2_compliant: "{{ _sec_3_2_result.stdout | trim | int >= 2 }}"
+  tags: [oracle_configuration_check, sec_avail, sec_3_2]
+
+- name: "3.2 - [STATUS] Dual Archive Destination"
+  ansible.builtin.debug:
+    msg: >-
+      sec_3_2 Dual Archive Dest: {{ 'PASS' if _sec_3_2_compliant else 'FAIL' }}
+      | valid_destinations={{ _sec_3_2_dest_count }} required>=2
+  tags: [oracle_configuration_check, sec_avail, sec_3_2]
+
+- name: "3.2 - [FIX] Set log_archive_dest_2"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    ALTER SYSTEM SET {{ oracle_archive_dest_2 }} SCOPE=BOTH;
+    EXIT;
+    EOF
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  when:
+    - not _sec_3_2_compliant
+    - oracle_configuration_check_remediate | bool
+    - oracle_archive_dest_2 | length > 0
+  tags: [oracle_configuration_check, sec_avail, sec_3_2]
+
+- name: "3.2 - [WARN] oracle_archive_dest_2 not set — cannot auto-remediate"
+  ansible.builtin.debug:
+    msg: >-
+      sec_3_2 WARNING: archive destination count < 2 but oracle_archive_dest_2 is not defined.
+      Set oracle_archive_dest_2 (e.g. "LOG_ARCHIVE_DEST_2='LOCATION=/arch2'") to enable auto-fix.
+  when:
+    - not _sec_3_2_compliant
+    - oracle_configuration_check_remediate | bool
+    - oracle_archive_dest_2 | length == 0
+  tags: [oracle_configuration_check, sec_avail, sec_3_2]

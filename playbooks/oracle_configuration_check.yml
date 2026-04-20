@@ -1,0 +1,9 @@
+---
+- name: "Oracle Security Check & Remediation"
+  hosts: "{{ target_hosts | default('all') }}"
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: oracle_configuration_check
+      tags: [oracle_configuration_check]

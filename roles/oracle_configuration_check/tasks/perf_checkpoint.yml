@@ -1,0 +1,51 @@
+---
+# 4.1 - Checkpoint Not Complete — REPORT ONLY
+# PASS: No "Checkpoint not complete" messages, or interval to log switch < 5s
+# FAIL: Messages exist with interval >= 5s
+# Fix: increase redo log file size (manual planning required)
+
+- name: "4.1 - [CHECK] Locate alert.log"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
+    SELECT value FROM v$diag_info WHERE name = 'Diag Trace';
+    EXIT;
+    EOF
+  register: _sec_4_1_trace_dir
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_perf, sec_4_1]
+
+- name: "4.1 - [CHECK] Count 'Checkpoint not complete' in alert.log"
+  ansible.builtin.shell: |
+    ALERT_LOG="{{ _sec_4_1_trace_dir.stdout | trim }}/alert_{{ oracle_sid }}.log"
+    if [ -f "$ALERT_LOG" ]; then
+      grep -c "checkpoint not complete" "$ALERT_LOG" 2>/dev/null || echo "0"
+    else
+      echo "0"
+    fi
+  register: _sec_4_1_count
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_perf, sec_4_1]
+
+- name: "4.1 - [PARSE] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_4_1_alert_dir: "{{ _sec_4_1_trace_dir.stdout | trim }}"
+    _sec_4_1_msg_count: "{{ _sec_4_1_count.stdout | trim | int }}"
+    _sec_4_1_compliant: "{{ _sec_4_1_count.stdout | trim | int == 0 }}"
+  tags: [oracle_configuration_check, sec_perf, sec_4_1]
+
+- name: "4.1 - [STATUS] Checkpoint Not Complete"
+  ansible.builtin.debug:
+    msg: >-
+      sec_4_1 Checkpoint Not Complete: {{ 'PASS' if _sec_4_1_compliant else 'FAIL' }}
+      | occurrences_in_alert_log={{ _sec_4_1_msg_count }}
+      | alert_log={{ _sec_4_1_alert_dir }}/alert_{{ oracle_sid }}.log
+      | Action (if FAIL): increase redo log file size by 2x — manual sizing required
+  tags: [oracle_configuration_check, sec_perf, sec_4_1]

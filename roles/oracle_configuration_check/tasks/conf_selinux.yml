@@ -1,0 +1,53 @@
+---
+# 1.5 - Linux SELinux
+# PASS: SELinux Disabled
+# FAIL: SELinux Enabled (Enforcing or Permissive)
+
+- name: "1.5 - [CHECK] Get SELinux enforcement status"
+  ansible.builtin.command: /usr/sbin/getenforce
+  register: _sec_1_5_getenforce
+  changed_when: false
+  failed_when: false
+  tags: [oracle_configuration_check, sec_conf, sec_1_5]
+
+- name: "1.5 - [PARSE] Evaluate SELinux compliance"
+  ansible.builtin.set_fact:
+    _sec_1_5_status: "{{ _sec_1_5_getenforce.stdout | trim }}"
+    _sec_1_5_compliant: "{{ _sec_1_5_getenforce.stdout | trim | lower == 'disabled' }}"
+  tags: [oracle_configuration_check, sec_conf, sec_1_5]
+
+- name: "1.5 - [STATUS] Linux SELinux"
+  ansible.builtin.debug:
+    msg: >-
+      sec_1_5 Linux SELinux: {{ 'PASS' if _sec_1_5_compliant else 'FAIL' }}
+      | status={{ _sec_1_5_status }}
+  tags: [oracle_configuration_check, sec_conf, sec_1_5]
+
+- name: "1.5 - [FIX] Set SELINUX=disabled in /etc/selinux/config"
+  ansible.builtin.lineinfile:
+    path: /etc/selinux/config
+    regexp: '^\s*SELINUX\s*='
+    line: 'SELINUX=disabled'
+  when:
+    - not _sec_1_5_compliant
+    - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_conf, sec_1_5]
+
+- name: "1.5 - [FIX] Disable SELinux at runtime (setenforce 0)"
+  ansible.builtin.command: setenforce 0
+  changed_when: true
+  failed_when: false
+  when:
+    - not _sec_1_5_compliant
+    - oracle_configuration_check_remediate | bool
+    - _sec_1_5_status | lower != 'disabled'
+  tags: [oracle_configuration_check, sec_conf, sec_1_5]
+
+- name: "1.5 - [FIX] Persist selinux=0 via grubby"
+  ansible.builtin.command: grubby --update-kernel=ALL --args="selinux=0"
+  changed_when: true
+  failed_when: false
+  when:
+    - not _sec_1_5_compliant
+    - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_conf, sec_1_5]

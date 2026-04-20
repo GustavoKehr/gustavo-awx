@@ -1,0 +1,49 @@
+---
+# 5.6 - Control File Backup — REPORT ONLY
+# PASS: Control file backup executed within last 8 days
+# FAIL: No recent control file backup found
+# Fix: schedule regular control file image copy (manual)
+
+- name: "5.6 - [CHECK] Query control file backup history"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
+    SELECT COUNT(*) FROM V$BACKUP_CONTROLFILE_DETAILS
+    WHERE checkpoint_time > SYSDATE - 8;
+    SELECT TO_CHAR(MAX(checkpoint_time), 'YYYY-MM-DD HH24:MI:SS')
+    FROM V$BACKUP_CONTROLFILE_DETAILS
+    WHERE checkpoint_time > SYSDATE - 8;
+    EXIT;
+    EOF
+  register: _sec_5_6_result
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_op, sec_5_6]
+
+- name: "5.6 - [PARSE] Extract backup count and last backup time"
+  ansible.builtin.set_fact:
+    _sec_5_6_lines: >-
+      {{
+        _sec_5_6_result.stdout_lines | map('trim') | reject('equalto', '') | list
+      }}
+  tags: [oracle_configuration_check, sec_op, sec_5_6]
+
+- name: "5.6 - [PARSE] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_5_6_count: "{{ _sec_5_6_lines[0] | default('0') | int }}"
+    _sec_5_6_last: "{{ _sec_5_6_lines[1] | default('N/A') }}"
+    _sec_5_6_compliant: "{{ _sec_5_6_lines[0] | default('0') | int > 0 }}"
+  tags: [oracle_configuration_check, sec_op, sec_5_6]
+
+- name: "5.6 - [STATUS] Control File Backup"
+  ansible.builtin.debug:
+    msg: >-
+      sec_5_6 Control File Backup: {{ 'PASS' if _sec_5_6_compliant else 'FAIL' }}
+      | backups_last_8_days={{ _sec_5_6_count }}
+      | last_backup={{ _sec_5_6_last }}
+      | Action (if FAIL): run RMAN or: ALTER DATABASE BACKUP CONTROLFILE TO '<path>';
+  tags: [oracle_configuration_check, sec_op, sec_5_6]

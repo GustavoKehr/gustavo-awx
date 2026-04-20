@@ -1,0 +1,61 @@
+---
+# 5.3 - OS Watcher
+# PASS: OSW process (OSWbb) running
+# FAIL: OSW not running
+# Fix: start OSW with configured interval and archive hours
+
+- name: "5.3 - [CHECK] Check if OS Watcher process is running"
+  ansible.builtin.shell: "pgrep -f OSWbb | wc -l"
+  register: _sec_5_3_result
+  changed_when: false
+  tags: [oracle_configuration_check, sec_op, sec_5_3]
+
+- name: "5.3 - [PARSE] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_5_3_procs: "{{ _sec_5_3_result.stdout | trim | int }}"
+    _sec_5_3_compliant: "{{ _sec_5_3_result.stdout | trim | int > 0 }}"
+  tags: [oracle_configuration_check, sec_op, sec_5_3]
+
+- name: "5.3 - [STATUS] OS Watcher"
+  ansible.builtin.debug:
+    msg: >-
+      sec_5_3 OS Watcher: {{ 'PASS' if _sec_5_3_compliant else 'FAIL' }}
+      | osw_processes={{ _sec_5_3_procs }}
+  tags: [oracle_configuration_check, sec_op, sec_5_3]
+
+- name: "5.3 - [CHECK] Verify OSW directory exists"
+  ansible.builtin.stat:
+    path: "{{ oracle_osw_path }}/startOSWbb.sh"
+  register: _sec_5_3_osw_stat
+  when:
+    - not _sec_5_3_compliant
+    - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_op, sec_5_3]
+
+- name: "5.3 - [FIX] Start OS Watcher"
+  ansible.builtin.shell: |
+    cd "{{ oracle_osw_path }}"
+    nohup ./startOSWbb.sh {{ oracle_osw_interval }} {{ oracle_osw_archive_hours }} > /dev/null 2>&1 &
+    sleep 2
+    pgrep -f OSWbb | wc -l
+  register: _sec_5_3_start
+  changed_when: _sec_5_3_start.stdout | trim | int > 0
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  when:
+    - not _sec_5_3_compliant
+    - oracle_configuration_check_remediate | bool
+    - _sec_5_3_osw_stat.stat.exists
+  tags: [oracle_configuration_check, sec_op, sec_5_3]
+
+- name: "5.3 - [WARN] OSW directory not found — cannot start automatically"
+  ansible.builtin.debug:
+    msg: >-
+      sec_5_3 WARNING: startOSWbb.sh not found at {{ oracle_osw_path }}.
+      Download and install OS Watcher from MOS Doc ID 1531223.1.
+      Then set oracle_osw_path to the correct directory.
+  when:
+    - not _sec_5_3_compliant
+    - oracle_configuration_check_remediate | bool
+    - not _sec_5_3_osw_stat.stat.exists
+  tags: [oracle_configuration_check, sec_op, sec_5_3]

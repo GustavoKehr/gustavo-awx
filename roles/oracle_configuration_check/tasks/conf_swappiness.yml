@@ -1,0 +1,49 @@
+---
+# 1.4 - Linux swappiness
+# PASS: kernel <= 2.6.18 → vm.swappiness=100 | kernel > 2.6.18 → vm.swappiness=1
+# FAIL: value does not match recommended setting for kernel version
+
+- name: "1.4 - [CHECK] Get current vm.swappiness"
+  ansible.builtin.command: sysctl -n vm.swappiness
+  register: _sec_1_4_swappiness
+  changed_when: false
+  tags: [oracle_configuration_check, sec_conf, sec_1_4]
+
+- name: "1.4 - [PARSE] Determine required swappiness for kernel version"
+  ansible.builtin.set_fact:
+    _sec_1_4_current: "{{ _sec_1_4_swappiness.stdout | trim | int }}"
+    _sec_1_4_required: >-
+      {{
+        100 if ansible_kernel is version('2.6.18', '<=') else 1
+      }}
+  tags: [oracle_configuration_check, sec_conf, sec_1_4]
+
+- name: "1.4 - [PARSE] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_1_4_compliant: "{{ _sec_1_4_current == _sec_1_4_required | int }}"
+  tags: [oracle_configuration_check, sec_conf, sec_1_4]
+
+- name: "1.4 - [STATUS] Linux swappiness"
+  ansible.builtin.debug:
+    msg: >-
+      sec_1_4 Linux swappiness: {{ 'PASS' if _sec_1_4_compliant else 'FAIL' }}
+      | current={{ _sec_1_4_current }} required={{ _sec_1_4_required }} kernel={{ ansible_kernel }}
+  tags: [oracle_configuration_check, sec_conf, sec_1_4]
+
+- name: "1.4 - [FIX] Set vm.swappiness at runtime"
+  ansible.builtin.command: "sysctl -w vm.swappiness={{ _sec_1_4_required }}"
+  when:
+    - not _sec_1_4_compliant
+    - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_conf, sec_1_4]
+
+- name: "1.4 - [FIX] Persist vm.swappiness in /etc/sysctl.conf"
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^vm\.swappiness\s*='
+    line: "vm.swappiness = {{ _sec_1_4_required }}"
+    create: true
+  when:
+    - not _sec_1_4_compliant
+    - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_conf, sec_1_4]

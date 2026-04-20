@@ -1,0 +1,43 @@
+---
+oracle_sid: "ORCL"
+oracle_home: "/oracle/{{ oracle_sid }}/19.0.0"
+oracle_grid_home: ""
+oracle_base: "/oracle"
+oracle_os_user: "oracle"
+oracle_os_group: "oinstall"
+oracle_db_version: "19"
+
+oracle_security_remediate: true
+oracle_security_allow_restart: false
+
+# 1.1 AUD$ Table
+oracle_audit_tablespace: "AUDIT_TS"
+
+# 1.2 DBA Role
+oracle_dba_role_approved_users: []
+
+# 2.4 Min Free Memory
+oracle_min_free_kbytes: 524288
+oracle_loopback_mtu: 16436
+
+# 2.5 Listener.log
+oracle_listener_log_path: "{{ oracle_base }}/diag/tnslsnr/{{ inventory_hostname | upper }}/listener/trace/listener.log"
+oracle_listener_error_threshold: 10
+
+# 3.2 Dual Archive Dest
+oracle_archive_dest_2: ""
+
+# 4.2 PGA Limit
+oracle_pga_max_size_gb: 1
+
+# 5.1 User Account Lock
+oracle_app_profiles: []
+
+# 5.3 OS Watcher
+oracle_osw_path: "{{ oracle_base }}/OSW/OSWbb"
+oracle_osw_interval: 30
+oracle_osw_archive_hours: 720
+
+# 5.7 AWR
+oracle_awr_retention_days: 35
+oracle_awr_interval_min: 20
