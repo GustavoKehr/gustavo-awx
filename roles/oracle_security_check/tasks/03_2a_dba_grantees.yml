@@ -1,0 +1,43 @@
+---
+# Item 3.2A — DBA role assignment check
+# REPORT ONLY: list all non-SYS/SYSTEM accounts with DBA role
+# Tags: [oracle_security, oracle_access, item_3_2a]
+
+- name: "3.2A - Query DBA role grantees"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    SET PAGESIZE 9999 LINESIZE 120 FEEDBACK OFF HEADING ON TRIMSPOOL ON
+    COL GRANTEE FORMAT A30
+    COL ADMIN_OPTION FORMAT A12
+    COL DEFAULT_ROLE FORMAT A12
+    SELECT grantee, admin_option, default_role
+    FROM   dba_role_privs
+    WHERE  granted_role = 'DBA'
+    ORDER  BY grantee;
+    EXIT;
+    EOF
+  register: _item_3_2a_dba_grantees
+  changed_when: false
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_access, item_3_2a]
+
+- name: "3.2A - Display DBA role grantees"
+  ansible.builtin.debug:
+    msg: >-
+      [3.2A] Accounts with DBA role (verify each has approval documentation):
+      {{ _item_3_2a_dba_grantees.stdout_lines }}
+  tags: [oracle_security, oracle_access, item_3_2a]
+
+- name: "3.2A - Register finding for summary report"
+  ansible.builtin.set_fact:
+    _report_3_2a:
+      item: "3.2A"
+      title: "DBA role grantees"
+      data: "{{ _item_3_2a_dba_grantees.stdout_lines }}"
+      note: "Manual review required — verify each account has approval documentation"
+  tags: [oracle_security, oracle_access, item_3_2a]

@@ -1,0 +1,54 @@
+---
+# Item 6.1.2 — EOS (End of Support) version check
+# REPORT ONLY: query Oracle version and flag if in known EOS list
+# Tags: [oracle_security, oracle_patches, item_6_1_2]
+
+- name: "6.1.2 - Query Oracle version from instance"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    SET PAGESIZE 0 FEEDBACK OFF HEADING OFF TRIMSPOOL ON
+    SELECT version FROM v$instance;
+    EXIT;
+    EOF
+  register: _item_6_1_2_version
+  changed_when: false
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_patches, item_6_1_2]
+
+- name: "6.1.2 - Check version against known EOS list"
+  ansible.builtin.set_fact:
+    _item_6_1_2_is_eos: >-
+      {{
+        oracle_security_known_eos_versions | length > 0
+        and (_item_6_1_2_version.stdout | trim) in oracle_security_known_eos_versions
+      }}
+  tags: [oracle_security, oracle_patches, item_6_1_2]
+
+- name: "6.1.2 - Display Oracle version and EOS status"
+  ansible.builtin.debug:
+    msg: >-
+      [6.1.2] Oracle version: {{ _item_6_1_2_version.stdout | trim }}
+      EOS flag: {{ _item_6_1_2_is_eos }}
+      {% if _item_6_1_2_is_eos %}
+      WARNING: This version is End-of-Support. Plan upgrade or SW replacement.
+      {% elif oracle_security_known_eos_versions | length == 0 %}
+      NOTE: oracle_security_known_eos_versions is empty — EOS check skipped.
+            Verify manually at https://www.oracle.com/support/lifetime-support/
+      {% else %}
+      OK — version not in known EOS list.
+      {% endif %}
+  tags: [oracle_security, oracle_patches, item_6_1_2]
+
+- name: "6.1.2 - Register finding for summary report"
+  ansible.builtin.set_fact:
+    _report_6_1_2:
+      item: "6.1.2"
+      title: "Oracle EOS version check"
+      version: "{{ _item_6_1_2_version.stdout | trim }}"
+      eos_flag: "{{ _item_6_1_2_is_eos }}"
+  tags: [oracle_security, oracle_patches, item_6_1_2]

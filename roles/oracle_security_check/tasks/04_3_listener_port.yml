@@ -1,0 +1,44 @@
+---
+# Item 4.3 — Default listener port check
+# REPORT ONLY: flag if listener is still using default port 1521
+# Tags: [oracle_security, oracle_service, item_4_3]
+
+- name: "4.3 - Query listener status and port"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    $ORACLE_HOME/bin/lsnrctl status 2>/dev/null || echo "LSNRCTL_UNAVAILABLE"
+  register: _item_4_3_lsnrctl_status
+  changed_when: false
+  failed_when: false
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_service, item_4_3]
+
+- name: "4.3 - Check if default port 1521 is in use"
+  ansible.builtin.set_fact:
+    _item_4_3_using_default_port: >-
+      {{
+        _item_4_3_lsnrctl_status.stdout | regex_search('PORT\s*=\s*1521', ignorecase=True) is not none
+      }}
+  tags: [oracle_security, oracle_service, item_4_3]
+
+- name: "4.3 - Display listener port finding"
+  ansible.builtin.debug:
+    msg: >-
+      [4.3] Default port 1521 in use: {{ _item_4_3_using_default_port }}
+      {% if _item_4_3_using_default_port %}
+      ACTION REQUIRED: Change listener.ora to use a non-default port.
+      {% else %}
+      OK — listener not using default port 1521.
+      {% endif %}
+  tags: [oracle_security, oracle_service, item_4_3]
+
+- name: "4.3 - Register finding for summary report"
+  ansible.builtin.set_fact:
+    _report_4_3:
+      item: "4.3"
+      title: "Default listener port (1521)"
+      default_port_in_use: "{{ _item_4_3_using_default_port }}"
+      note: "If true — change port in listener.ora and tnsnames.ora"
+  tags: [oracle_security, oracle_service, item_4_3]

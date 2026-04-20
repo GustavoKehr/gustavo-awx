@@ -1,0 +1,94 @@
+---
+# Security Report Summary
+# Aggregates all _report_* facts set by each item task file
+# Uses | default(...) so partial tag runs (e.g. --tags item_1_2) don't error
+# Tags: [oracle_security, oracle_report]
+
+- name: "Security Report Summary — Oracle DB Hardening"
+  ansible.builtin.debug:
+    msg: |
+      ═══════════════════════════════════════════════════════════════
+      ORACLE SECURITY HARDENING — REPORT SUMMARY
+      Host  : {{ inventory_hostname }}
+      SID   : {{ oracle_sid }}
+      Date  : {{ ansible_date_time.iso8601 }}
+      Mode  : {{ 'CHECK-ONLY (no changes applied)' if oracle_security_check_only else 'FIX mode (changes applied where applicable)' }}
+      ═══════════════════════════════════════════════════════════════
+
+      ── GROUP 1: Account Management ──────────────────────────────
+
+      [1.1] User Account Status (manual review required):
+      {{ (_report_1_1 | default({'data': ['(not collected — run with item_1_1 tag)']}) ).data | join('\n      ') }}
+
+      [1.2] FAILED_LOGIN_ATTEMPTS <= {{ oracle_security_failed_login_attempts }}:
+      Profiles fixed: {{ (_report_1_2 | default({'profiles_fixed': ['(not collected)']}) ).profiles_fixed | join(', ') }}
+
+      [1.3] Sample/Default Accounts Found:
+      {{ (_report_1_3 | default({'data': ['(not collected)']}) ).data | join('\n      ') }}
+
+      ── GROUP 2: Password Policy ──────────────────────────────────
+
+      [2.1] PASSWORD_VERIFY_FUNCTION — Profiles fixed:
+      {{ (_report_2_1 | default({'profiles_fixed': ['(not collected)']}) ).profiles_fixed | join(', ') | default('none', true) }}
+
+      [2.2] Accounts Using Default Passwords (CRITICAL):
+      {{ (_report_2_2 | default({'vulnerable_accounts': ['(not collected)']}) ).vulnerable_accounts | join(', ') | default('none detected', true) }}
+
+      [2.3] PASSWORD_LIFE_TIME <= {{ oracle_security_password_life_time }} — Profiles fixed:
+      {{ (_report_2_3 | default({'profiles_fixed': ['(not collected)']}) ).profiles_fixed | join(', ') | default('none', true) }}
+
+      [2.4A] PASSWORD_REUSE_MAX <= {{ oracle_security_password_reuse_max }} — Profiles fixed:
+      {{ (_report_2_4a | default({'profiles_fixed': ['(not collected)']}) ).profiles_fixed | join(', ') | default('none', true) }}
+
+      [2.4B] PASSWORD_REUSE_TIME >= {{ oracle_security_password_reuse_time }} — Profiles fixed:
+      {{ (_report_2_4b | default({'profiles_fixed': ['(not collected)']}) ).profiles_fixed | join(', ') | default('none', true) }}
+
+      ── GROUP 3: Access Control ───────────────────────────────────
+
+      [3.1] IP Access Control (sqlnet.ora):
+      EXISTS: {{ (_report_3_1 | default({'sqlnet_exists': 'unknown'}) ).sqlnet_exists }}
+      TCP.VALIDNODE_CHECKING: {{ (_report_3_1 | default({'validnode_checking': 'unknown'}) ).validnode_checking }}
+      TCP.INVITED_NODES: {{ (_report_3_1 | default({'invited_nodes': '(not collected)'}) ).invited_nodes }}
+
+      [3.2A] DBA Role Grantees (verify approval documentation):
+      {{ (_report_3_2a | default({'data': ['(not collected)']}) ).data | join('\n      ') }}
+
+      [3.2B] Dangerous System Privilege Grantees:
+      {{ (_report_3_2b | default({'data': ['(not collected)']}) ).data | join('\n      ') }}
+
+      [3.3] Oracle System File Permissions:
+      Files checked: {{ (_report_3_3 | default({'files_checked': ['(not collected)']}) ).files_checked | join(', ') }}
+      Target: owner=oracle, group=oinstall, mode=0640
+
+      ── GROUP 4: Service Management ──────────────────────────────
+
+      [4.1] UTL_* Package Grants:
+      {{ (_report_4_1 | default({'data': ['(not collected)']}) ).data | join('\n      ') }}
+      PUBLIC grants: {{ (_report_4_1 | default({'public_grants': ['(not collected)']}) ).public_grants | join(', ') }}
+
+      [4.2] Database Links:
+      {{ (_report_4_2 | default({'data': ['(not collected)']}) ).data | join('\n      ') }}
+
+      [4.3] Default Listener Port (1521):
+      Using default port: {{ (_report_4_3 | default({'default_port_in_use': 'unknown'}) ).default_port_in_use }}
+
+      [4.4] Backup/Temp Tables:
+      BACK pattern: {{ (_report_4_4 | default({'back_tables': ['(not collected)']}) ).back_tables | join(', ') }}
+      Date pattern : {{ (_report_4_4 | default({'date_tables': ['(not collected)']}) ).date_tables | join(', ') }}
+
+      ── GROUP 5: Audit ────────────────────────────────────────────
+
+      [5.1] Listener Log Files:
+      {{ (_report_5_1 | default({'log_files': ['(not collected)']}) ).log_files | join(', ') }}
+
+      ── GROUP 6: Patches ──────────────────────────────────────────
+
+      [6.1.1] Oracle Patch Inventory (opatch):
+      {{ (_report_6_1_1 | default({'data': ['(not collected — run with item_6_1_1 tag)']}) ).data | join('\n      ') }}
+
+      [6.1.2] Oracle Version / EOS:
+      Version : {{ (_report_6_1_2 | default({'version': '(not collected)'}) ).version }}
+      EOS flag: {{ (_report_6_1_2 | default({'eos_flag': 'unknown'}) ).eos_flag }}
+
+      ═══════════════════════════════════════════════════════════════
+  tags: [oracle_security, oracle_report]

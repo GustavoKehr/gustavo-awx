@@ -1,0 +1,43 @@
+---
+# Item 4.2 — Database link status management
+# REPORT ONLY: list all database links, flag PUBLIC links
+# Tags: [oracle_security, oracle_service, item_4_2]
+
+- name: "4.2 - Query all database links"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    SET PAGESIZE 9999 LINESIZE 200 FEEDBACK OFF HEADING ON TRIMSPOOL ON
+    COL OWNER    FORMAT A20
+    COL DB_LINK  FORMAT A30
+    COL USERNAME FORMAT A20
+    COL HOST     FORMAT A40
+    SELECT owner, db_link, username, host
+    FROM   dba_db_links
+    ORDER  BY owner, db_link;
+    EXIT;
+    EOF
+  register: _item_4_2_db_links
+  changed_when: false
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_service, item_4_2]
+
+- name: "4.2 - Display database links"
+  ansible.builtin.debug:
+    msg: >-
+      [4.2] Database links (PUBLIC owner = requires separate approval):
+      {{ _item_4_2_db_links.stdout_lines | default(['none found'], true) }}
+  tags: [oracle_security, oracle_service, item_4_2]
+
+- name: "4.2 - Register finding for summary report"
+  ansible.builtin.set_fact:
+    _report_4_2:
+      item: "4.2"
+      title: "Database links"
+      data: "{{ _item_4_2_db_links.stdout_lines }}"
+      note: "PUBLIC db_links require separate approval documentation"
+  tags: [oracle_security, oracle_service, item_4_2]

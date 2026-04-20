@@ -1,0 +1,117 @@
+---
+# Item 3.3 — Oracle system file permissions
+# CHECK: report permissions on init.ora, spfile, datafiles, ctl files
+# FIX (Linux only, when check_only=false): enforce owner=oracle, group=oinstall, mode=0640
+# Tags: [oracle_security, oracle_access, item_3_3]
+
+- name: "3.3 - Query spfile path from database"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    SET PAGESIZE 0 FEEDBACK OFF HEADING OFF TRIMSPOOL ON
+    SELECT value FROM v$parameter WHERE name = 'spfile';
+    EXIT;
+    EOF
+  register: _item_3_3_spfile_path
+  changed_when: false
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_access, item_3_3]
+
+- name: "3.3 - Query datafile paths from database"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    SET PAGESIZE 0 FEEDBACK OFF HEADING OFF TRIMSPOOL ON
+    SELECT name FROM v$datafile;
+    EXIT;
+    EOF
+  register: _item_3_3_datafile_paths
+  changed_when: false
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_access, item_3_3]
+
+- name: "3.3 - Query control file paths from database"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    SET PAGESIZE 0 FEEDBACK OFF HEADING OFF TRIMSPOOL ON
+    SELECT value FROM v$parameter WHERE name = 'control_files';
+    EXIT;
+    EOF
+  register: _item_3_3_ctlfile_paths
+  changed_when: false
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_access, item_3_3]
+
+- name: "3.3 - Build list of all Oracle system files to check"
+  ansible.builtin.set_fact:
+    _item_3_3_all_files: >-
+      {{
+        (
+          [oracle_home + '/dbs/init' + oracle_sid + '.ora']
+          + (_item_3_3_spfile_path.stdout_lines | select | list)
+          + (_item_3_3_datafile_paths.stdout_lines | select | list)
+          + (_item_3_3_ctlfile_paths.stdout | split(',') | map('trim') | select | list)
+        ) | unique
+      }}
+  tags: [oracle_security, oracle_access, item_3_3]
+
+- name: "3.3 - Stat each Oracle system file"
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ _item_3_3_all_files }}"
+  register: _item_3_3_file_stats
+  become: true
+  tags: [oracle_security, oracle_access, item_3_3]
+
+- name: "3.3 - Report file permissions"
+  ansible.builtin.debug:
+    msg: >-
+      {{ item.item }}: exists={{ item.stat.exists }}
+      {% if item.stat.exists %}
+      owner={{ item.stat.pw_name | default('?') }}
+      mode={{ item.stat.mode | default('?') }}
+      {% endif %}
+  loop: "{{ _item_3_3_file_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  tags: [oracle_security, oracle_access, item_3_3]
+
+- name: "3.3 - Fix file permissions (Linux only)"
+  ansible.builtin.file:
+    path: "{{ item.item }}"
+    owner: oracle
+    group: oinstall
+    mode: "0640"
+  loop: "{{ _item_3_3_file_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  become: true
+  when:
+    - ansible_system == 'Linux'
+    - not oracle_security_check_only | bool
+    - item.stat.exists
+    - (item.stat.pw_name != 'oracle') or (item.stat.mode | int(base=8) > 0o640)
+  tags: [oracle_security, oracle_access, item_3_3]
+
+- name: "3.3 - Register finding for summary report"
+  ansible.builtin.set_fact:
+    _report_3_3:
+      item: "3.3"
+      title: "Oracle system file permissions"
+      files_checked: "{{ _item_3_3_all_files }}"
+      check_only: "{{ oracle_security_check_only | bool }}"
+      note: "Target: owner=oracle, group=oinstall, mode=0640 (Linux)"
+  tags: [oracle_security, oracle_access, item_3_3]

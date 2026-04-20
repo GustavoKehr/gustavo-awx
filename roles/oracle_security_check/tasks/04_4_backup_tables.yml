@@ -1,0 +1,70 @@
+---
+# Item 4.4 — Backup/temporary table status management
+# REPORT ONLY: detect tables with BACK/YYYYMMDD naming patterns
+# Tags: [oracle_security, oracle_service, item_4_4]
+
+- name: "4.4 - Query tables with BACK/BACKUP naming pattern"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    SET PAGESIZE 9999 LINESIZE 120 FEEDBACK OFF HEADING ON TRIMSPOOL ON
+    COL OWNER      FORMAT A20
+    COL TABLE_NAME FORMAT A50
+    SELECT owner, table_name
+    FROM   dba_tables
+    WHERE  table_name LIKE '%BACK%'
+    AND    owner NOT IN ('SYS','SYSTEM','DBSNMP','OUTLN','MDSYS','CTXSYS','ORDSYS')
+    ORDER  BY owner, table_name;
+    EXIT;
+    EOF
+  register: _item_4_4_back_tables
+  changed_when: false
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_service, item_4_4]
+
+- name: "4.4 - Query tables with date-format naming pattern (YYYYMMDD)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    SET PAGESIZE 9999 LINESIZE 120 FEEDBACK OFF HEADING ON TRIMSPOOL ON
+    COL OWNER      FORMAT A20
+    COL TABLE_NAME FORMAT A50
+    SELECT owner, table_name
+    FROM   dba_tables
+    WHERE  REGEXP_LIKE(table_name, '[0-9]{8}')
+    AND    owner NOT IN ('SYS','SYSTEM','DBSNMP','OUTLN','MDSYS','CTXSYS','ORDSYS')
+    ORDER  BY owner, table_name;
+    EXIT;
+    EOF
+  register: _item_4_4_date_tables
+  changed_when: false
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_service, item_4_4]
+
+- name: "4.4 - Display backup/temp table findings"
+  ansible.builtin.debug:
+    msg: >-
+      [4.4] Tables with BACK pattern:
+      {{ _item_4_4_back_tables.stdout_lines | default(['none'], true) }}
+
+      Tables with YYYYMMDD pattern:
+      {{ _item_4_4_date_tables.stdout_lines | default(['none'], true) }}
+  tags: [oracle_security, oracle_service, item_4_4]
+
+- name: "4.4 - Register finding for summary report"
+  ansible.builtin.set_fact:
+    _report_4_4:
+      item: "4.4"
+      title: "Backup/temporary tables"
+      back_tables: "{{ _item_4_4_back_tables.stdout_lines }}"
+      date_tables: "{{ _item_4_4_date_tables.stdout_lines }}"
+      note: "Manual review — remove or document purpose of each found table"
+  tags: [oracle_security, oracle_service, item_4_4]

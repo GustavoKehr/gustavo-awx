@@ -1,0 +1,45 @@
+---
+# Item 6.1.1 — DB patch status (opatch lsinventory)
+# REPORT ONLY: run opatch and display installed patches
+# Tags: [oracle_security, oracle_patches, item_6_1_1]
+
+- name: "6.1.1 - Check opatch binary exists"
+  ansible.builtin.stat:
+    path: "{{ oracle_home }}/OPatch/opatch"
+  register: _item_6_1_1_opatch_stat
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_patches, item_6_1_1]
+
+- name: "6.1.1 - Run opatch lsinventory"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    $ORACLE_HOME/OPatch/opatch lsinventory -oh $ORACLE_HOME 2>&1
+  register: _item_6_1_1_opatch_output
+  changed_when: false
+  failed_when: false
+  become: true
+  become_user: oracle
+  when: _item_6_1_1_opatch_stat.stat.exists
+  tags: [oracle_security, oracle_patches, item_6_1_1]
+
+- name: "6.1.1 - Display opatch inventory"
+  ansible.builtin.debug:
+    msg: "{{ _item_6_1_1_opatch_output.stdout_lines | default(['opatch not available']) }}"
+  tags: [oracle_security, oracle_patches, item_6_1_1]
+
+- name: "6.1.1 - Warn if opatch not found"
+  ansible.builtin.debug:
+    msg: "WARNING [6.1.1]: opatch not found at {{ oracle_home }}/OPatch/opatch"
+  when: not _item_6_1_1_opatch_stat.stat.exists
+  tags: [oracle_security, oracle_patches, item_6_1_1]
+
+- name: "6.1.1 - Register finding for summary report"
+  ansible.builtin.set_fact:
+    _report_6_1_1:
+      item: "6.1.1"
+      title: "Oracle patch inventory (opatch)"
+      opatch_available: "{{ _item_6_1_1_opatch_stat.stat.exists }}"
+      data: "{{ _item_6_1_1_opatch_output.stdout_lines | default([]) }}"
+  tags: [oracle_security, oracle_patches, item_6_1_1]

@@ -1,0 +1,63 @@
+---
+# Item 5.1 — Account access history / listener log
+# REPORT ONLY: verify listener log is enabled and locate log files
+# Tags: [oracle_security, oracle_audit, item_5_1]
+
+- name: "5.1 - Query listener log setting via lsnrctl"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    $ORACLE_HOME/bin/lsnrctl status 2>/dev/null || echo "LSNRCTL_UNAVAILABLE"
+  register: _item_5_1_lsnrctl_status
+  changed_when: false
+  failed_when: false
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_audit, item_5_1]
+
+- name: "5.1 - Check listener log parameter from database"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    SET PAGESIZE 0 FEEDBACK OFF HEADING OFF TRIMSPOOL ON
+    SELECT value FROM v$parameter WHERE name = 'enable_goldengate_replication';
+    EXIT;
+    EOF
+  register: _item_5_1_db_params
+  changed_when: false
+  failed_when: false
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_audit, item_5_1]
+
+- name: "5.1 - Find listener alert log files"
+  ansible.builtin.find:
+    paths: "{{ oracle_base }}/diag/tnslsnr"
+    patterns: "log.xml"
+    recurse: true
+    age: "-365d"
+  register: _item_5_1_log_files
+  become: true
+  become_user: oracle
+  failed_when: false
+  tags: [oracle_security, oracle_audit, item_5_1]
+
+- name: "5.1 - Display listener log status"
+  ansible.builtin.debug:
+    msg: >-
+      [5.1] Listener log enabled: {{ 'log' in (_item_5_1_lsnrctl_status.stdout | lower) }}
+      Listener log files found: {{ _item_5_1_log_files.files | map(attribute='path') | list }}
+      NOTE: Listener log must be retained >= 1 year. Check log rotation settings.
+  tags: [oracle_security, oracle_audit, item_5_1]
+
+- name: "5.1 - Register finding for summary report"
+  ansible.builtin.set_fact:
+    _report_5_1:
+      item: "5.1"
+      title: "Listener log / access history"
+      log_files: "{{ _item_5_1_log_files.files | map(attribute='path') | list }}"
+      note: "Verify log retention >= 1 year. Use db_log_rotation role for automated rotation."
+  tags: [oracle_security, oracle_audit, item_5_1]

@@ -1,0 +1,47 @@
+---
+# Item 3.2B — Dangerous system privileges check
+# REPORT ONLY: list non-DBA accounts holding powerful system privileges
+# Tags: [oracle_security, oracle_access, item_3_2b]
+
+- name: "3.2B - Query accounts with dangerous system privileges"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    SET PAGESIZE 9999 LINESIZE 200 FEEDBACK OFF HEADING ON TRIMSPOOL ON
+    COL GRANTEE FORMAT A30
+    COL PRIVILEGE FORMAT A40
+    COL ADMIN_OPTION FORMAT A12
+    SELECT DISTINCT grantee, privilege, admin_option
+    FROM   dba_sys_privs
+    WHERE  privilege IN ({{ oracle_security_dangerous_privs | map('upper') | map('regex_replace', '^(.*)$', "'\g<1>'") | join(',') }})
+    AND    grantee IN (SELECT username FROM dba_users)
+    AND    grantee NOT IN (
+             SELECT grantee FROM dba_role_privs WHERE granted_role = 'DBA'
+           )
+    ORDER  BY grantee, privilege;
+    EXIT;
+    EOF
+  register: _item_3_2b_priv_grantees
+  changed_when: false
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_access, item_3_2b]
+
+- name: "3.2B - Display dangerous system privilege grantees"
+  ansible.builtin.debug:
+    msg: >-
+      [3.2B] Non-DBA accounts with dangerous system privileges:
+      {{ _item_3_2b_priv_grantees.stdout_lines }}
+  tags: [oracle_security, oracle_access, item_3_2b]
+
+- name: "3.2B - Register finding for summary report"
+  ansible.builtin.set_fact:
+    _report_3_2b:
+      item: "3.2B"
+      title: "Dangerous system privilege grantees"
+      data: "{{ _item_3_2b_priv_grantees.stdout_lines }}"
+      note: "Manual review — revoke unnecessary privileges with REVOKE <PRIV> FROM <USER>"
+  tags: [oracle_security, oracle_access, item_3_2b]

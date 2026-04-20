@@ -1,0 +1,123 @@
+---
+# Item 3.1 — IP/Port access control via sqlnet.ora
+# CHECK: report TCP.INVITED_NODES configuration
+# FIX (when check_only=false and oracle_security_allowed_ips non-empty):
+#   set TCP.VALIDNODE_CHECKING=YES and TCP.INVITED_NODES — append-only strategy
+# Tags: [oracle_security, oracle_access, item_3_1]
+
+- name: "3.1 - Check if sqlnet.ora exists"
+  ansible.builtin.stat:
+    path: "{{ oracle_sqlnet_ora }}"
+  register: _item_3_1_sqlnet_stat
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_access, item_3_1]
+
+- name: "3.1 - Slurp sqlnet.ora content"
+  ansible.builtin.slurp:
+    src: "{{ oracle_sqlnet_ora }}"
+  register: _item_3_1_sqlnet_raw
+  become: true
+  become_user: oracle
+  when: _item_3_1_sqlnet_stat.stat.exists
+  tags: [oracle_security, oracle_access, item_3_1]
+
+- name: "3.1 - Parse existing TCP.INVITED_NODES"
+  ansible.builtin.set_fact:
+    _item_3_1_existing_nodes_raw: >-
+      {{
+        (_item_3_1_sqlnet_raw.content | default('') | b64decode)
+        | regex_search('TCP\.INVITED_NODES\s*=\s*\(([^)]+)\)', '\1')
+        | default([''])
+        | first
+      }}
+    _item_3_1_validnode_set: >-
+      {{
+        (_item_3_1_sqlnet_raw.content | default('') | b64decode)
+        | regex_search('TCP\.VALIDNODE_CHECKING\s*=\s*YES', ignorecase=True)
+        is not none
+      }}
+  when: _item_3_1_sqlnet_stat.stat.exists
+  tags: [oracle_security, oracle_access, item_3_1]
+
+- name: "3.1 - Display current sqlnet.ora access control status"
+  ansible.builtin.debug:
+    msg: >-
+      [3.1] sqlnet.ora: {{ oracle_sqlnet_ora }}
+      TCP.VALIDNODE_CHECKING configured: {{ _item_3_1_validnode_set | default(false) }}
+      TCP.INVITED_NODES: {{ _item_3_1_existing_nodes_raw | default('(not set)') }}
+  tags: [oracle_security, oracle_access, item_3_1]
+
+- name: "3.1 - Warn: sqlnet.ora does not exist"
+  ansible.builtin.debug:
+    msg: "WARNING [3.1]: {{ oracle_sqlnet_ora }} not found — no IP access control configured"
+  when: not _item_3_1_sqlnet_stat.stat.exists
+  tags: [oracle_security, oracle_access, item_3_1]
+
+- name: "3.1 - Build merged TCP.INVITED_NODES list (append-only)"
+  ansible.builtin.set_fact:
+    _item_3_1_merged_nodes: >-
+      {{
+        (
+          (_item_3_1_existing_nodes_raw | default('') | split(',')
+           | map('trim') | reject('equalto', '') | list)
+          + oracle_security_allowed_ips
+        ) | unique | sort | join(', ')
+      }}
+  when:
+    - not oracle_security_check_only | bool
+    - oracle_security_allowed_ips | length > 0
+    - _item_3_1_sqlnet_stat.stat.exists
+  tags: [oracle_security, oracle_access, item_3_1]
+
+- name: "3.1 - Set TCP.VALIDNODE_CHECKING in sqlnet.ora"
+  ansible.builtin.lineinfile:
+    path: "{{ oracle_sqlnet_ora }}"
+    regexp: '^TCP\.VALIDNODE_CHECKING\s*='
+    line: "TCP.VALIDNODE_CHECKING = YES"
+    state: present
+    create: false
+  become: true
+  become_user: oracle
+  when:
+    - not oracle_security_check_only | bool
+    - oracle_security_allowed_ips | length > 0
+    - _item_3_1_sqlnet_stat.stat.exists
+  tags: [oracle_security, oracle_access, item_3_1]
+
+- name: "3.1 - Set TCP.INVITED_NODES in sqlnet.ora"
+  ansible.builtin.lineinfile:
+    path: "{{ oracle_sqlnet_ora }}"
+    regexp: '^TCP\.INVITED_NODES\s*='
+    line: "TCP.INVITED_NODES = ({{ _item_3_1_merged_nodes }})"
+    state: present
+    create: false
+  become: true
+  become_user: oracle
+  when:
+    - not oracle_security_check_only | bool
+    - oracle_security_allowed_ips | length > 0
+    - _item_3_1_sqlnet_stat.stat.exists
+    - _item_3_1_merged_nodes is defined
+  tags: [oracle_security, oracle_access, item_3_1]
+
+- name: "3.1 - Warn: oracle_security_allowed_ips empty — no IP restriction configured"
+  ansible.builtin.debug:
+    msg: >-
+      WARNING [3.1]: oracle_security_allowed_ips is empty.
+      Set this variable to configure TCP.INVITED_NODES IP restriction.
+  when:
+    - not oracle_security_check_only | bool
+    - oracle_security_allowed_ips | length == 0
+  tags: [oracle_security, oracle_access, item_3_1]
+
+- name: "3.1 - Register finding for summary report"
+  ansible.builtin.set_fact:
+    _report_3_1:
+      item: "3.1"
+      title: "IP access control (sqlnet.ora)"
+      sqlnet_exists: "{{ _item_3_1_sqlnet_stat.stat.exists }}"
+      validnode_checking: "{{ _item_3_1_validnode_set | default(false) }}"
+      invited_nodes: "{{ _item_3_1_existing_nodes_raw | default('(not set)') }}"
+      check_only: "{{ oracle_security_check_only | bool }}"
+  tags: [oracle_security, oracle_access, item_3_1]

@@ -1,0 +1,82 @@
+---
+# Item 4.1 — Unnecessary UTL package access
+# REPORT: list UTL_SMTP/TCP/HTTP/FILE grants to PUBLIC
+# FIX (when oracle_security_revoke_utl_public=true and check_only=false): REVOKE EXECUTE FROM PUBLIC
+# Tags: [oracle_security, oracle_service, item_4_1]
+
+- name: "4.1 - Query UTL_* package grants to PUBLIC"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    SET PAGESIZE 9999 LINESIZE 120 FEEDBACK OFF HEADING ON TRIMSPOOL ON
+    COL TABLE_NAME FORMAT A20
+    COL PRIVILEGE  FORMAT A20
+    COL GRANTEE    FORMAT A20
+    COL OWNER      FORMAT A10
+    SELECT owner, table_name, privilege, grantee
+    FROM   dba_tab_privs
+    WHERE  table_name IN ('UTL_SMTP','UTL_TCP','UTL_HTTP','UTL_FILE')
+    ORDER  BY table_name, grantee;
+    EXIT;
+    EOF
+  register: _item_4_1_utl_grants
+  changed_when: false
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_service, item_4_1]
+
+- name: "4.1 - Display UTL_* grants"
+  ansible.builtin.debug:
+    msg: >-
+      [4.1] UTL package grants (PUBLIC grants are security risk):
+      {{ _item_4_1_utl_grants.stdout_lines }}
+  tags: [oracle_security, oracle_service, item_4_1]
+
+- name: "4.1 - Build list of UTL packages granted to PUBLIC"
+  ansible.builtin.set_fact:
+    _item_4_1_public_grants: >-
+      {{
+        _item_4_1_utl_grants.stdout_lines
+        | select
+        | select('search', 'PUBLIC')
+        | map('regex_findall', 'UTL_[A-Z]+')
+        | flatten
+        | unique
+        | list
+      }}
+  tags: [oracle_security, oracle_service, item_4_1]
+
+- name: "4.1 - REVOKE EXECUTE on UTL_* from PUBLIC"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    REVOKE EXECUTE ON {{ item }} FROM PUBLIC;
+    EXIT;
+    EOF
+  loop: "{{ _item_4_1_public_grants }}"
+  register: _item_4_1_revoke_result
+  changed_when: _item_4_1_revoke_result.rc == 0
+  become: true
+  become_user: oracle
+  when:
+    - oracle_security_revoke_utl_public | bool
+    - not oracle_security_check_only | bool
+    - _item_4_1_public_grants | length > 0
+  tags: [oracle_security, oracle_service, item_4_1]
+
+- name: "4.1 - Register finding for summary report"
+  ansible.builtin.set_fact:
+    _report_4_1:
+      item: "4.1"
+      title: "UTL_* package grants"
+      data: "{{ _item_4_1_utl_grants.stdout_lines }}"
+      public_grants: "{{ _item_4_1_public_grants | default([]) }}"
+      revoke_enabled: "{{ oracle_security_revoke_utl_public | bool }}"
+      check_only: "{{ oracle_security_check_only | bool }}"
+  tags: [oracle_security, oracle_service, item_4_1]

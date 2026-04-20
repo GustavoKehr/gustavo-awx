@@ -1,0 +1,26 @@
+---
+- name: "Oracle Security Check"
+  hosts: "{{ servidores | default('all') }}"
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: "Verify sqlplus accessible at oracle_home"
+      ansible.builtin.stat:
+        path: "{{ oracle_home }}/bin/sqlplus"
+      register: _sqlplus_stat
+      tags: always
+
+    - name: "Abort if sqlplus not found"
+      ansible.builtin.fail:
+        msg: >-
+          sqlplus not found at {{ oracle_home }}/bin/sqlplus.
+          Set oracle_home correctly (default: /oracle/{{ oracle_sid }}/19.0.0).
+      when: not _sqlplus_stat.stat.exists
+      tags: always
+
+  tasks:
+    - name: "Oracle security hardening — all items"
+      ansible.builtin.include_role:
+        name: oracle_security_check
+      tags: [oracle_security]

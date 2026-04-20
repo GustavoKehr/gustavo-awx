@@ -1,0 +1,41 @@
+---
+# Item 1.1 — Account life-cycle management
+# REPORT ONLY: list all users with account_status for manual verification
+# Tags: [oracle_security, oracle_account, item_1_1]
+
+- name: "1.1 - Query all Oracle users and account status"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT FAILURE;
+    SET PAGESIZE 9999 LINESIZE 200 FEEDBACK OFF HEADING ON TRIMSPOOL ON
+    COL USERNAME FORMAT A30
+    COL ACCOUNT_STATUS FORMAT A20
+    COL LOCK_DATE FORMAT A20
+    COL EXPIRY_DATE FORMAT A20
+    COL PROFILE FORMAT A20
+    SELECT username, account_status, lock_date, expiry_date, profile
+    FROM   dba_users
+    ORDER  BY account_status, username;
+    EXIT;
+    EOF
+  register: _item_1_1_users
+  changed_when: false
+  become: true
+  become_user: oracle
+  tags: [oracle_security, oracle_account, item_1_1]
+
+- name: "1.1 - Display user account status list"
+  ansible.builtin.debug:
+    msg: "{{ _item_1_1_users.stdout_lines }}"
+  tags: [oracle_security, oracle_account, item_1_1]
+
+- name: "1.1 - Register finding for summary report"
+  ansible.builtin.set_fact:
+    _report_1_1:
+      item: "1.1"
+      title: "Account life-cycle — all users"
+      data: "{{ _item_1_1_users.stdout_lines }}"
+  tags: [oracle_security, oracle_account, item_1_1]
