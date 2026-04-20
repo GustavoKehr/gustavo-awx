@@ -1,150 +1,247 @@
-# SQL Server AWX Runbook
+# SQL Server — Runbook Operacional AWX
 
-This runbook documents how to execute `playbooks/deploy_sqlserver.yml` with modular tags.
+Guia prático para executar operações de gestão de usuários SQL Server via AWX Job Templates.
 
-## Standard job patterns
+> **Para iniciantes:** Este runbook contém os passos exatos para criar, modificar e remover logins e usuários no SQL Server usando o AWX.
 
-- Full SQL Server deployment: run with no tags.
-- User lifecycle only (day-2): run with tags `sql_users`.
-- Patch repository discovery only: run with tags `db_patches`.
+---
 
-## Tag map
+## Pré-requisitos
 
-- `storage`: storage preparation role.
-- `security`: security hardening role.
-- `sql_pre`: SQL Server pre-requisites.
-- `sql_install`: SQL Server engine installation.
-- `sql_post`: post-install database setup.
-- `sql_users`: SQL Server login/user lifecycle role.
-- `sql_users_validate`: variable validation for SQL user ops.
-- `sql_login`: server login create/update operations.
-- `sql_db_user`: database user mapping operations.
-- `sql_grants`: role memberships grant operations.
-- `sql_revoke`: role memberships revoke operations.
-- `sql_remove_user`: login removal operation.
-- `db_patches`: shared patch discovery/apply guard role.
-- `patch_discovery`: local patch file discovery under `/opt/patches`.
-- `patch_apply`: reserved execution stage (currently blocked by design).
+1. **SQL Server instalado** no host Windows alvo
+2. **AWX sincronizado** com o repositório GitHub
+3. **Credencial Machine** para Windows (WinRM) configurada
+4. **Job Template** configurado com survey correto
 
-## AWX survey variables for SQL user management
+---
 
-- `sql_login_name`: login name to manage (required).
-- `sql_login_password`: login password (required for SQL authentication and state=present).
-- `sql_login_type`: `sql` or `windows`.
-- `sql_login_state`: `present` or `absent`.
-- `sql_login_default_db`: default DB for the login (default `master`).
-- `sql_target_database`: target DB for user mapping and role membership.
-- `sql_database_user`: database user name (defaults to login name when empty).
-- `sql_database_roles`: list or comma-separated roles (for example `db_datareader,db_datawriter`).
-- `sql_revoke_access`: when `true`, removes role membership instead of adding.
-- `sql_manage_database_user`: when `true`, ensures DB user exists/mapped.
+## Job Template AWX — Configuração
 
-## Purpose of each SQL survey question
+| Campo AWX | Valor |
+|---|---|
+| **Name** | `SQLSERVER \| Manage Users` |
+| **Playbook** | `playbooks/manage_sqlserver_users.yml` |
+| **Inventory** | `LINUX` (ou inventory Windows separado) |
+| **Credentials** | `Machine: user_aap` |
+| **Extra Variables** | `sql_manage_users_enabled: true` |
+| **Survey** | Associar `awx_survey_sqlserver_manage_users.json` |
 
-- `sql_login_name`: identity at SQL Server instance level.
-- `sql_login_password`: secret for SQL-authenticated logins.
-- `sql_login_type`: determines login creation method (`CREATE LOGIN ... WITH PASSWORD` or `FROM WINDOWS`).
-- `sql_login_state`: lifecycle mode (`present` ensures login exists, `absent` drops login).
-- `sql_login_default_db`: sets login default database.
-- `sql_target_database`: DB context for user mapping and role operations.
-- `sql_database_user`: DB principal name bound to the login.
-- `sql_database_roles`: role memberships to add or remove.
-- `sql_revoke_access`: switch between grant flow and revoke flow.
-- `sql_manage_database_user`: controls whether DB user mapping is enforced.
+---
 
-## AWX survey configuration (copy/paste checklist)
+## Tag Map
 
-- `sql_login_name`
-  - Type: Text
-  - Required: Yes
-  - Default: empty
-  - Description: SQL Server login name to manage.
+| Tag | O que executa |
+|---|---|
+| `storage` | Preparação de disco (Phase 1 — instalação) |
+| `security` | Configuração IPsec (Phase 2 — instalação) |
+| `sql_pre` | Pré-requisitos (Phase 3 — instalação) |
+| `sql_install` | Instalação do motor SQL Server (Phase 4) |
+| `sql_post` | Banco inicial pós-instalação (Phase 5) |
+| `sql_users` | Ciclo completo de gestão de usuários |
+| `sql_users_validate` | Validação de variáveis |
+| `sql_login` | Criação/atualização do server login |
+| `sql_db_user` | Criação do database user |
+| `sql_grants` | Concessão de database roles |
+| `sql_revoke` | Revogação de database roles |
+| `sql_ipsec` | Adição de filtros IPsec |
+| `sql_remove_user` | Remoção do login |
+| `db_patches` | Descoberta de patches |
 
-- `sql_login_type`
-  - Type: Multiple Choice (single)
-  - Choices: `sql`, `windows`
-  - Required: Yes
-  - Default: `sql`
-  - Description: Login type (`sql` uses password; `windows` creates Windows login).
+---
 
-- `sql_login_password`
-  - Type: Password
-  - Required: No
-  - Default: empty
-  - Description: Required when `sql_login_type=sql` and `sql_login_state=present`.
+## Cenários de Uso
 
-- `sql_login_state`
-  - Type: Multiple Choice (single)
-  - Choices: `present`, `absent`
-  - Required: Yes
-  - Default: `present`
-  - Description: Login lifecycle mode.
+### Cenário 1: Criar login SQL para aplicação (leitura)
 
-- `sql_login_default_db`
-  - Type: Text
-  - Required: Yes
-  - Default: `master`
-  - Description: Default DB for SQL login.
+| Campo | Valor |
+|---|---|
+| Login name | `webapp_reader` |
+| Login type | `sql` |
+| Password | `Reader#2024!` |
+| Login state | `present` |
+| Default database | `appdb` |
+| Target database | `appdb` |
+| Database user | *(deixar vazio = mesmo nome)* |
+| Database roles | `db_datareader` |
+| Revoke access | `false` |
+| Manage DB user | `true` |
+| Allowed IPs | `192.168.1.50` |
 
-- `sql_target_database`
-  - Type: Text
-  - Required: No
-  - Default: empty
-  - Description: Target database for user mapping and role operations.
+**O que o playbook executa:**
+```sql
+-- Nível 1: Server Login
+CREATE LOGIN [webapp_reader] WITH PASSWORD = '***',
+  CHECK_POLICY = ON, DEFAULT_DATABASE = [appdb]
 
-- `sql_database_user`
-  - Type: Text
-  - Required: No
-  - Default: empty
-  - Description: DB user name; when empty, login name is reused.
+-- Nível 2: Database User
+USE [appdb]
+CREATE USER [webapp_reader] FOR LOGIN [webapp_reader]
+ALTER ROLE [db_datareader] ADD MEMBER [webapp_reader]
+```
 
-- `sql_database_roles`
-  - Type: Textarea
-  - Required: No
-  - Default: `db_datareader,db_datawriter`
-  - Description: Roles to grant/revoke in target DB.
+---
 
-- `sql_revoke_access`
-  - Type: Multiple Choice (single)
-  - Choices: `false`, `true`
-  - Required: Yes
-  - Default: `false`
-  - Description: When `true`, revokes role memberships instead of granting.
+### Cenário 2: Login SQL com leitura + escrita
 
-- `sql_manage_database_user`
-  - Type: Multiple Choice (single)
-  - Choices: `true`, `false`
-  - Required: Yes
-  - Default: `true`
-  - Description: Controls DB user mapping creation/update.
+| Campo | Valor |
+|---|---|
+| Login name | `webapp` |
+| Login type | `sql` |
+| Password | `App#Secure2024!` |
+| Login state | `present` |
+| Default database | `appdb` |
+| Target database | `appdb` |
+| Database user | *(vazio)* |
+| Database roles | `db_datareader,db_datawriter` |
+| Revoke access | `false` |
+| Manage DB user | `true` |
+| Allowed IPs | *(vazio)* |
 
-## Optional patch survey (discovery only for now)
+---
 
-- `db_patches_enabled`
-  - Type: Multiple Choice (single)
-  - Choices: `false`, `true`
-  - Required: Yes
-  - Default: `false`
-  - Description: Enables patch discovery phase.
+### Cenário 3: Login Windows (Active Directory)
 
-- `db_patches_root`
-  - Type: Text
-  - Required: Yes
-  - Default: `/opt/patches`
-  - Description: Root folder containing patch files on AWX VM.
+| Campo | Valor |
+|---|---|
+| Login name | `DOMAIN\webapp` |
+| **Login type** | `windows` |
+| Password | *(deixar vazio — não usa)* |
+| Login state | `present` |
+| Default database | `appdb` |
+| Target database | `appdb` |
+| Database user | *(vazio)* |
+| Database roles | `db_datareader` |
+| Revoke access | `false` |
+| Manage DB user | `true` |
+| Allowed IPs | *(vazio)* |
 
-- `db_patch_apply_enabled`
-  - Type: Multiple Choice (single)
-  - Choices: `false`, `true`
-  - Required: Yes
-  - Default: `false`
-  - Description: Keep false; apply flow is intentionally blocked for now.
+```sql
+-- Gerado pelo playbook:
+CREATE LOGIN [DOMAIN\webapp] FROM WINDOWS WITH DEFAULT_DATABASE = [appdb]
+```
 
-## Patch scaffold (`/opt/patches`)
+> **Nota:** Para Windows login, o campo password é ignorado. A autenticação é feita pelo Active Directory.
 
-- Shared role: `roles/db_patches`.
-- Scope: discovers files and reports counts only.
-- Safety: execution is intentionally blocked for now.
-- Enable discovery by:
-  - setting `db_patches_enabled=true`, or
-  - running with tag `db_patches`.
+---
+
+### Cenário 4: DBA com controle total
+
+| Campo | Valor |
+|---|---|
+| Login name | `dbadmin` |
+| Login type | `sql` |
+| Password | `DBA#Admin2024!` |
+| Login state | `present` |
+| Default database | `master` |
+| Target database | `appdb` |
+| Database user | *(vazio)* |
+| Database roles | `db_owner` |
+| Revoke access | `false` |
+| Manage DB user | `true` |
+| Allowed IPs | `192.168.137.1` |
+
+> `db_owner` já inclui todos os outros roles — não precisa combinar com datareader/datawriter.
+
+---
+
+### Cenário 5: Revogar roles sem remover login
+
+| Campo | Valor |
+|---|---|
+| Login name | `webapp` |
+| Login type | `sql` |
+| Password | *(vazio)* |
+| Login state | `present` |
+| Target database | `appdb` |
+| Database roles | `db_datawriter` |
+| **Revoke access** | `true` |
+| Manage DB user | `true` |
+| Allowed IPs | *(vazio)* |
+
+```sql
+-- Gerado:
+USE [appdb]
+ALTER ROLE [db_datawriter] DROP MEMBER [webapp]
+```
+
+---
+
+### Cenário 6: Remover login completamente
+
+| Campo | Valor |
+|---|---|
+| Login name | `webapp` |
+| Login type | `sql` |
+| Password | *(qualquer)* |
+| **Login state** | `absent` |
+| Target database | *(vazio)* |
+| Database roles | *(vazio)* |
+| Revoke access | `false` |
+| Manage DB user | `false` |
+| Allowed IPs | *(vazio)* |
+
+```sql
+-- Gerado:
+USE [appdb]
+DROP USER [webapp]    -- remove database user primeiro
+DROP LOGIN [webapp]   -- depois remove o server login
+```
+
+---
+
+## Checklist de Verificação Pós-Job
+
+```powershell
+# Via sqlcmd no servidor Windows:
+# Verificar login criado:
+sqlcmd -S localhost -Q "SELECT name, type_desc FROM sys.server_principals WHERE name = 'webapp'"
+
+# Verificar database user:
+sqlcmd -S localhost -d appdb -Q "SELECT name, type_desc FROM sys.database_principals WHERE name = 'webapp'"
+
+# Verificar roles do usuário:
+sqlcmd -S localhost -d appdb -Q "SELECT r.name role, m.name member FROM sys.database_role_members rm JOIN sys.database_principals r ON rm.role_principal_id = r.principal_id JOIN sys.database_principals m ON rm.member_principal_id = m.principal_id WHERE m.name = 'webapp'"
+```
+
+---
+
+## Troubleshooting
+
+### Login criado mas não consegue conectar
+
+**Verificar autenticação mista:**
+```sql
+SELECT SERVERPROPERTY('IsIntegratedSecurityOnly')
+-- Retornar 0 = Mixed Mode (correto para SQL logins)
+-- Retornar 1 = Windows Only (SQL login não funciona)
+```
+
+**Verificar se database user existe:**
+```sql
+USE appdb
+SELECT name FROM sys.database_principals WHERE name = 'webapp'
+```
+
+---
+
+### Erro: `Cannot find user in login table`
+
+**Causa:** Tentando criar database user antes do server login.
+
+**O playbook resolve isso automaticamente** — sempre cria o login antes do user.
+
+---
+
+### Filtro IPsec não funciona
+
+**Verificar regras IPsec:**
+```cmd
+netsh ipsec static show filterlist
+```
+
+---
+
+## Ver Também
+
+- [`sqlserver_guide.md`](sqlserver_guide.md) — Documentação técnica completa
+- [`awx_surveys.md`](awx_surveys.md) — Referência de todos os surveys AWX

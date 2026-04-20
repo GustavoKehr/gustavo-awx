@@ -1,121 +1,289 @@
-# Oracle 19c AWX Runbook
+# Oracle 19c — Runbook Operacional AWX
 
-Automates Oracle Database 19c installation on RHEL 9 via `playbooks/deploy_oracle.yml`.
+Guia prático para instalar Oracle 19c e gerenciar usuários via AWX Job Templates.
 
-## Prerequisites before running
+> **Para iniciantes:** A instalação do Oracle 19c é uma das mais complexas do mercado de banco de dados. Este runbook automatiza todo o processo — mas exige que os binários estejam preparados antecipadamente.
 
-1. The following files must exist on the AWX VM at `/opt/oracle/`:
-   - `LINUX.X64_193000_db_home.zip` — Oracle 19c installer
-   - `oracle-database-preinstall-19c-1.0.2.el9.x86_64.rpm` — preinstall RPM
-   - `p6880880/OPatch/` — replacement OPatch
-   - `p37641958/37641958/37642901/` — Release Update patch
-   - `p37641958/37641958/37643161/` — one-off patch
-   - `p38291812/38291812/` — post-install patch
-   - `p32249704/32249704/` — post-install patch
-   - `p3467298/3467298/` — post-install patch
+---
 
-2. AWX Execution Environment must have `/opt/oracle` mounted (already configured via operator patch).
+## Pré-requisitos Obrigatórios
 
-3. The target VM (`oraclevm`, 192.168.137.158) must be running.
+**Antes de qualquer job, verificar:**
 
-## Installation phases and tags
+### 1. Arquivos em `/opt/oracle` no AWX VM
 
-| Tag | Phase |
+```bash
+ls -la /opt/oracle/
+```
+
+| Item | Tipo | Descrição |
+|---|---|---|
+| `LINUX.X64_193000_db_home.zip` | Arquivo | Binários Oracle 19c (~3 GB) |
+| `oracle-database-preinstall-19c-1.0.2.el9.x86_64.rpm` | Arquivo | RPM de pré-requisitos RHEL |
+| `p6880880/` | Diretório | Substituição do OPatch |
+| `p37641958/` | Diretório | Release Update (RU) + one-off |
+| `p38291812/` | Diretório | Patch pós-instalação 1 |
+| `p32249704/` | Diretório | Patch pós-instalação 2 |
+| `p3467298/` | Diretório | Patch pós-instalação 3 |
+
+### 2. Target VM (oraclevm — 192.168.137.163)
+
+- VM ligada e acessível via SSH
+- Usuário `user_aap` com sudo NOPASSWD
+- Mínimo 8 GB RAM, 50 GB disco livre
+
+### 3. AWX Execution Environment
+
+O EE deve ter `/opt/oracle` montado (configurado via operador patch no AWX). Verificar nos logs do job que o path existe.
+
+---
+
+## Estrutura de Diretórios Criada (Fase 2)
+
+```
+/oracle/TSTOR/
+├── 19.0.0/              ← ORACLE_HOME (binários)
+├── oraInventory/        ← inventory Oracle
+├── admin/
+│   ├── adump/           ← audit dump
+│   ├── dpdump/          ← data pump
+│   ├── pfile/           ← parâmetros
+│   └── audit/           ← auditoria
+├── oradata1/            ← datafiles + control02
+├── origlogA/            ← redo log grupo 1 membro A + control03
+├── origlogB/            ← redo log grupo 2 membro A
+├── mirrlogA/            ← mirror redo grupo 1 + control01
+├── mirrlogB/            ← mirror redo grupo 2
+├── temp/                ← temporary tablespace
+├── undo/                ← undo tablespace
+├── oraarch/             ← archive logs
+└── scripts/db_creation/TSTOR/  ← scripts de criação + logs
+```
+
+---
+
+## Job Template AWX — Instalação Completa
+
+| Campo AWX | Valor |
 |---|---|
-| `oracle_validate` | Variable assertion (SID, passwords) |
-| `oracle_prereqs` | Install preinstall RPM, sysctl, init.d backup |
-| `oracle_dirs` | Create directory layout, deploy config templates |
-| `oracle_transfer` | Rsync software from AWX to target VM |
-| `oracle_install_sw` | Unzip, OPatch swap, runInstaller (silent) |
-| `oracle_patches` | Apply p38291812 → p32249704 → oradism → p3467298 → oradism restore |
-| `oracle_dbcreate` | Create database, run catalog, datapatch, compile invalid objects |
+| **Name** | `ORACLE \| Deploy` |
+| **Playbook** | `playbooks/deploy_oracle.yml` |
+| **Inventory** | `LINUX` |
+| **Credentials** | `Machine: user_aap` |
+| **Limit** | `oraclevm` |
+| **Survey** | `awx_survey_oracle_install.json` |
 
-## Standard job patterns
+---
 
-- **Full install (all phases):** run `deploy_oracle.yml` with no tags
-- **Re-run only DB creation:** tag `oracle_dbcreate`
-- **Re-transfer software only:** tag `oracle_transfer`
-- **Patches only:** tag `oracle_patches`
+## Tag Map — O que Cada Tag Faz
 
-## AWX job template setup
+| Tag | Fase | O que executa | Duração aprox. |
+|---|---|---|---|
+| `oracle_validate` | Pre | Validação de variáveis (SID, senhas) | < 1 min |
+| `oracle_prereqs` | 1 | RPM preinstall, sysctl, workaround RHEL 9, hugepages | 5-10 min |
+| `oracle_dirs` | 2 | Estrutura de diretórios, bash_profile, sysctl Oracle | 2-3 min |
+| `oracle_transfer` | 3 | Rsync ~8 GB do AWX para oraclevm | 15-30 min |
+| `oracle_install_sw` | 4 | Descompactar + runInstaller silencioso + root.sh | 20-40 min |
+| `oracle_patches` | 5 | opatch: RU → one-off → post1 → post2 → oradism → post3 | 30-60 min |
+| `oracle_dbcreate` | 6 | dbca silencioso + sqlplus check + oratab + datapatch | 20-40 min |
 
-- Playbook: `playbooks/deploy_oracle.yml`
-- Inventory: LINUX (limit to `oraclevm`)
-- Credential: `user_aap`
-- Survey file: `playbooks/awx_survey_oracle_install.json`
-- Execution Environment: AWX EE 24.6.1 (has `/opt/oracle` mounted)
+**Tempo total estimado:** 1h30 a 3h (dependendo da velocidade da rede e disco)
 
-## Key variables
+---
 
-All variables below are exposed as AWX survey questions. The defaults in `roles/oracle_install/defaults/main.yml` serve as fallbacks only.
+## Cenários de Execução
 
-### Identity and passwords
+### Cenário 1: Instalação completa do zero
 
-| Variable | Default | Description |
-|---|---|---|
-| `oracle_sid` | `TSTOR` | SID + base directory name |
-| `oracle_sys_password` | — | SYS DBA password (required) |
-| `oracle_system_password` | — | SYSTEM password (required) |
+**Survey a preencher:**
 
-### Memory and tuning
+| Campo | Valor |
+|---|---|
+| Oracle SID | `TSTOR` |
+| SYS password | `Sys#Secure2024!` |
+| SYSTEM password | `Sys#Secure2024!` |
+| SGA target | `2G` |
+| PGA target | `512m` |
+| HugePages count | `0` (cálculo automático) |
+| Create initial DB | `true` |
 
-| Variable | Default | Description |
-|---|---|---|
-| `oracle_sga_target` | `2G` | SGA size (e.g. `2G`, `4G`, `1024M`) |
-| `oracle_pga_target` | `512m` | PGA aggregate target |
-| `oracle_hugepages` | `0` | Hugepages count. **0 = auto-calculate from SGA.** Set a fixed value only to override for a specific VM |
-| `oracle_hugepage_size_mb` | `2` | Hugepage size in MB (default on x86_64) |
-| `oracle_hugepages_overhead_pct` | `10` | % overhead added over the SGA requirement |
-| `oracle_processes` | `1000` | Max OS processes |
-| `oracle_open_cursors` | `3000` | Max open cursors per session |
+Não especificar tags — roda todas as 6 fases.
 
-> **HugePages auto-calculation:** when `oracle_hugepages = 0`, the role computes `ceil(SGA_MB / hugepage_size_MB) × (1 + overhead%)` and then validates that the result does not exceed 80% of the target VM's RAM. If it does, the play fails with a clear message before touching the system.
+---
 
-### Character set and locale
+### Cenário 2: Re-executar só a criação do banco
 
-| Variable | Default | Description |
-|---|---|---|
-| `oracle_character_set` | `WE8MSWIN1252` | DB character set |
-| `oracle_nchar_set` | `AL16UTF16` | National character set |
-| `oracle_nls_language` | `AMERICAN` | NLS language |
-| `oracle_nls_territory` | `AMERICA` | NLS territory |
+**Quando usar:** Software já instalado, banco não criado (dbca falhou).
 
-### Listener
-
-| Variable | Default | Description |
-|---|---|---|
-| `oracle_listener_port` | `1521` | TCP port for Oracle listener |
-
-### Patch paths — update every quarter
-
-| Variable | Default | Description |
-|---|---|---|
-| `oracle_opatch_dir` | `p6880880` | Folder with replacement OPatch |
-| `oracle_ru_patch_dir` | `p37641958` | Top-level RU patch folder |
-| `oracle_ru_subpath` | `37641958/37642901` | RU patch subfolder path |
-| `oracle_oneoff_subpath` | `37641958/37643161` | One-off patch subfolder path |
-| `oracle_post_patch1_dir` / `_sub` | `p38291812` / `38291812` | Post-install opatch #1 |
-| `oracle_post_patch2_dir` / `_sub` | `p32249704` / `32249704` | Post-install opatch #2 |
-| `oracle_post_patch3_dir` / `_sub` | `p3467298` / `3467298` | Post-install opatch #3 (needs oradism owner swap) |
-
-## Directory layout on target VM
-
-```
-/oracle/{SID}/
-├── 19.0.0/          ← ORACLE_HOME
-├── oraInventory/
-├── admin/{adump,dpdump,pfile,audit}
-├── oradata1/        ← datafiles + control02
-├── origlogA/           ← redo group 1 member A + control03
-├── origlogB/           ← redo group 2 member A
-├── mirrlogA/        ← redo group 1 member B (mirror) + control01
-├── mirrlogB/        ← redo group 2 member B (mirror)
-├── temp/            ← temporary tablespace
-├── undo/            ← undo tablespace
-├── oraarch/         ← archive log destination
-└── scripts/db_creation/{SID}/   ← creation scripts + logs
+```bash
+ansible-playbook playbooks/deploy_oracle.yml --tags oracle_dbcreate -l oraclevm
 ```
 
-## Offline replication notes (work environment)
+---
 
-> In the air-gapped work environment, all files under `/opt/oracle` must be staged locally before execution. No internet access required by the playbook itself — all software transfers are host-to-host via rsync (SSH).
+### Cenário 3: Atualizar patches (novo RU trimestral)
+
+1. Colocar novo patch em `/opt/oracle/p<NOVO>/`
+2. Atualizar `oracle_ru_patch_dir` e `oracle_ru_subpath` nos defaults ou via survey
+3. Executar só a fase de patches:
+
+```bash
+ansible-playbook playbooks/deploy_oracle.yml --tags oracle_patches -l oraclevm
+```
+
+> **Atenção:** Aplicar patches requer banco parado. O playbook para e reinicia automaticamente.
+
+---
+
+### Cenário 4: Re-transferir binários
+
+**Quando usar:** Arquivos em oraclevm foram corrompidos ou espaço foi liberado.
+
+```bash
+ansible-playbook playbooks/deploy_oracle.yml --tags oracle_transfer -l oraclevm
+```
+
+O rsync só retransfer o que mudou — se os arquivos estiverem intactos, a task termina rápido.
+
+---
+
+## Job Template AWX — Gestão de Usuários
+
+| Campo AWX | Valor |
+|---|---|
+| **Name** | `ORACLE \| Manage Users` |
+| **Playbook** | `playbooks/manage_oracle_users.yml` |
+| **Inventory** | `LINUX` |
+| **Credentials** | `Machine: user_aap` |
+| **Limit** | `oraclevm` |
+| **Extra Variables** | `oracle_manage_users_enabled: true` |
+| **Survey** | `awx_survey_oracle_manage_users.json` |
+
+---
+
+## Cenários de Gestão de Usuários
+
+### Criar usuário de aplicação
+
+| Campo | Valor |
+|---|---|
+| Oracle username | `WEBAPP` |
+| Oracle password | `App#Secure2024!` |
+| User state | `present` |
+| Privileges | `CONNECT,RESOURCE` |
+| Roles | *(vazio)* |
+| Revoke access | `false` |
+| Default tablespace | `USERS` |
+| Temp tablespace | `TEMP` |
+| Allowed IPs | `192.168.1.50` |
+
+---
+
+### Criar DBA
+
+| Campo | Valor |
+|---|---|
+| Oracle username | `DBADMIN` |
+| Oracle password | `DBA#Admin2024!` |
+| User state | `present` |
+| Privileges | `CONNECT` |
+| **Roles** | `DBA` |
+| Revoke access | `false` |
+| Default tablespace | `USERS` |
+| Temp tablespace | `TEMP` |
+| Allowed IPs | `192.168.137.1` |
+
+---
+
+### Remover usuário
+
+| Campo | Valor |
+|---|---|
+| Oracle username | `OLDUSER` |
+| Oracle password | *(qualquer)* |
+| **User state** | `absent` |
+| Allowed IPs | *(vazio)* |
+
+> `DROP USER OLDUSER CASCADE` — remove o usuário e todos os objetos que ele possui.
+
+---
+
+## Checklist de Verificação Pós-Instalação
+
+```bash
+# SSH no oraclevm
+ssh user_aap@192.168.137.163
+
+# Verificar banco OPEN:
+sudo -u oracle /oracle/TSTOR/19.0.0/bin/sqlplus / as sysdba <<EOF
+SELECT status FROM v\$instance;
+SELECT name, db_unique_name FROM v\$database;
+EOF
+
+# Verificar oratab registrado:
+grep TSTOR /etc/oratab
+
+# Verificar listener:
+sudo -u oracle /oracle/TSTOR/19.0.0/bin/lsnrctl status
+
+# Verificar patches aplicados:
+sudo -u oracle /oracle/TSTOR/19.0.0/OPatch/opatch lsinventory | grep "Patch description"
+```
+
+---
+
+## Troubleshooting
+
+### Phase 3 (transfer) é lenta ou trava
+
+**Causa:** Rede lenta ou arquivo sendo transferido pela primeira vez.
+
+**Verificar progresso:**
+```bash
+# No AWX, acompanhar logs do job em tempo real
+# Ou SSH no oraclevm e verificar tamanho dos arquivos:
+du -sh /home/oracle/software/
+```
+
+---
+
+### Phase 4 (install_sw) falha silenciosamente com rc=6
+
+**rc=6 é sucesso.** O runInstaller retorna 6 quando há warnings — isso é normal. Se falhar com outro rc, verificar:
+
+```bash
+# Logs do instalador em oraclevm:
+ls -la /oracle/TSTOR/oraInventory/logs/
+tail -100 /oracle/TSTOR/oraInventory/logs/installActions*.log
+```
+
+---
+
+### Phase 5 (patches) falha com "patch conflict"
+
+**Causa:** Patch já aplicado anteriormente.
+
+**Verificar:**
+```bash
+sudo -u oracle /oracle/TSTOR/19.0.0/OPatch/opatch lsinventory
+```
+
+---
+
+### Banco não fica OPEN após dbca
+
+```bash
+# Tentar subir manualmente:
+sudo -u oracle /oracle/TSTOR/19.0.0/bin/sqlplus / as sysdba <<EOF
+STARTUP;
+SELECT status FROM v\$instance;
+EOF
+```
+
+---
+
+## Ver Também
+
+- [`oracle_guide.md`](oracle_guide.md) — Documentação técnica completa
+- [`offline_requirements.md`](offline_requirements.md) — Como preparar binários Oracle offline
+- [`awx_surveys.md`](awx_surveys.md) — Referência de todos os surveys AWX
