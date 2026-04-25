@@ -23,7 +23,7 @@ ls -la /opt/oracle/
 | `p6880880/` | Diretório | Substituição do OPatch |
 | `p37641958/` | Diretório | Release Update (RU) + one-off |
 | `p38291812/` | Diretório | Patch pós-instalação 1 |
-| `p32249704/` | Diretório | Patch pós-instalação 2 |
+| `p38632161/` | Diretório | Patch pós-instalação 2 (Oracle 19.30) |
 | `p3467298/` | Diretório | Patch pós-instalação 3 |
 
 ### 2. Target VM (oraclevm — 192.168.137.163)
