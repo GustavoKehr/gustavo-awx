@@ -62,6 +62,7 @@ oracle_nls_territory: "AMERICA"
 
 # --- Listener ---
 oracle_listener_port: 1521
+oracle_listener_name: "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ oracle_listener_port }})))"
 
 # --- Passwords (always set via survey — never hardcode) ---
 oracle_sys_password: ""
