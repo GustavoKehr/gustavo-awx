@@ -73,6 +73,7 @@
   ansible.builtin.shell: >-
     test -d "{{ oracle_patches_src }}/{{ oracle_post_patch1_dir }}" && echo present || echo absent
   delegate_to: localhost
+  become: false
   register: _patch1_src
   changed_when: false
   when: oracle_post_patch1_enabled | bool
@@ -107,6 +108,7 @@
   ansible.builtin.shell: >-
     test -d "{{ oracle_patches_src }}/{{ item }}" && echo present || echo absent
   delegate_to: localhost
+  become: false
   register: _patch23_src
   changed_when: false
   loop:
