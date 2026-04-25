@@ -1,9 +1,17 @@
 ---
 # All tasks here run as root (become: yes inherited from playbook)
 
-- name: "PREREQS | Install Oracle preinstall RPM"
+- name: "PREREQS | Copy preinstall RPM from controller to target /tmp"
+  ansible.posix.synchronize:
+    src: "{{ oracle_software_src }}/{{ oracle_preinstall_rpm }}"
+    dest: "/tmp/{{ oracle_preinstall_rpm }}"
+    checksum: true
+  become: false
+  tags: oracle_prereqs
+
+- name: "PREREQS | Install Oracle preinstall RPM from /tmp"
   ansible.builtin.dnf:
-    name: "{{ oracle_software_src }}/{{ oracle_preinstall_rpm }}"
+    name: "/tmp/{{ oracle_preinstall_rpm }}"
     state: present
     disable_gpg_check: true
   tags: oracle_prereqs
