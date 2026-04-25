@@ -69,6 +69,15 @@
   when: oracle_post_patch1_enabled | bool
   tags: oracle_transfer
 
+- name: "TRANSFER | Check post_patch1 source on controller"
+  ansible.builtin.shell: >-
+    test -d "{{ oracle_patches_src }}/{{ oracle_post_patch1_dir }}" && echo present || echo absent
+  delegate_to: localhost
+  register: _patch1_src
+  changed_when: false
+  when: oracle_post_patch1_enabled | bool
+  tags: oracle_transfer
+
 - name: "TRANSFER | Copy post_patch1 directory ({{ oracle_post_patch1_dir }})"
   ansible.builtin.copy:
     src: "{{ oracle_patches_src }}/{{ oracle_post_patch1_dir }}/"
@@ -79,6 +88,7 @@
   when:
     - oracle_post_patch1_enabled | bool
     - _patch1_stat.stdout == "absent"
+    - _patch1_src.stdout == "present"
   tags: oracle_transfer
 
 - name: "TRANSFER | Check post-install patch directories (patch2, patch3)"
@@ -93,15 +103,28 @@
     - "{{ oracle_post_patch3_dir }}"
   tags: oracle_transfer
 
+- name: "TRANSFER | Check post-install patch sources on controller (patch2, patch3)"
+  ansible.builtin.shell: >-
+    test -d "{{ oracle_patches_src }}/{{ item }}" && echo present || echo absent
+  delegate_to: localhost
+  register: _patch23_src
+  changed_when: false
+  loop:
+    - "{{ oracle_post_patch2_dir }}"
+    - "{{ oracle_post_patch3_dir }}"
+  tags: oracle_transfer
+
 - name: "TRANSFER | Copy post-install patch directories (patch2, patch3)"
   ansible.builtin.copy:
-    src: "{{ oracle_patches_src }}/{{ item.item }}/"
-    dest: "{{ oracle_software_dst }}/{{ item.item }}/"
+    src: "{{ oracle_patches_src }}/{{ item.0.item }}/"
+    dest: "{{ oracle_software_dst }}/{{ item.0.item }}/"
     owner: oracle
     group: oinstall
     mode: preserve
-  loop: "{{ _patch23_stat.results }}"
+  loop: "{{ _patch23_stat.results | zip(_patch23_src.results) | list }}"
   loop_control:
-    label: "{{ item.item }}"
-  when: item.stdout == "absent"
+    label: "{{ item.0.item }}"
+  when:
+    - item.0.stdout == "absent"
+    - item.1.stdout == "present"
   tags: oracle_transfer
