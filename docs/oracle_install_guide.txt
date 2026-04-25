@@ -46,7 +46,7 @@ export PATH=$PATH:$ORACLE_HOME/OPatch
 cd /home/oracle/software/p38291812/38291812
 opatch apply
 ( it will ask for 2 confirmations, hit y for both)
-cd /home/oracle/software/p32249704/32249704
+cd /home/oracle/software/p38632161/38632161
 opatch apply
 ( it will ask for 2 confirmations, hit y for both)
 

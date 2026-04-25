@@ -99,7 +99,7 @@
     },
     {
       "question_name": "OPatch patch dir",
-      "question_description": "Folder name in /opt/oracle containing the replacement OPatch. Update when Oracle releases a newer OPatch version.",
+      "question_description": "Folder name in /opt/patches containing the replacement OPatch. Update when Oracle releases a newer OPatch version.",
       "required": true,
       "type": "text",
       "variable": "oracle_opatch_dir",
@@ -107,7 +107,7 @@
     },
     {
       "question_name": "RU patch dir",
-      "question_description": "Top-level folder name for the Release Update patch (e.g. p37641958). Update each quarter.",
+      "question_description": "Top-level folder name in /opt/patches for the Release Update patch (e.g. p37641958). Update each quarter.",
       "required": true,
       "type": "text",
       "variable": "oracle_ru_patch_dir",
@@ -151,7 +151,7 @@
       "required": true,
       "type": "text",
       "variable": "oracle_post_patch2_dir",
-      "default": "p32249704"
+      "default": "p38632161"
     },
     {
       "question_name": "Post-patch 2 subdir",
@@ -159,7 +159,7 @@
       "required": true,
       "type": "text",
       "variable": "oracle_post_patch2_sub",
-      "default": "32249704"
+      "default": "38632161"
     },
     {
       "question_name": "Post-patch 3 dir",
@@ -167,7 +167,7 @@
       "required": true,
       "type": "text",
       "variable": "oracle_post_patch3_dir",
-      "default": "p3467298"
+      "default": "p34672698"
     },
     {
       "question_name": "Post-patch 3 subdir",
@@ -175,7 +175,7 @@
       "required": true,
       "type": "text",
       "variable": "oracle_post_patch3_sub",
-      "default": "3467298"
+      "default": "34672698"
     }
   ]
 }

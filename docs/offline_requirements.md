@@ -141,8 +141,8 @@ A instalação Oracle requer ~8 GB de binários e patches. Eles ficam em `/opt/o
 │       └── 37643161/                      ← patch one-off
 ├── p38291812/                             ← post-install patch 1
 │   └── 38291812/
-├── p32249704/                             ← post-install patch 2
-│   └── 32249704/
+├── p38632161/                             ← post-install patch 2 (Oracle 19.30)
+│   └── 38632161/
 └── p3467298/                              ← post-install patch 3
     └── 3467298/
 ```
