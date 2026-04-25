@@ -2,12 +2,17 @@
 # Copies Oracle software from AWX VM to oracle_software_dst on the target via rsync over SSH.
 # Installer zip + preinstall RPM: oracle_software_src (/opt/oracle)
 # OPatch / RU / post-install patches: oracle_patches_src (/opt/patches)
+#
+# rsync_opts disables host key checking so rsync SSH subprocess works in AWX EE containers.
 
 - name: "TRANSFER | Sync Oracle installer zip"
   ansible.posix.synchronize:
     src: "{{ oracle_software_src }}/{{ oracle_installer_zip }}"
     dest: "{{ oracle_software_dst }}/{{ oracle_installer_zip }}"
     checksum: true
+    rsync_opts:
+      - "-e"
+      - "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
   become: false
   tags: oracle_transfer
 
@@ -17,6 +22,9 @@
     dest: "{{ oracle_software_dst }}/{{ oracle_opatch_dir }}/"
     checksum: true
     delete: false
+    rsync_opts:
+      - "-e"
+      - "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
   become: false
   tags: oracle_transfer
 
@@ -26,6 +34,9 @@
     dest: "{{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/"
     checksum: true
     delete: false
+    rsync_opts:
+      - "-e"
+      - "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
   become: false
   tags: oracle_transfer
 
@@ -35,6 +46,9 @@
     dest: "{{ oracle_software_dst }}/{{ oracle_post_patch1_dir }}/"
     checksum: true
     delete: false
+    rsync_opts:
+      - "-e"
+      - "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
   become: false
   when: oracle_post_patch1_enabled | bool
   tags: oracle_transfer
@@ -45,6 +59,9 @@
     dest: "{{ oracle_software_dst }}/{{ item }}/"
     checksum: true
     delete: false
+    rsync_opts:
+      - "-e"
+      - "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
   loop:
     - "{{ oracle_post_patch2_dir }}"
     - "{{ oracle_post_patch3_dir }}"
