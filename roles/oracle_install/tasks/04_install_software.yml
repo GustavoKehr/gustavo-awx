@@ -37,6 +37,7 @@
 
 - name: "INSTALL | Run silent Oracle software installation"
   ansible.builtin.shell: |
+    test -s "{{ oracle_home }}/bin/oracle" && exit 0
     export CV_ASSUME_DISTID=RHEL8
     export ORACLE_BASE={{ oracle_base }}
     export ORACLE_HOME={{ oracle_home }}
@@ -47,8 +48,6 @@
       -responseFile {{ oracle_software_dst }}/db_install.rsp \
       -ignorePrereq \
       -waitforcompletion
-  args:
-    creates: "{{ oracle_home }}/bin/oracle"
   become: true
   become_user: oracle
   register: oracle_installer_result
