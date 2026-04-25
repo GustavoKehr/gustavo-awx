@@ -9,7 +9,7 @@
   changed_when: false
   tags: [oracle_configuration_check, sec_conf, sec_1_4]
 
-- name: "1.4 - [PARSE] Determine required swappiness for kernel version"
+- name: "1.4 - [CHECK] Determine required swappiness for kernel version"
   ansible.builtin.set_fact:
     _sec_1_4_current: "{{ _sec_1_4_swappiness.stdout | trim | int }}"
     _sec_1_4_required: >-
@@ -18,20 +18,14 @@
       }}
   tags: [oracle_configuration_check, sec_conf, sec_1_4]
 
-- name: "1.4 - [PARSE] Evaluate compliance"
+- name: "1.4 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_1_4_compliant: "{{ _sec_1_4_current == _sec_1_4_required | int }}"
   tags: [oracle_configuration_check, sec_conf, sec_1_4]
 
-- name: "1.4 - [STATUS] Linux swappiness"
-  ansible.builtin.debug:
-    msg: >-
-      sec_1_4 Linux swappiness: {{ 'PASS' if _sec_1_4_compliant else 'FAIL' }}
-      | current={{ _sec_1_4_current }} required={{ _sec_1_4_required }} kernel={{ ansible_kernel }}
-  tags: [oracle_configuration_check, sec_conf, sec_1_4]
-
 - name: "1.4 - [FIX] Set vm.swappiness at runtime"
   ansible.builtin.command: "sysctl -w vm.swappiness={{ _sec_1_4_required }}"
+  register: _sec_1_4_fix_runtime
   when:
     - not _sec_1_4_compliant
     - oracle_configuration_check_remediate | bool
@@ -43,7 +37,14 @@
     regexp: '^vm\.swappiness\s*='
     line: "vm.swappiness = {{ _sec_1_4_required }}"
     create: true
+  register: _sec_1_4_fix_persist
   when:
     - not _sec_1_4_compliant
     - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_conf, sec_1_4]
+
+# REPORT: remove this task to disable reporting
+- name: "1.4 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '1.4', 'name': 'Linux swappiness', 'status': 'PASS' if _sec_1_4_compliant else 'FAIL', 'fixed': _sec_1_4_fix_runtime is defined and _sec_1_4_fix_runtime is changed}] }}"
   tags: [oracle_configuration_check, sec_conf, sec_1_4]

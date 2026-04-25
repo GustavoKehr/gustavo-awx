@@ -2,7 +2,7 @@
 # 2.1 - _rowsets_enabled
 # PASS: _rowsets_enabled=false
 # FAIL: _rowsets_enabled=true (default in 12c+)
-# Fix: online change, scope=both
+# Fix: scope=spfile; DB restart handled by restart_db.yml
 
 - name: "2.1 - [CHECK] Query _rowsets_enabled"
   ansible.builtin.shell: |
@@ -21,31 +21,31 @@
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_err, sec_2_1]
 
-- name: "2.1 - [PARSE] Evaluate compliance"
+- name: "2.1 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_2_1_value: "{{ _sec_2_1_result.stdout | trim | lower }}"
     _sec_2_1_compliant: "{{ _sec_2_1_result.stdout | trim | lower == 'false' }}"
   tags: [oracle_configuration_check, sec_err, sec_2_1]
 
-- name: "2.1 - [STATUS] _rowsets_enabled"
-  ansible.builtin.debug:
-    msg: >-
-      sec_2_1 _rowsets_enabled: {{ 'PASS' if _sec_2_1_compliant else 'FAIL' }}
-      | current={{ _sec_2_1_value }} required=false
-  tags: [oracle_configuration_check, sec_err, sec_2_1]
-
-- name: "2.1 - [FIX] Set _rowsets_enabled=false"
+- name: "2.1 - [FIX] Set _rowsets_enabled=false in spfile"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH=$ORACLE_HOME/bin:$PATH
     sqlplus -s / as sysdba <<'EOF'
-    ALTER SYSTEM SET "_rowsets_enabled"=FALSE SCOPE=BOTH;
+    ALTER SYSTEM SET "_rowsets_enabled"=FALSE SCOPE=SPFILE;
     EXIT;
     EOF
+  register: _sec_2_1_fix
   become: true
   become_user: "{{ oracle_os_user }}"
   when:
     - not _sec_2_1_compliant
     - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_err, sec_2_1]
+
+# REPORT: remove this task to disable reporting
+- name: "2.1 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '2.1', 'name': '_rowsets_enabled', 'status': 'PASS' if _sec_2_1_compliant else 'FAIL', 'fixed': _sec_2_1_fix is defined and _sec_2_1_fix is changed}] }}"
   tags: [oracle_configuration_check, sec_err, sec_2_1]

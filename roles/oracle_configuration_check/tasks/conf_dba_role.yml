@@ -1,5 +1,5 @@
 ---
-# 1.2 - DB User (DBA Role) — REPORT ONLY
+# 1.2 - DB User (DBA Role) — CHECK ONLY
 # PASS: No non-SYSTEM users with DBA role (or all have SR exception approval)
 # FAIL: Non-SYSTEM DBA users exist without SR exception
 
@@ -22,7 +22,7 @@
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_conf, sec_1_2]
 
-- name: "1.2 - [PARSE] Build list of non-approved DBA users"
+- name: "1.2 - [CHECK] Build list of non-approved DBA users"
   ansible.builtin.set_fact:
     _sec_1_2_dba_users: >-
       {{
@@ -32,18 +32,20 @@
     _sec_1_2_approved: "{{ oracle_dba_role_approved_users | map('upper') | list }}"
   tags: [oracle_configuration_check, sec_conf, sec_1_2]
 
-- name: "1.2 - [PARSE] Evaluate compliance"
+- name: "1.2 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_1_2_unapproved: >-
       {{
         _sec_1_2_dba_users | difference(_sec_1_2_approved)
       }}
+    _sec_1_2_compliant: >-
+      {{
+        (_sec_1_2_dba_users | difference(_sec_1_2_approved)) | length == 0
+      }}
   tags: [oracle_configuration_check, sec_conf, sec_1_2]
 
-- name: "1.2 - [STATUS] DB User (DBA Role)"
-  ansible.builtin.debug:
-    msg: >-
-      sec_1_2 DB User DBA Role: {{ 'PASS' if _sec_1_2_unapproved | length == 0 else 'FAIL' }}
-      | Unapproved DBA users: {{ _sec_1_2_unapproved | join(', ') if _sec_1_2_unapproved | length > 0 else 'none' }}
-      | Action: Revoke DBA from unapproved users, then GRANT UNLIMITED TABLESPACE explicitly
+# REPORT: remove this task to disable reporting
+- name: "1.2 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '1.2', 'name': 'DB User DBA Role', 'status': 'PASS' if _sec_1_2_compliant else 'FAIL', 'fixed': false}] }}"
   tags: [oracle_configuration_check, sec_conf, sec_1_2]

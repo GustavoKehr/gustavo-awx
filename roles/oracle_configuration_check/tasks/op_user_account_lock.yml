@@ -2,7 +2,7 @@
 # 5.1 - User Account Lock
 # PASS: For application DB users, FAILED_LOGIN_ATTEMPTS=UNLIMITED on their profiles
 # FAIL: FAILED_LOGIN_ATTEMPTS != UNLIMITED on profiles listed in oracle_app_profiles
-# Fix: alter profile to set FAILED_LOGIN_ATTEMPTS=UNLIMITED
+# Fix: alter profile (online DDL, no restart needed)
 
 - name: "5.1 - [CHECK] Query FAILED_LOGIN_ATTEMPTS for all profiles"
   ansible.builtin.shell: |
@@ -23,7 +23,7 @@
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_op, sec_5_1]
 
-- name: "5.1 - [PARSE] Build list of non-compliant profiles"
+- name: "5.1 - [CHECK] Build list of non-compliant profiles"
   ansible.builtin.set_fact:
     _sec_5_1_all_profiles: >-
       {{
@@ -38,7 +38,7 @@
       }}
   tags: [oracle_configuration_check, sec_op, sec_5_1]
 
-- name: "5.1 - [PARSE] Find profiles with restricted login attempts"
+- name: "5.1 - [CHECK] Find profiles with restricted login attempts"
   ansible.builtin.set_fact:
     _sec_5_1_non_compliant: >-
       {{
@@ -60,13 +60,6 @@
       }}
   tags: [oracle_configuration_check, sec_op, sec_5_1]
 
-- name: "5.1 - [STATUS] User Account Lock"
-  ansible.builtin.debug:
-    msg: >-
-      sec_5_1 User Account Lock: {{ 'PASS' if _sec_5_1_compliant else 'FAIL' }}
-      | non_compliant_profiles={{ _sec_5_1_non_compliant | join(', ') if _sec_5_1_non_compliant else 'none' }}
-  tags: [oracle_configuration_check, sec_op, sec_5_1]
-
 - name: "5.1 - [FIX] Set FAILED_LOGIN_ATTEMPTS=UNLIMITED for non-compliant profiles"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
@@ -77,6 +70,7 @@
     ALTER PROFILE ${PROFILE} LIMIT FAILED_LOGIN_ATTEMPTS UNLIMITED;
     EXIT;
     EOF
+  register: _sec_5_1_fix
   loop: "{{ _sec_5_1_non_compliant }}"
   become: true
   become_user: "{{ oracle_os_user }}"
@@ -84,4 +78,10 @@
     - not _sec_5_1_compliant
     - oracle_configuration_check_remediate | bool
     - _sec_5_1_non_compliant | length > 0
+  tags: [oracle_configuration_check, sec_op, sec_5_1]
+
+# REPORT: remove this task to disable reporting
+- name: "5.1 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '5.1', 'name': 'User Account Lock', 'status': 'PASS' if _sec_5_1_compliant else 'FAIL', 'fixed': _sec_5_1_fix is defined and _sec_5_1_fix is changed}] }}"
   tags: [oracle_configuration_check, sec_op, sec_5_1]

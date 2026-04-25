@@ -50,8 +50,9 @@
 - import_tasks: avail_rac_config.yml
   tags: [oracle_configuration_check, sec_avail, sec_3_1]
 
-- import_tasks: avail_dual_archive_dest.yml
-  tags: [oracle_configuration_check, sec_avail, sec_3_2]
+# avail_dual_archive_dest.yml disabled — not applicable
+# - import_tasks: avail_dual_archive_dest.yml
+#   tags: [oracle_configuration_check, sec_avail, sec_3_2]
 
 - import_tasks: avail_server_redundancy.yml
   tags: [oracle_configuration_check, sec_avail, sec_3_3]
@@ -68,6 +69,9 @@
 
 - import_tasks: perf_filesystemio.yml
   tags: [oracle_configuration_check, sec_perf, sec_4_4]
+
+- import_tasks: perf_memory_sizing.yml
+  tags: [oracle_configuration_check, sec_perf, sec_4_5]
 
 # ── Operation ──────────────────────────────────────────────────────────────────
 - import_tasks: op_user_account_lock.yml
@@ -90,3 +94,14 @@
 
 - import_tasks: op_awr_config.yml
   tags: [oracle_configuration_check, sec_op, sec_5_7]
+
+# ── Report ─────────────────────────────────────────────────────────────────────
+# REPORT: remove this import (and all [REPORT] set_fact tasks in each file) to disable reporting
+- import_tasks: report.yml
+  tags: [oracle_configuration_check]
+
+# ── DB Restart ─────────────────────────────────────────────────────────────────
+# Single restart to activate all SPFILE parameter changes. Runs only when
+# oracle_security_allow_restart=true. Set false to skip.
+- import_tasks: restart_db.yml
+  tags: [oracle_configuration_check]

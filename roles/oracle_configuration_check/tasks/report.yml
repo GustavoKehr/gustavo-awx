@@ -1,0 +1,11 @@
+---
+# REPORT: remove this entire file and its import in main.yml to disable reporting.
+# To disable via variable instead: set oracle_generate_report=false
+
+- name: "[REPORT] Oracle Configuration Check — Summary"
+  ansible.builtin.debug:
+    msg: >-
+      {{ item.id }} {{ item.name }}: {{ item.status }}{{ ' → FIXED' if item.fixed else '' }}
+  loop: "{{ _sec_report | default([]) }}"
+  when: oracle_generate_report | default(true) | bool
+  tags: [oracle_configuration_check]

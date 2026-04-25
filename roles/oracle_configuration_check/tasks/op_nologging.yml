@@ -1,5 +1,5 @@
 ---
-# 5.4 - Nologging — REPORT ONLY
+# 5.4 - Nologging — CHECK ONLY
 # PASS: No nologging objects or unrecoverable datafiles
 # FAIL: Nologging LOB columns or recently unrecoverable datafiles found
 # Fix: change to logging mode AND back up affected datafiles (manual decision)
@@ -42,7 +42,7 @@
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_op, sec_5_4]
 
-- name: "5.4 - [PARSE] Evaluate compliance"
+- name: "5.4 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_5_4_nologging_lobs: >-
       {{
@@ -54,7 +54,7 @@
       }}
   tags: [oracle_configuration_check, sec_op, sec_5_4]
 
-- name: "5.4 - [PARSE] Set compliance flag"
+- name: "5.4 - [CHECK] Set compliance flag"
   ansible.builtin.set_fact:
     _sec_5_4_compliant: >-
       {{
@@ -63,12 +63,8 @@
       }}
   tags: [oracle_configuration_check, sec_op, sec_5_4]
 
-- name: "5.4 - [STATUS] Nologging"
-  ansible.builtin.debug:
-    msg: >-
-      sec_5_4 Nologging: {{ 'PASS' if _sec_5_4_compliant else 'FAIL' }}
-      | nologging_lob_columns={{ _sec_5_4_nologging_lobs | length }}
-      | unrecoverable_datafiles={{ _sec_5_4_unrecoverable_files | length }}
-      | nologging_objects={{ _sec_5_4_nologging_lobs | join(', ') if _sec_5_4_nologging_lobs else 'none' }}
-      | Action (if FAIL): change to LOGGING mode and backup affected datafiles
+# REPORT: remove this task to disable reporting
+- name: "5.4 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '5.4', 'name': 'Nologging', 'status': 'PASS' if _sec_5_4_compliant else 'FAIL', 'fixed': false}] }}"
   tags: [oracle_configuration_check, sec_op, sec_5_4]

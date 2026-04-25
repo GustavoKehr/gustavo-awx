@@ -1,5 +1,5 @@
 ---
-# 2.5 - Listener.log — REPORT ONLY
+# 2.5 - Listener.log — CHECK ONLY
 # PASS: No error repeated more than oracle_listener_error_threshold times in last 30 days
 # FAIL: Any error message repeated > threshold in last 30 days
 
@@ -24,7 +24,7 @@
   when: _sec_2_5_log_stat.stat.exists
   tags: [oracle_configuration_check, sec_err, sec_2_5]
 
-- name: "2.5 - [PARSE] Evaluate compliance"
+- name: "2.5 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_2_5_compliant: >-
       {{
@@ -34,12 +34,8 @@
     _sec_2_5_repeated_errors: "{{ _sec_2_5_errors.stdout | default('') | trim }}"
   tags: [oracle_configuration_check, sec_err, sec_2_5]
 
-- name: "2.5 - [STATUS] Listener.log repeated errors"
-  ansible.builtin.debug:
-    msg: >-
-      sec_2_5 Listener.log: {{ 'PASS' if _sec_2_5_compliant else 'FAIL' }}
-      | log_exists={{ _sec_2_5_log_stat.stat.exists }}
-      | errors_above_threshold_{{ oracle_listener_error_threshold }}:
-      {{ _sec_2_5_repeated_errors if _sec_2_5_repeated_errors else 'none' }}
-      | Action (if FAIL): investigate root cause of repeated errors manually
+# REPORT: remove this task to disable reporting
+- name: "2.5 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '2.5', 'name': 'Listener.log Errors', 'status': 'PASS' if _sec_2_5_compliant else 'FAIL', 'fixed': false}] }}"
   tags: [oracle_configuration_check, sec_err, sec_2_5]

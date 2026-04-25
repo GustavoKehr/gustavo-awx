@@ -1,29 +1,28 @@
 ---
-# 1.6 - Page Table Size — REPORT ONLY
+# 1.6 - Page Table Size — CHECK ONLY
 # PASS: PageTables <= MemTotal * 0.02
 # FAIL: PageTables > MemTotal * 0.02
 # Fix: enable HugePages for SGA (manual — host-specific sizing required)
 
-- name: "1.6 - [CHECK] Read MemTotal and PageTables from /proc/meminfo"
-  ansible.builtin.shell: |
-    grep -E '^(MemTotal|PageTables):' /proc/meminfo | awk '{print $1, $2}'
-  register: _sec_1_6_result
+- name: "1.6 - [CHECK] Read MemTotal from /proc/meminfo"
+  ansible.builtin.shell: awk '/^MemTotal:/ {print $2}' /proc/meminfo
+  register: _sec_1_6_mem_total_raw
   changed_when: false
   tags: [oracle_configuration_check, sec_conf, sec_1_6]
 
-- name: "1.6 - [PARSE] Extract memory values"
-  ansible.builtin.set_fact:
-    _sec_1_6_mem_total_kb: >-
-      {{
-        (_sec_1_6_result.stdout | regex_search('MemTotal:\s+(\d+)', '\1') | default(['0']) | first) | int
-      }}
-    _sec_1_6_page_tables_kb: >-
-      {{
-        (_sec_1_6_result.stdout | regex_search('PageTables:\s+(\d+)', '\1') | default(['0']) | first) | int
-      }}
+- name: "1.6 - [CHECK] Read PageTables from /proc/meminfo"
+  ansible.builtin.shell: awk '/^PageTables:/ {print $2}' /proc/meminfo
+  register: _sec_1_6_page_tables_raw
+  changed_when: false
   tags: [oracle_configuration_check, sec_conf, sec_1_6]
 
-- name: "1.6 - [PARSE] Evaluate compliance"
+- name: "1.6 - [CHECK] Extract memory values"
+  ansible.builtin.set_fact:
+    _sec_1_6_mem_total_kb: "{{ _sec_1_6_mem_total_raw.stdout | trim | int }}"
+    _sec_1_6_page_tables_kb: "{{ _sec_1_6_page_tables_raw.stdout | trim | int }}"
+  tags: [oracle_configuration_check, sec_conf, sec_1_6]
+
+- name: "1.6 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_1_6_threshold_kb: "{{ (_sec_1_6_mem_total_kb | int * 0.02) | int }}"
     _sec_1_6_compliant: >-
@@ -32,12 +31,8 @@
       }}
   tags: [oracle_configuration_check, sec_conf, sec_1_6]
 
-- name: "1.6 - [STATUS] Page Table Size"
-  ansible.builtin.debug:
-    msg: >-
-      sec_1_6 Page Table Size: {{ 'PASS' if _sec_1_6_compliant else 'FAIL' }}
-      | MemTotal={{ _sec_1_6_mem_total_kb }}kB
-      | PageTables={{ _sec_1_6_page_tables_kb }}kB
-      | Threshold(2%)={{ _sec_1_6_threshold_kb }}kB
-      | Action (if FAIL): configure HugePages for SGA — see Oracle Doc ID 361323.1
+# REPORT: remove this task to disable reporting
+- name: "1.6 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '1.6', 'name': 'Page Table Size', 'status': 'PASS' if _sec_1_6_compliant else 'FAIL', 'fixed': false}] }}"
   tags: [oracle_configuration_check, sec_conf, sec_1_6]

@@ -2,7 +2,7 @@
 # 1.10 - _disable_system_state
 # PASS: _disable_system_state=10
 # FAIL: _disable_system_state=4294967294 (default — suppresses systemstate dump)
-# Fix: online change
+# Fix: scope=spfile; DB restart handled by restart_db.yml
 
 - name: "1.10 - [CHECK] Query _disable_system_state"
   ansible.builtin.shell: |
@@ -21,31 +21,31 @@
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_conf, sec_1_10]
 
-- name: "1.10 - [PARSE] Evaluate compliance"
+- name: "1.10 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_1_10_value: "{{ _sec_1_10_result.stdout | trim }}"
     _sec_1_10_compliant: "{{ _sec_1_10_result.stdout | trim == '10' }}"
   tags: [oracle_configuration_check, sec_conf, sec_1_10]
 
-- name: "1.10 - [STATUS] _disable_system_state"
-  ansible.builtin.debug:
-    msg: >-
-      sec_1_10 _disable_system_state: {{ 'PASS' if _sec_1_10_compliant else 'FAIL' }}
-      | current={{ _sec_1_10_value }} required=10
-  tags: [oracle_configuration_check, sec_conf, sec_1_10]
-
-- name: "1.10 - [FIX] Set _disable_system_state=10"
+- name: "1.10 - [FIX] Set _disable_system_state=10 in spfile"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH=$ORACLE_HOME/bin:$PATH
     sqlplus -s / as sysdba <<'EOF'
-    ALTER SYSTEM SET "_disable_system_state"=10 SCOPE=BOTH;
+    ALTER SYSTEM SET "_disable_system_state"=10 SCOPE=SPFILE;
     EXIT;
     EOF
+  register: _sec_1_10_fix
   become: true
   become_user: "{{ oracle_os_user }}"
   when:
     - not _sec_1_10_compliant
     - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_conf, sec_1_10]
+
+# REPORT: remove this task to disable reporting
+- name: "1.10 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '1.10', 'name': '_disable_system_state', 'status': 'PASS' if _sec_1_10_compliant else 'FAIL', 'fixed': _sec_1_10_fix is defined and _sec_1_10_fix is changed}] }}"
   tags: [oracle_configuration_check, sec_conf, sec_1_10]

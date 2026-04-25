@@ -2,7 +2,7 @@
 # 2.2 - _drop_stat_segment
 # PASS: _drop_stat_segment=1 OR patch #23125826 applied
 # FAIL: value != 1 AND patch not applied
-# Fix: scope=spfile + restart (offline)
+# Fix: scope=spfile; DB restart handled by restart_db.yml
 
 - name: "2.2 - [CHECK] Query _drop_stat_segment"
   ansible.builtin.shell: |
@@ -29,7 +29,7 @@
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_err, sec_2_2]
 
-- name: "2.2 - [PARSE] Evaluate compliance"
+- name: "2.2 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_2_2_param_value: "{{ _sec_2_2_param_result.stdout | trim }}"
     _sec_2_2_patch_applied: "{{ _sec_2_2_patch_result.stdout | trim | int > 0 }}"
@@ -38,13 +38,6 @@
         _sec_2_2_param_result.stdout | trim == '1' or
         _sec_2_2_patch_result.stdout | trim | int > 0
       }}
-  tags: [oracle_configuration_check, sec_err, sec_2_2]
-
-- name: "2.2 - [STATUS] _drop_stat_segment"
-  ansible.builtin.debug:
-    msg: >-
-      sec_2_2 _drop_stat_segment: {{ 'PASS' if _sec_2_2_compliant else 'FAIL' }}
-      | param={{ _sec_2_2_param_value }} patch_23125826={{ _sec_2_2_patch_applied }}
   tags: [oracle_configuration_check, sec_err, sec_2_2]
 
 - name: "2.2 - [FIX] Set _drop_stat_segment=1 in spfile"
@@ -56,6 +49,7 @@
     ALTER SYSTEM SET "_drop_stat_segment"=1 SCOPE=SPFILE;
     EXIT;
     EOF
+  register: _sec_2_2_fix
   become: true
   become_user: "{{ oracle_os_user }}"
   when:
@@ -63,31 +57,8 @@
     - oracle_configuration_check_remediate | bool
   tags: [oracle_configuration_check, sec_err, sec_2_2]
 
-- name: "2.2 - [WARN] DB restart required to activate _drop_stat_segment"
-  ansible.builtin.debug:
-    msg: >-
-      sec_2_2 WARNING: _drop_stat_segment=1 set in spfile.
-      DB restart required. Set oracle_configuration_check_allow_restart=true to auto-restart.
-  when:
-    - not _sec_2_2_compliant
-    - oracle_configuration_check_remediate | bool
-    - not oracle_configuration_check_allow_restart | bool
-  tags: [oracle_configuration_check, sec_err, sec_2_2]
-
-- name: "2.2 - [FIX] Restart DB to activate _drop_stat_segment"
-  ansible.builtin.shell: |
-    export ORACLE_HOME={{ oracle_home }}
-    export ORACLE_SID={{ oracle_sid }}
-    export PATH=$ORACLE_HOME/bin:$PATH
-    sqlplus -s / as sysdba <<'EOF'
-    SHUTDOWN IMMEDIATE;
-    STARTUP;
-    EXIT;
-    EOF
-  become: true
-  become_user: "{{ oracle_os_user }}"
-  when:
-    - not _sec_2_2_compliant
-    - oracle_configuration_check_remediate | bool
-    - oracle_configuration_check_allow_restart | bool
+# REPORT: remove this task to disable reporting
+- name: "2.2 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '2.2', 'name': '_drop_stat_segment', 'status': 'PASS' if _sec_2_2_compliant else 'FAIL', 'fixed': _sec_2_2_fix is defined and _sec_2_2_fix is changed}] }}"
   tags: [oracle_configuration_check, sec_err, sec_2_2]

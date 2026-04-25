@@ -2,7 +2,8 @@
 # 4.4 - filesystemio_options
 # PASS: filesystemio_options=setall
 # FAIL: not set to setall
-# Fix: online change (test before applying — may affect OS-cached I/O performance)
+# Note: test performance impact before applying in production (OS-cached I/O may degrade)
+# Fix: scope=spfile; DB restart handled by restart_db.yml
 
 - name: "4.4 - [CHECK] Query filesystemio_options"
   ansible.builtin.shell: |
@@ -20,32 +21,31 @@
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_perf, sec_4_4]
 
-- name: "4.4 - [PARSE] Evaluate compliance"
+- name: "4.4 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_4_4_value: "{{ _sec_4_4_result.stdout | trim | lower }}"
     _sec_4_4_compliant: "{{ _sec_4_4_result.stdout | trim | lower == 'setall' }}"
   tags: [oracle_configuration_check, sec_perf, sec_4_4]
 
-- name: "4.4 - [STATUS] filesystemio_options"
-  ansible.builtin.debug:
-    msg: >-
-      sec_4_4 filesystemio_options: {{ 'PASS' if _sec_4_4_compliant else 'FAIL' }}
-      | current={{ _sec_4_4_value }} required=setall
-      | Note: test performance impact before applying in production (OS-cached I/O may degrade)
-  tags: [oracle_configuration_check, sec_perf, sec_4_4]
-
-- name: "4.4 - [FIX] Set filesystemio_options=setall"
+- name: "4.4 - [FIX] Set filesystemio_options=setall in spfile"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH=$ORACLE_HOME/bin:$PATH
     sqlplus -s / as sysdba <<'EOF'
-    ALTER SYSTEM SET filesystemio_options=setall SCOPE=BOTH;
+    ALTER SYSTEM SET filesystemio_options=setall SCOPE=SPFILE;
     EXIT;
     EOF
+  register: _sec_4_4_fix
   become: true
   become_user: "{{ oracle_os_user }}"
   when:
     - not _sec_4_4_compliant
     - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_perf, sec_4_4]
+
+# REPORT: remove this task to disable reporting
+- name: "4.4 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '4.4', 'name': 'filesystemio_options', 'status': 'PASS' if _sec_4_4_compliant else 'FAIL', 'fixed': _sec_4_4_fix is defined and _sec_4_4_fix is changed}] }}"
   tags: [oracle_configuration_check, sec_perf, sec_4_4]

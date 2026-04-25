@@ -1,17 +1,18 @@
 ---
-oracle_sid: "ORCL"
+oracle_sid: "{{ oracle_sid }}"
 oracle_home: "/oracle/{{ oracle_sid }}/19.0.0"
 oracle_grid_home: ""
-oracle_base: "/oracle"
+oracle_base: "/oracle/{{ oracle_sid }}"
 oracle_os_user: "oracle"
 oracle_os_group: "oinstall"
 oracle_db_version: "19"
 
 oracle_security_remediate: true
 oracle_security_allow_restart: false
+oracle_generate_report: true  # set false to skip report output; remove report.yml import to remove completely
 
 # 1.1 AUD$ Table
-oracle_audit_tablespace: "AUDIT_TS"
+oracle_audit_tablespace: "TS_AUDIT_DAT01"
 
 # 1.2 DBA Role
 oracle_dba_role_approved_users: []
@@ -25,18 +26,26 @@ oracle_listener_log_path: "{{ oracle_base }}/diag/tnslsnr/{{ inventory_hostname 
 oracle_listener_error_threshold: 10
 
 # 3.2 Dual Archive Dest
-oracle_archive_dest_2: ""
+#oracle_archive_dest_2: ""
 
 # 4.2 PGA Limit
-oracle_pga_max_size_gb: 1
+oracle_pga_max_size_gb: "{{ pga_max_size_gb }}"
 
 # 5.1 User Account Lock
 oracle_app_profiles: []
 
 # 5.3 OS Watcher
-oracle_osw_path: "{{ oracle_base }}/OSW/OSWbb"
+oracle_osw_path: "/home/oracle/oswbb"
 oracle_osw_interval: 30
 oracle_osw_archive_hours: 720
+
+# 4.5 SGA/PGA Memory Sizing (percentages of total system RAM)
+oracle_sga_pct_min: 20     # PASS floor: sga_target must be >= this % of RAM
+oracle_sga_pct_max: 50     # PASS ceiling: sga_target must be <= this % of RAM
+oracle_sga_pct_target: 40  # value set by FIX when out of range
+oracle_pga_pct_min: 10     # PASS floor: pga_aggregate_target must be >= this % of RAM
+oracle_pga_pct_max: 40     # PASS ceiling: pga_aggregate_target must be <= this % of RAM
+oracle_pga_pct_target: 20  # value set by FIX when out of range
 
 # 5.7 AWR
 oracle_awr_retention_days: 35

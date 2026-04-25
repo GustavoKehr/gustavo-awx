@@ -1,5 +1,5 @@
 ---
-# 5.6 - Control File Backup — REPORT ONLY
+# 5.6 - Control File Backup — CHECK ONLY
 # PASS: Control file backup executed within last 8 days
 # FAIL: No recent control file backup found
 # Fix: schedule regular control file image copy (manual)
@@ -24,7 +24,7 @@
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_op, sec_5_6]
 
-- name: "5.6 - [PARSE] Extract backup count and last backup time"
+- name: "5.6 - [CHECK] Extract backup count and last backup time"
   ansible.builtin.set_fact:
     _sec_5_6_lines: >-
       {{
@@ -32,18 +32,15 @@
       }}
   tags: [oracle_configuration_check, sec_op, sec_5_6]
 
-- name: "5.6 - [PARSE] Evaluate compliance"
+- name: "5.6 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_5_6_count: "{{ _sec_5_6_lines[0] | default('0') | int }}"
     _sec_5_6_last: "{{ _sec_5_6_lines[1] | default('N/A') }}"
     _sec_5_6_compliant: "{{ _sec_5_6_lines[0] | default('0') | int > 0 }}"
   tags: [oracle_configuration_check, sec_op, sec_5_6]
 
-- name: "5.6 - [STATUS] Control File Backup"
-  ansible.builtin.debug:
-    msg: >-
-      sec_5_6 Control File Backup: {{ 'PASS' if _sec_5_6_compliant else 'FAIL' }}
-      | backups_last_8_days={{ _sec_5_6_count }}
-      | last_backup={{ _sec_5_6_last }}
-      | Action (if FAIL): run RMAN or: ALTER DATABASE BACKUP CONTROLFILE TO '<path>';
+# REPORT: remove this task to disable reporting
+- name: "5.6 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '5.6', 'name': 'Control File Backup', 'status': 'PASS' if _sec_5_6_compliant else 'FAIL', 'fixed': false}] }}"
   tags: [oracle_configuration_check, sec_op, sec_5_6]

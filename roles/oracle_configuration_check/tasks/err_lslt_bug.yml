@@ -1,8 +1,8 @@
 ---
-# 2.3 - LSLT (Last Successful Login Time) Bug — REPORT ONLY
+# 2.3 - LSLT (Last Successful Login Time) Bug
 # PASS: patch 33121934 (or 19.16+ RU) applied AND _disable_last_successful_login_time=true
 # FAIL: patch not applied OR parameter not set
-# Fix: apply patch manually (out of scope), then set parameter
+# Fix: apply patch manually first; then parameter set via spfile; restart handled by restart_db.yml
 
 - name: "2.3 - [CHECK] Check for patch 33121934 or 19.16+ RU"
   ansible.builtin.shell: "{{ oracle_home }}/OPatch/opatch lsinventory 2>/dev/null | grep -c 33121934 || true"
@@ -29,7 +29,7 @@
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_err, sec_2_3]
 
-- name: "2.3 - [PARSE] Evaluate compliance"
+- name: "2.3 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_2_3_patch_applied: "{{ _sec_2_3_patch_result.stdout | trim | int > 0 }}"
     _sec_2_3_param_value: "{{ _sec_2_3_param_result.stdout | trim | lower }}"
@@ -40,24 +40,16 @@
       }}
   tags: [oracle_configuration_check, sec_err, sec_2_3]
 
-- name: "2.3 - [STATUS] LSLT Bug"
-  ansible.builtin.debug:
-    msg: >-
-      sec_2_3 LSLT Bug: {{ 'PASS' if _sec_2_3_compliant else 'FAIL' }}
-      | patch_33121934={{ _sec_2_3_patch_applied }}
-      | _disable_last_successful_login_time={{ _sec_2_3_param_value }}
-      | Action (if FAIL and patch missing): apply patch 33121934 or upgrade to 19.16+ RU first
-  tags: [oracle_configuration_check, sec_err, sec_2_3]
-
-- name: "2.3 - [FIX] Set _disable_last_successful_login_time=true (only if patch already applied)"
+- name: "2.3 - [FIX] Set _disable_last_successful_login_time=true in spfile (only if patch already applied)"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH=$ORACLE_HOME/bin:$PATH
     sqlplus -s / as sysdba <<'EOF'
-    ALTER SYSTEM SET "_disable_last_successful_login_time"=TRUE SCOPE=BOTH;
+    ALTER SYSTEM SET "_disable_last_successful_login_time"=TRUE SCOPE=SPFILE;
     EXIT;
     EOF
+  register: _sec_2_3_fix
   become: true
   become_user: "{{ oracle_os_user }}"
   when:
@@ -65,4 +57,10 @@
     - oracle_configuration_check_remediate | bool
     - _sec_2_3_patch_applied
     - _sec_2_3_param_value != 'true'
+  tags: [oracle_configuration_check, sec_err, sec_2_3]
+
+# REPORT: remove this task to disable reporting
+- name: "2.3 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '2.3', 'name': 'LSLT Bug', 'status': 'PASS' if _sec_2_3_compliant else 'FAIL', 'fixed': _sec_2_3_fix is defined and _sec_2_3_fix is changed}] }}"
   tags: [oracle_configuration_check, sec_err, sec_2_3]

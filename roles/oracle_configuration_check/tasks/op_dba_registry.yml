@@ -1,8 +1,8 @@
 ---
-# 5.2 - DBA_REGISTRY Components — REPORT ONLY
+# 5.2 - DBA_REGISTRY Components — CHECK ONLY
 # PASS: all components VALID
 # FAIL: one or more components not VALID
-# Fix: complex — DB version specific (catbundle, catupgrd, etc.)
+# Fix: complex — DB version specific (catbundle, catupgrd, etc.) — see MOS Doc ID 2523682.1
 
 - name: "5.2 - [CHECK] Query DBA_REGISTRY for invalid components"
   ansible.builtin.shell: |
@@ -22,7 +22,7 @@
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_op, sec_5_2]
 
-- name: "5.2 - [PARSE] Evaluate compliance"
+- name: "5.2 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_5_2_invalid: >-
       {{
@@ -36,10 +36,8 @@
       }}
   tags: [oracle_configuration_check, sec_op, sec_5_2]
 
-- name: "5.2 - [STATUS] DBA_REGISTRY Components"
-  ansible.builtin.debug:
-    msg: >-
-      sec_5_2 DBA_REGISTRY: {{ 'PASS' if _sec_5_2_compliant else 'FAIL' }}
-      | invalid_components={{ _sec_5_2_invalid | join(' | ') if _sec_5_2_invalid else 'none' }}
-      | Action (if FAIL): see MOS Doc ID 2523682.1 for remediation steps per component
+# REPORT: remove this task to disable reporting
+- name: "5.2 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '5.2', 'name': 'DBA_REGISTRY Components', 'status': 'PASS' if _sec_5_2_compliant else 'FAIL', 'fixed': false}] }}"
   tags: [oracle_configuration_check, sec_op, sec_5_2]

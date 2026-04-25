@@ -2,53 +2,53 @@
 # 5.7 - AWR Configuration
 # PASS: retention >= 35 days AND snap_interval <= 20 minutes
 # FAIL: either condition not met
-# Fix: DBMS_WORKLOAD_REPOSITORY.MODIFY_SNAPSHOT_SETTINGS (online)
+# Fix: DBMS_WORKLOAD_REPOSITORY.MODIFY_SNAPSHOT_SETTINGS (online, no restart needed)
 
-- name: "5.7 - [CHECK] Query AWR retention and snap interval"
+- name: "5.7 - [CHECK] Query AWR retention in days"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH=$ORACLE_HOME/bin:$PATH
     sqlplus -s / as sysdba <<'EOF'
-    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
-    SELECT 'RETENTION_DAYS=' || EXTRACT(DAY FROM retention)
-           || ' INTERVAL_MIN=' || EXTRACT(MINUTE FROM snap_interval)
-    FROM dba_hist_wr_control;
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF TRIMOUT ON TRIMSPOOL ON
+    SELECT EXTRACT(DAY FROM retention) FROM dba_hist_wr_control;
     EXIT;
     EOF
-  register: _sec_5_7_result
+  register: _sec_5_7_retention_raw
   changed_when: false
   become: true
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_op, sec_5_7]
 
-- name: "5.7 - [PARSE] Extract AWR settings"
-  ansible.builtin.set_fact:
-    _sec_5_7_retention_days: >-
-      {{
-        (_sec_5_7_result.stdout | regex_search('RETENTION_DAYS=(\d+)', '\1') | default(['0']) | first) | int
-      }}
-    _sec_5_7_interval_min: >-
-      {{
-        (_sec_5_7_result.stdout | regex_search('INTERVAL_MIN=(\d+)', '\1') | default(['60']) | first) | int
-      }}
+- name: "5.7 - [CHECK] Query AWR snap interval in minutes"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF TRIMOUT ON TRIMSPOOL ON
+    SELECT EXTRACT(MINUTE FROM snap_interval) FROM dba_hist_wr_control;
+    EXIT;
+    EOF
+  register: _sec_5_7_interval_raw
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_op, sec_5_7]
 
-- name: "5.7 - [PARSE] Evaluate compliance"
+- name: "5.7 - [CHECK] Extract AWR settings"
+  ansible.builtin.set_fact:
+    _sec_5_7_retention_days: "{{ _sec_5_7_retention_raw.stdout | trim | int }}"
+    _sec_5_7_interval_min: "{{ _sec_5_7_interval_raw.stdout | trim | int }}"
+  tags: [oracle_configuration_check, sec_op, sec_5_7]
+
+- name: "5.7 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_5_7_compliant: >-
       {{
         _sec_5_7_retention_days | int >= oracle_awr_retention_days | int and
         _sec_5_7_interval_min | int <= oracle_awr_interval_min | int
       }}
-  tags: [oracle_configuration_check, sec_op, sec_5_7]
-
-- name: "5.7 - [STATUS] AWR Configuration"
-  ansible.builtin.debug:
-    msg: >-
-      sec_5_7 AWR Configuration: {{ 'PASS' if _sec_5_7_compliant else 'FAIL' }}
-      | retention_days={{ _sec_5_7_retention_days }} required>={{ oracle_awr_retention_days }}
-      | snap_interval_min={{ _sec_5_7_interval_min }} required<={{ oracle_awr_interval_min }}
   tags: [oracle_configuration_check, sec_op, sec_5_7]
 
 - name: "5.7 - [FIX] Adjust AWR retention and snapshot interval"
@@ -66,9 +66,16 @@
     /
     EXIT;
     EOF
+  register: _sec_5_7_fix
   become: true
   become_user: "{{ oracle_os_user }}"
   when:
     - not _sec_5_7_compliant
     - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_op, sec_5_7]
+
+# REPORT: remove this task to disable reporting
+- name: "5.7 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '5.7', 'name': 'AWR Configuration', 'status': 'PASS' if _sec_5_7_compliant else 'FAIL', 'fixed': _sec_5_7_fix is defined and _sec_5_7_fix is changed}] }}"
   tags: [oracle_configuration_check, sec_op, sec_5_7]

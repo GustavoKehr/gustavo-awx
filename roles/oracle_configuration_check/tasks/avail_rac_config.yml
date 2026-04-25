@@ -1,5 +1,5 @@
 ---
-# 3.1 - RAC Configuration — REPORT ONLY
+# 3.1 - RAC Configuration — CHECK ONLY
 # PASS: RAC (parallel=YES in v$instance)
 # FAIL: Single Instance or HA Active-Standby (no RAC)
 
@@ -19,16 +19,14 @@
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_avail, sec_3_1]
 
-- name: "3.1 - [PARSE] Evaluate RAC compliance"
+- name: "3.1 - [CHECK] Evaluate RAC compliance"
   ansible.builtin.set_fact:
     _sec_3_1_parallel: "{{ _sec_3_1_result.stdout | trim | upper }}"
     _sec_3_1_compliant: "{{ _sec_3_1_result.stdout | trim | upper == 'YES' }}"
   tags: [oracle_configuration_check, sec_avail, sec_3_1]
 
-- name: "3.1 - [STATUS] RAC Configuration"
-  ansible.builtin.debug:
-    msg: >-
-      sec_3_1 RAC Configuration: {{ 'PASS' if _sec_3_1_compliant else 'FAIL' }}
-      | parallel={{ _sec_3_1_parallel }}
-      | Action (if FAIL): infrastructure decision — contact account team for RAC licensing
+# REPORT: remove this task to disable reporting
+- name: "3.1 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '3.1', 'name': 'RAC Configuration', 'status': 'PASS' if _sec_3_1_compliant else 'FAIL', 'fixed': false}] }}"
   tags: [oracle_configuration_check, sec_avail, sec_3_1]

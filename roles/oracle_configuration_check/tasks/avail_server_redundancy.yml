@@ -1,5 +1,5 @@
 ---
-# 3.3 - DB Server Redundancy — REPORT ONLY
+# 3.3 - DB Server Redundancy — CHECK ONLY
 # PASS: RAC or OS Cluster daemon running
 # FAIL: No cluster detected
 
@@ -14,16 +14,14 @@
   failed_when: false
   tags: [oracle_configuration_check, sec_avail, sec_3_3]
 
-- name: "3.3 - [PARSE] Evaluate redundancy"
+- name: "3.3 - [CHECK] Evaluate redundancy"
   ansible.builtin.set_fact:
     _sec_3_3_cluster: "{{ _sec_3_3_result.stdout | trim }}"
     _sec_3_3_compliant: "{{ _sec_3_3_result.stdout | trim != 'none' }}"
   tags: [oracle_configuration_check, sec_avail, sec_3_3]
 
-- name: "3.3 - [STATUS] DB Server Redundancy"
-  ansible.builtin.debug:
-    msg: >-
-      sec_3_3 DB Server Redundancy: {{ 'PASS' if _sec_3_3_compliant else 'FAIL' }}
-      | cluster_detected={{ _sec_3_3_cluster }}
-      | Action (if FAIL): configure HA system based on service requirements (RAC or OS cluster)
+# REPORT: remove this task to disable reporting
+- name: "3.3 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '3.3', 'name': 'DB Server Redundancy', 'status': 'PASS' if _sec_3_3_compliant else 'FAIL', 'fixed': false}] }}"
   tags: [oracle_configuration_check, sec_avail, sec_3_3]

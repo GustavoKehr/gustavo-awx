@@ -1,0 +1,20 @@
+---
+# Single DB restart to activate all SPFILE parameter changes made during this run.
+# Runs only if remediation is enabled AND oracle_security_allow_restart=true.
+
+- name: "[RESTART] Restart Oracle DB to activate SPFILE parameters"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SHUTDOWN IMMEDIATE;
+    STARTUP;
+    EXIT;
+    EOF
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  when:
+    - oracle_security_remediate | bool
+    - oracle_security_allow_restart | bool
+  tags: [oracle_configuration_check]

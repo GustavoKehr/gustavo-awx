@@ -1,64 +1,76 @@
 ---
-# 5.5 - DB Full Backup — REPORT ONLY
+# 5.5 - DB Full Backup — CHECK ONLY
 # PASS: RMAN or Export full backup executed regularly
 # FAIL: No backup evidence found
 # Fix: develop backup policy and schedule RMAN job (manual decision)
 
-- name: "5.5 - [CHECK] Query last backup time and DB log mode"
+- name: "5.5 - [CHECK] Query DB log mode"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH=$ORACLE_HOME/bin:$PATH
     sqlplus -s / as sysdba <<'EOF'
-    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
-    SELECT 'LOG_MODE=' || log_mode FROM v$database;
-    SELECT 'LAST_BACKUP=' || TO_CHAR(MAX(time), 'YYYY-MM-DD HH24:MI:SS') FROM v$backup;
-    SELECT 'RMAN_LAST=' || TO_CHAR(MAX(end_time), 'YYYY-MM-DD HH24:MI:SS')
-    FROM v$rman_backup_job_details WHERE status = 'COMPLETED';
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF TRIMOUT ON TRIMSPOOL ON
+    SELECT log_mode FROM v$database;
     EXIT;
     EOF
-  register: _sec_5_5_result
+  register: _sec_5_5_log_mode_raw
   changed_when: false
   become: true
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_op, sec_5_5]
 
-- name: "5.5 - [PARSE] Extract backup information"
-  ansible.builtin.set_fact:
-    _sec_5_5_log_mode: >-
-      {{
-        _sec_5_5_result.stdout | regex_search('LOG_MODE=(\S+)', '\1') | default(['UNKNOWN']) | first
-      }}
-    _sec_5_5_last_backup: >-
-      {{
-        _sec_5_5_result.stdout | regex_search('LAST_BACKUP=(.+)', '\1') | default(['']) | first | trim
-      }}
-    _sec_5_5_rman_last: >-
-      {{
-        _sec_5_5_result.stdout | regex_search('RMAN_LAST=(.+)', '\1') | default(['']) | first | trim
-      }}
+- name: "5.5 - [CHECK] Query last OS backup time"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF TRIMOUT ON TRIMSPOOL ON
+    SELECT NVL(TO_CHAR(MAX(time), 'YYYY-MM-DD HH24:MI:SS'), '') FROM v$backup;
+    EXIT;
+    EOF
+  register: _sec_5_5_last_backup_raw
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_op, sec_5_5]
 
-- name: "5.5 - [PARSE] Evaluate compliance (backup within last 7 days)"
+- name: "5.5 - [CHECK] Query last RMAN completed backup"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF TRIMOUT ON TRIMSPOOL ON
+    SELECT NVL(TO_CHAR(MAX(end_time), 'YYYY-MM-DD HH24:MI:SS'), '')
+    FROM v$rman_backup_job_details WHERE status = 'COMPLETED';
+    EXIT;
+    EOF
+  register: _sec_5_5_rman_last_raw
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_op, sec_5_5]
+
+- name: "5.5 - [CHECK] Extract backup information"
   ansible.builtin.set_fact:
-    _sec_5_5_has_backup: >-
+    _sec_5_5_log_mode: "{{ _sec_5_5_log_mode_raw.stdout | trim }}"
+    _sec_5_5_last_backup: "{{ _sec_5_5_last_backup_raw.stdout | trim }}"
+    _sec_5_5_rman_last: "{{ _sec_5_5_rman_last_raw.stdout | trim }}"
+  tags: [oracle_configuration_check, sec_op, sec_5_5]
+
+- name: "5.5 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_5_5_compliant: >-
       {{
         _sec_5_5_last_backup | length > 0 or
         _sec_5_5_rman_last | length > 0
       }}
-    _sec_5_5_compliant: >-
-      {{
-        (_sec_5_5_last_backup | length > 0 and _sec_5_5_last_backup != '') or
-        (_sec_5_5_rman_last | length > 0 and _sec_5_5_rman_last != '')
-      }}
   tags: [oracle_configuration_check, sec_op, sec_5_5]
 
-- name: "5.5 - [STATUS] DB Full Backup"
-  ansible.builtin.debug:
-    msg: >-
-      sec_5_5 DB Full Backup: {{ 'PASS' if _sec_5_5_compliant else 'FAIL' }}
-      | log_mode={{ _sec_5_5_log_mode }}
-      | last_backup={{ _sec_5_5_last_backup if _sec_5_5_last_backup else 'N/A' }}
-      | rman_last_completed={{ _sec_5_5_rman_last if _sec_5_5_rman_last else 'N/A' }}
-      | Action (if FAIL): implement RMAN full backup policy — see Oracle RMAN documentation
+# REPORT: remove this task to disable reporting
+- name: "5.5 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '5.5', 'name': 'DB Full Backup', 'status': 'PASS' if _sec_5_5_compliant else 'FAIL', 'fixed': false}] }}"
   tags: [oracle_configuration_check, sec_op, sec_5_5]

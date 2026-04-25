@@ -1,0 +1,119 @@
+---
+# 4.5 - SGA and PGA Memory Sizing
+# PASS: sga_target in [oracle_sga_pct_min - oracle_sga_pct_max]% of RAM
+#       pga_aggregate_target in [oracle_pga_pct_min - oracle_pga_pct_max]% of RAM
+# FAIL: either parameter is 0 (ASMM disabled) or out of acceptable range
+# Fix: scope=spfile; DB restart handled by restart_db.yml
+# Requires gather_facts: true (uses ansible_memtotal_mb)
+
+- name: "4.5 - [CHECK] Query sga_target"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF TRIMOUT ON TRIMSPOOL ON
+    SELECT value FROM v$parameter WHERE name = 'sga_target';
+    EXIT;
+    EOF
+  register: _sec_4_5_sga_raw
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_perf, sec_4_5]
+
+- name: "4.5 - [CHECK] Query pga_aggregate_target"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF TRIMOUT ON TRIMSPOOL ON
+    SELECT value FROM v$parameter WHERE name = 'pga_aggregate_target';
+    EXIT;
+    EOF
+  register: _sec_4_5_pga_raw
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  tags: [oracle_configuration_check, sec_perf, sec_4_5]
+
+- name: "4.5 - [CHECK] Extract current memory values (bytes)"
+  ansible.builtin.set_fact:
+    _sec_4_5_sga_bytes: "{{ _sec_4_5_sga_raw.stdout | trim | int }}"
+    _sec_4_5_pga_bytes: "{{ _sec_4_5_pga_raw.stdout | trim | int }}"
+  tags: [oracle_configuration_check, sec_perf, sec_4_5]
+
+- name: "4.5 - [CHECK] Calculate memory bounds from system RAM"
+  ansible.builtin.set_fact:
+    _sec_4_5_ram_mb: "{{ ansible_memtotal_mb }}"
+    _sec_4_5_sga_current_mb: "{{ (_sec_4_5_sga_bytes | int / 1048576) | int }}"
+    _sec_4_5_pga_current_mb: "{{ (_sec_4_5_pga_bytes | int / 1048576) | int }}"
+    _sec_4_5_sga_min_mb: "{{ (ansible_memtotal_mb | int * oracle_sga_pct_min | int / 100) | int }}"
+    _sec_4_5_sga_max_mb: "{{ (ansible_memtotal_mb | int * oracle_sga_pct_max | int / 100) | int }}"
+    _sec_4_5_sga_fix_mb: "{{ (ansible_memtotal_mb | int * oracle_sga_pct_target | int / 100) | int }}"
+    _sec_4_5_pga_min_mb: "{{ (ansible_memtotal_mb | int * oracle_pga_pct_min | int / 100) | int }}"
+    _sec_4_5_pga_max_mb: "{{ (ansible_memtotal_mb | int * oracle_pga_pct_max | int / 100) | int }}"
+    _sec_4_5_pga_fix_mb: "{{ (ansible_memtotal_mb | int * oracle_pga_pct_target | int / 100) | int }}"
+  tags: [oracle_configuration_check, sec_perf, sec_4_5]
+
+- name: "4.5 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _sec_4_5_sga_compliant: >-
+      {{
+        _sec_4_5_sga_bytes | int > 0 and
+        _sec_4_5_sga_current_mb | int >= _sec_4_5_sga_min_mb | int and
+        _sec_4_5_sga_current_mb | int <= _sec_4_5_sga_max_mb | int
+      }}
+    _sec_4_5_pga_compliant: >-
+      {{
+        _sec_4_5_pga_bytes | int > 0 and
+        _sec_4_5_pga_current_mb | int >= _sec_4_5_pga_min_mb | int and
+        _sec_4_5_pga_current_mb | int <= _sec_4_5_pga_max_mb | int
+      }}
+  tags: [oracle_configuration_check, sec_perf, sec_4_5]
+
+- name: "4.5 - [CHECK] Set overall compliance"
+  ansible.builtin.set_fact:
+    _sec_4_5_compliant: "{{ _sec_4_5_sga_compliant and _sec_4_5_pga_compliant }}"
+  tags: [oracle_configuration_check, sec_perf, sec_4_5]
+
+- name: "4.5 - [FIX] Set sga_target={{ _sec_4_5_sga_fix_mb }}M in spfile ({{ oracle_sga_pct_target }}% of {{ _sec_4_5_ram_mb }}MB RAM)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    ALTER SYSTEM SET sga_target={{ _sec_4_5_sga_fix_mb }}M SCOPE=SPFILE;
+    EXIT;
+    EOF
+  register: _sec_4_5_fix_sga
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  when:
+    - not _sec_4_5_sga_compliant
+    - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_perf, sec_4_5]
+
+- name: "4.5 - [FIX] Set pga_aggregate_target={{ _sec_4_5_pga_fix_mb }}M in spfile ({{ oracle_pga_pct_target }}% of {{ _sec_4_5_ram_mb }}MB RAM)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    ALTER SYSTEM SET pga_aggregate_target={{ _sec_4_5_pga_fix_mb }}M SCOPE=SPFILE;
+    EXIT;
+    EOF
+  register: _sec_4_5_fix_pga
+  become: true
+  become_user: "{{ oracle_os_user }}"
+  when:
+    - not _sec_4_5_pga_compliant
+    - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_perf, sec_4_5]
+
+# REPORT: remove this task to disable reporting
+- name: "4.5 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '4.5', 'name': 'SGA/PGA Memory Sizing', 'status': 'PASS' if _sec_4_5_compliant else 'FAIL', 'fixed': (_sec_4_5_fix_sga is defined and _sec_4_5_fix_sga is changed) or (_sec_4_5_fix_pga is defined and _sec_4_5_fix_pga is changed)}] }}"
+  tags: [oracle_configuration_check, sec_perf, sec_4_5]

@@ -2,7 +2,7 @@
 # 1.8 - _cleanup_rollback_entries
 # PASS: value >= 2000
 # FAIL: value < 2000
-# Fix: scope=spfile + DB restart (offline change)
+# Fix: scope=spfile; DB restart handled by restart_db.yml
 
 - name: "1.8 - [CHECK] Query _cleanup_rollback_entries"
   ansible.builtin.shell: |
@@ -21,17 +21,10 @@
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_conf, sec_1_8]
 
-- name: "1.8 - [PARSE] Evaluate compliance"
+- name: "1.8 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_1_8_value: "{{ _sec_1_8_result.stdout | trim | int }}"
     _sec_1_8_compliant: "{{ _sec_1_8_result.stdout | trim | int >= 2000 }}"
-  tags: [oracle_configuration_check, sec_conf, sec_1_8]
-
-- name: "1.8 - [STATUS] _cleanup_rollback_entries"
-  ansible.builtin.debug:
-    msg: >-
-      sec_1_8 _cleanup_rollback_entries: {{ 'PASS' if _sec_1_8_compliant else 'FAIL' }}
-      | current={{ _sec_1_8_value }} required>=2000
   tags: [oracle_configuration_check, sec_conf, sec_1_8]
 
 - name: "1.8 - [FIX] Set _cleanup_rollback_entries=2000 in spfile"
@@ -43,6 +36,7 @@
     ALTER SYSTEM SET "_cleanup_rollback_entries"=2000 SCOPE=SPFILE;
     EXIT;
     EOF
+  register: _sec_1_8_fix
   become: true
   become_user: "{{ oracle_os_user }}"
   when:
@@ -50,31 +44,8 @@
     - oracle_configuration_check_remediate | bool
   tags: [oracle_configuration_check, sec_conf, sec_1_8]
 
-- name: "1.8 - [WARN] DB restart required to activate _cleanup_rollback_entries"
-  ansible.builtin.debug:
-    msg: >-
-      sec_1_8 WARNING: _cleanup_rollback_entries=2000 set in spfile.
-      DB restart required. Set oracle_configuration_check_allow_restart=true to auto-restart.
-  when:
-    - not _sec_1_8_compliant
-    - oracle_configuration_check_remediate | bool
-    - not oracle_configuration_check_allow_restart | bool
-  tags: [oracle_configuration_check, sec_conf, sec_1_8]
-
-- name: "1.8 - [FIX] Restart DB to activate _cleanup_rollback_entries"
-  ansible.builtin.shell: |
-    export ORACLE_HOME={{ oracle_home }}
-    export ORACLE_SID={{ oracle_sid }}
-    export PATH=$ORACLE_HOME/bin:$PATH
-    sqlplus -s / as sysdba <<'EOF'
-    SHUTDOWN IMMEDIATE;
-    STARTUP;
-    EXIT;
-    EOF
-  become: true
-  become_user: "{{ oracle_os_user }}"
-  when:
-    - not _sec_1_8_compliant
-    - oracle_configuration_check_remediate | bool
-    - oracle_configuration_check_allow_restart | bool
+# REPORT: remove this task to disable reporting
+- name: "1.8 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '1.8', 'name': '_cleanup_rollback_entries', 'status': 'PASS' if _sec_1_8_compliant else 'FAIL', 'fixed': _sec_1_8_fix is defined and _sec_1_8_fix is changed}] }}"
   tags: [oracle_configuration_check, sec_conf, sec_1_8]

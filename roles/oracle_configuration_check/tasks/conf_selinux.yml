@@ -10,17 +10,10 @@
   failed_when: false
   tags: [oracle_configuration_check, sec_conf, sec_1_5]
 
-- name: "1.5 - [PARSE] Evaluate SELinux compliance"
+- name: "1.5 - [CHECK] Evaluate SELinux compliance"
   ansible.builtin.set_fact:
     _sec_1_5_status: "{{ _sec_1_5_getenforce.stdout | trim }}"
     _sec_1_5_compliant: "{{ _sec_1_5_getenforce.stdout | trim | lower == 'disabled' }}"
-  tags: [oracle_configuration_check, sec_conf, sec_1_5]
-
-- name: "1.5 - [STATUS] Linux SELinux"
-  ansible.builtin.debug:
-    msg: >-
-      sec_1_5 Linux SELinux: {{ 'PASS' if _sec_1_5_compliant else 'FAIL' }}
-      | status={{ _sec_1_5_status }}
   tags: [oracle_configuration_check, sec_conf, sec_1_5]
 
 - name: "1.5 - [FIX] Set SELINUX=disabled in /etc/selinux/config"
@@ -28,6 +21,7 @@
     path: /etc/selinux/config
     regexp: '^\s*SELINUX\s*='
     line: 'SELINUX=disabled'
+  register: _sec_1_5_fix_config
   when:
     - not _sec_1_5_compliant
     - oracle_configuration_check_remediate | bool
@@ -35,6 +29,7 @@
 
 - name: "1.5 - [FIX] Disable SELinux at runtime (setenforce 0)"
   ansible.builtin.command: setenforce 0
+  register: _sec_1_5_fix_runtime
   changed_when: true
   failed_when: false
   when:
@@ -45,9 +40,16 @@
 
 - name: "1.5 - [FIX] Persist selinux=0 via grubby"
   ansible.builtin.command: grubby --update-kernel=ALL --args="selinux=0"
+  register: _sec_1_5_fix_grubby
   changed_when: true
   failed_when: false
   when:
     - not _sec_1_5_compliant
     - oracle_configuration_check_remediate | bool
+  tags: [oracle_configuration_check, sec_conf, sec_1_5]
+
+# REPORT: remove this task to disable reporting
+- name: "1.5 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '1.5', 'name': 'Linux SELinux', 'status': 'PASS' if _sec_1_5_compliant else 'FAIL', 'fixed': _sec_1_5_fix_config is defined and _sec_1_5_fix_config is changed}] }}"
   tags: [oracle_configuration_check, sec_conf, sec_1_5]

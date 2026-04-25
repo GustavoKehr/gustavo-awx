@@ -1,54 +1,57 @@
 ---
 # 4.2 - PGA Limit
-# PASS: pga_aggregate_limit=0 AND _pga_max_size >= 1G
+# PASS: pga_aggregate_limit=0 AND _pga_max_size >= oracle_pga_max_size_gb G
 # FAIL: either condition not met
-# Fix: online change for pga_aggregate_limit; spfile for _pga_max_size
+# Fix: both parameters via spfile; DB restart handled by restart_db.yml
 
-- name: "4.2 - [CHECK] Query PGA limit parameters"
+- name: "4.2 - [CHECK] Query pga_aggregate_limit"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH=$ORACLE_HOME/bin:$PATH
     sqlplus -s / as sysdba <<'EOF'
-    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
-    SELECT 'PGA_LIMIT=' || max(ksppstvl)
-    FROM x$ksppi a, x$ksppsv b
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF TRIMOUT ON TRIMSPOOL ON
+    SELECT max(ksppstvl) FROM x$ksppi a, x$ksppsv b
     WHERE a.indx = b.indx AND ksppinm = 'pga_aggregate_limit';
-    SELECT 'PGA_MAX=' || max(ksppstvl)
-    FROM x$ksppi a, x$ksppsv b
-    WHERE a.indx = b.indx AND ksppinm = '_pga_max_size';
     EXIT;
     EOF
-  register: _sec_4_2_result
+  register: _sec_4_2_pga_limit_raw
   changed_when: false
   become: true
   become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_perf, sec_4_2]
 
-- name: "4.2 - [PARSE] Extract PGA values"
-  ansible.builtin.set_fact:
-    _sec_4_2_pga_limit: >-
-      {{
-        (_sec_4_2_result.stdout | regex_search('PGA_LIMIT=(\S+)', '\1') | default(['1']) | first) | int
-      }}
-    _sec_4_2_pga_max_raw: >-
-      {{
-        (_sec_4_2_result.stdout | regex_search('PGA_MAX=(\S+)', '\1') | default(['0']) | first)
-      }}
+- name: "4.2 - [CHECK] Query _pga_max_size in bytes (SQL converts units)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF TRIMOUT ON TRIMSPOOL ON
+    SELECT CASE
+      WHEN UPPER(ksppstvl) LIKE '%G' THEN TO_NUMBER(RTRIM(UPPER(ksppstvl), 'G')) * 1073741824
+      WHEN UPPER(ksppstvl) LIKE '%M' THEN TO_NUMBER(RTRIM(UPPER(ksppstvl), 'M')) * 1048576
+      WHEN UPPER(ksppstvl) LIKE '%K' THEN TO_NUMBER(RTRIM(UPPER(ksppstvl), 'K')) * 1024
+      ELSE TO_NUMBER(ksppstvl)
+    END
+    FROM x$ksppi a, x$ksppsv b
+    WHERE a.indx = b.indx AND ksppinm = '_pga_max_size';
+    EXIT;
+    EOF
+  register: _sec_4_2_pga_max_bytes_raw
+  changed_when: false
+  become: true
+  become_user: "{{ oracle_os_user }}"
   tags: [oracle_configuration_check, sec_perf, sec_4_2]
 
-- name: "4.2 - [PARSE] Convert _pga_max_size to bytes and evaluate"
+- name: "4.2 - [CHECK] Extract PGA values"
   ansible.builtin.set_fact:
-    _sec_4_2_pga_max_bytes: >-
-      {{
-        _sec_4_2_pga_max_raw | int
-        if _sec_4_2_pga_max_raw | string | regex_search('^\d+$')
-        else (_sec_4_2_pga_max_raw | human_to_bytes | default(0))
-      }}
+    _sec_4_2_pga_limit: "{{ _sec_4_2_pga_limit_raw.stdout | trim | int }}"
+    _sec_4_2_pga_max_bytes: "{{ _sec_4_2_pga_max_bytes_raw.stdout | trim | int }}"
     _sec_4_2_min_bytes: "{{ oracle_pga_max_size_gb | int * 1073741824 }}"
   tags: [oracle_configuration_check, sec_perf, sec_4_2]
 
-- name: "4.2 - [PARSE] Evaluate compliance"
+- name: "4.2 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _sec_4_2_compliant: >-
       {{
@@ -57,23 +60,16 @@
       }}
   tags: [oracle_configuration_check, sec_perf, sec_4_2]
 
-- name: "4.2 - [STATUS] PGA Limit"
-  ansible.builtin.debug:
-    msg: >-
-      sec_4_2 PGA Limit: {{ 'PASS' if _sec_4_2_compliant else 'FAIL' }}
-      | pga_aggregate_limit={{ _sec_4_2_pga_limit }} required=0
-      | _pga_max_size={{ _sec_4_2_pga_max_bytes }}B required>={{ _sec_4_2_min_bytes }}B ({{ oracle_pga_max_size_gb }}G)
-  tags: [oracle_configuration_check, sec_perf, sec_4_2]
-
-- name: "4.2 - [FIX] Set pga_aggregate_limit=0 (online)"
+- name: "4.2 - [FIX] Set pga_aggregate_limit=0 in spfile"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH=$ORACLE_HOME/bin:$PATH
     sqlplus -s / as sysdba <<'EOF'
-    ALTER SYSTEM SET pga_aggregate_limit=0 SCOPE=BOTH;
+    ALTER SYSTEM SET pga_aggregate_limit=0 SCOPE=SPFILE;
     EXIT;
     EOF
+  register: _sec_4_2_fix_pga_limit
   become: true
   become_user: "{{ oracle_os_user }}"
   when:
@@ -91,10 +87,17 @@
     ALTER SYSTEM SET "_pga_max_size"={{ oracle_pga_max_size_gb }}G SCOPE=SPFILE;
     EXIT;
     EOF
+  register: _sec_4_2_fix_pga_max
   become: true
   become_user: "{{ oracle_os_user }}"
   when:
     - not _sec_4_2_compliant
     - oracle_configuration_check_remediate | bool
     - _sec_4_2_pga_max_bytes | int < _sec_4_2_min_bytes | int
+  tags: [oracle_configuration_check, sec_perf, sec_4_2]
+
+# REPORT: remove this task to disable reporting
+- name: "4.2 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _sec_report: "{{ _sec_report | default([]) + [{'id': '4.2', 'name': 'PGA Limit', 'status': 'PASS' if _sec_4_2_compliant else 'FAIL', 'fixed': (_sec_4_2_fix_pga_limit is defined and _sec_4_2_fix_pga_limit is changed) or (_sec_4_2_fix_pga_max is defined and _sec_4_2_fix_pga_max is changed)}] }}"
   tags: [oracle_configuration_check, sec_perf, sec_4_2]
