@@ -1,10 +1,15 @@
 ---
 # Copies Oracle software from AWX VM to oracle_software_dst on the target.
-# Uses ansible.builtin.copy (transfers over established Ansible SSH connection,
-# no separate rsync/SSH subprocess needed — works reliably in AWX EE containers).
-#
+# Each block checks existence first (shell test) — skips the transfer if already present.
 # Installer zip + preinstall RPM: oracle_software_src (/opt/oracle)
 # OPatch / RU / post-install patches: oracle_patches_src (/opt/patches)
+
+- name: "TRANSFER | Check installer zip on target"
+  ansible.builtin.shell: >-
+    test -f "{{ oracle_software_dst }}/{{ oracle_installer_zip }}" && echo present || echo absent
+  register: _zip_stat
+  changed_when: false
+  tags: oracle_transfer
 
 - name: "TRANSFER | Copy Oracle installer zip"
   ansible.builtin.copy:
@@ -13,6 +18,16 @@
     owner: oracle
     group: oinstall
     mode: "0640"
+  when: _zip_stat.stdout == "absent"
+  tags: oracle_transfer
+
+- name: "TRANSFER | Check OPatch directory on target"
+  ansible.builtin.shell: >-
+    test -d "{{ oracle_software_dst }}/{{ oracle_opatch_dir }}" &&
+    [ -n "$(ls -A {{ oracle_software_dst }}/{{ oracle_opatch_dir }} 2>/dev/null)" ] &&
+    echo present || echo absent
+  register: _opatch_stat
+  changed_when: false
   tags: oracle_transfer
 
 - name: "TRANSFER | Copy OPatch replacement directory"
@@ -22,6 +37,16 @@
     owner: oracle
     group: oinstall
     mode: preserve
+  when: _opatch_stat.stdout == "absent"
+  tags: oracle_transfer
+
+- name: "TRANSFER | Check RU patch directory on target"
+  ansible.builtin.shell: >-
+    test -d "{{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}" &&
+    [ -n "$(ls -A {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }} 2>/dev/null)" ] &&
+    echo present || echo absent
+  register: _ru_stat
+  changed_when: false
   tags: oracle_transfer
 
 - name: "TRANSFER | Copy RU + one-off patch directory ({{ oracle_ru_patch_dir }})"
@@ -31,6 +56,17 @@
     owner: oracle
     group: oinstall
     mode: preserve
+  when: _ru_stat.stdout == "absent"
+  tags: oracle_transfer
+
+- name: "TRANSFER | Check post_patch1 directory on target"
+  ansible.builtin.shell: >-
+    test -d "{{ oracle_software_dst }}/{{ oracle_post_patch1_dir }}" &&
+    [ -n "$(ls -A {{ oracle_software_dst }}/{{ oracle_post_patch1_dir }} 2>/dev/null)" ] &&
+    echo present || echo absent
+  register: _patch1_stat
+  changed_when: false
+  when: oracle_post_patch1_enabled | bool
   tags: oracle_transfer
 
 - name: "TRANSFER | Copy post_patch1 directory ({{ oracle_post_patch1_dir }})"
@@ -40,17 +76,32 @@
     owner: oracle
     group: oinstall
     mode: preserve
-  when: oracle_post_patch1_enabled | bool
+  when:
+    - oracle_post_patch1_enabled | bool
+    - _patch1_stat.stdout == "absent"
+  tags: oracle_transfer
+
+- name: "TRANSFER | Check post-install patch directories (patch2, patch3)"
+  ansible.builtin.shell: >-
+    test -d "{{ oracle_software_dst }}/{{ item }}" &&
+    [ -n "$(ls -A {{ oracle_software_dst }}/{{ item }} 2>/dev/null)" ] &&
+    echo present || echo absent
+  register: _patch23_stat
+  changed_when: false
+  loop:
+    - "{{ oracle_post_patch2_dir }}"
+    - "{{ oracle_post_patch3_dir }}"
   tags: oracle_transfer
 
 - name: "TRANSFER | Copy post-install patch directories (patch2, patch3)"
   ansible.builtin.copy:
-    src: "{{ oracle_patches_src }}/{{ item }}/"
-    dest: "{{ oracle_software_dst }}/{{ item }}/"
+    src: "{{ oracle_patches_src }}/{{ item.item }}/"
+    dest: "{{ oracle_software_dst }}/{{ item.item }}/"
     owner: oracle
     group: oinstall
     mode: preserve
-  loop:
-    - "{{ oracle_post_patch2_dir }}"
-    - "{{ oracle_post_patch3_dir }}"
+  loop: "{{ _patch23_stat.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stdout == "absent"
   tags: oracle_transfer
