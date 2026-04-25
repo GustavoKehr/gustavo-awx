@@ -48,7 +48,7 @@
       -ignorePrereq \
       -waitforcompletion
   args:
-    creates: "{{ oracle_home }}/root.sh"
+    creates: "{{ oracle_home }}/bin/oracle"
   become: true
   become_user: oracle
   register: oracle_installer_result
@@ -61,6 +61,7 @@
 
 - name: "INSTALL | Run root.sh (required post-install step)"
   ansible.builtin.shell: |
-    test -f /etc/oratab || "{{ oracle_home }}/root.sh"
+    grep -q "{{ oracle_home }}" /etc/oratab 2>/dev/null && exit 0
+    "{{ oracle_home }}/root.sh"
   changed_when: false
   tags: oracle_install_sw
