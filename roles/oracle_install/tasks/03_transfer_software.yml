@@ -1,6 +1,7 @@
 ---
-# Copies Oracle software from /opt/oracle (mounted in AWX EE from awxvm host)
-# to oracle_software_dst on the target VM via rsync over SSH.
+# Copies Oracle software from AWX VM to oracle_software_dst on the target via rsync over SSH.
+# Installer zip + preinstall RPM: oracle_software_src (/opt/oracle)
+# OPatch / RU / post-install patches: oracle_patches_src (/opt/patches)
 
 - name: "TRANSFER | Sync Oracle installer zip"
   ansible.posix.synchronize:
@@ -12,7 +13,7 @@
 
 - name: "TRANSFER | Sync OPatch replacement directory"
   ansible.posix.synchronize:
-    src: "{{ oracle_software_src }}/{{ oracle_opatch_dir }}/"
+    src: "{{ oracle_patches_src }}/{{ oracle_opatch_dir }}/"
     dest: "{{ oracle_software_dst }}/{{ oracle_opatch_dir }}/"
     checksum: true
     delete: false
@@ -21,21 +22,30 @@
 
 - name: "TRANSFER | Sync RU + one-off patch directory ({{ oracle_ru_patch_dir }})"
   ansible.posix.synchronize:
-    src: "{{ oracle_software_src }}/{{ oracle_ru_patch_dir }}/"
+    src: "{{ oracle_patches_src }}/{{ oracle_ru_patch_dir }}/"
     dest: "{{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/"
     checksum: true
     delete: false
   become: false
   tags: oracle_transfer
 
-- name: "TRANSFER | Sync post-install patch directories"
+- name: "TRANSFER | Sync post_patch1 directory ({{ oracle_post_patch1_dir }})"
   ansible.posix.synchronize:
-    src: "{{ oracle_software_src }}/{{ item }}/"
+    src: "{{ oracle_patches_src }}/{{ oracle_post_patch1_dir }}/"
+    dest: "{{ oracle_software_dst }}/{{ oracle_post_patch1_dir }}/"
+    checksum: true
+    delete: false
+  become: false
+  when: oracle_post_patch1_enabled | bool
+  tags: oracle_transfer
+
+- name: "TRANSFER | Sync post-install patch directories (patch2, patch3)"
+  ansible.posix.synchronize:
+    src: "{{ oracle_patches_src }}/{{ item }}/"
     dest: "{{ oracle_software_dst }}/{{ item }}/"
     checksum: true
     delete: false
   loop:
-    - "{{ oracle_post_patch1_dir }}"
     - "{{ oracle_post_patch2_dir }}"
     - "{{ oracle_post_patch3_dir }}"
   become: false

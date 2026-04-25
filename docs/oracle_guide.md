@@ -55,7 +55,7 @@ O playbook calcula automaticamente: `hugepages = ceil(SGA_MB / 2) × 1.1`
 | `p6880880/` | Substituição do OPatch (versão mais nova) | ~200 MB |
 | `p37641958/` | Release Update (RU) atual | ~3 GB |
 | `p38291812/` | Patch pós-instalação 1 | varia |
-| `p32249704/` | Patch pós-instalação 2 | varia |
+| `p38632161/` | Patch pós-instalação 2 (Oracle 19.30) | varia |
 | `p3467298/` | Patch pós-instalação 3 | varia |
 
 **Verificar antes de iniciar:**
@@ -130,7 +130,7 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_users -l oraclevm
 | `oracle_ru_subpath` | `37641958/37642901` | Subpath do patch RU dentro do diretório. |
 | `oracle_oneoff_subpath` | `37641958/37643161` | Subpath do patch one-off (aplicado junto ao RU). |
 | `oracle_post_patch1_dir` | `p38291812` | Patch pós-instalação 1 (aplicado após runInstaller). |
-| `oracle_post_patch2_dir` | `p32249704` | Patch pós-instalação 2. |
+| `oracle_post_patch2_dir` | `p38632161` | Patch pós-instalação 2 (Oracle 19.30). |
 | `oracle_post_patch3_dir` | `p3467298` | Patch pós-instalação 3. |
 
 ### HugePages (Memória Grande)
