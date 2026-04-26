@@ -7,6 +7,8 @@ all:
           ansible_host: 192.168.137.159
         oraclevm:
           ansible_host: 192.168.137.163
+        oraclevm-test:
+          ansible_host: 192.168.137.164
         repositoryvm:
           ansible_host: 192.168.137.148
         proxmox:
