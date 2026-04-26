@@ -27,7 +27,7 @@
 - name: "PREREQS | Install Oracle preinstall RPM from /tmp"
   ansible.builtin.shell: |
     rpm -q oracle-database-preinstall-19c && exit 0
-    dnf install -y --disablegpgcheck "/tmp/{{ oracle_preinstall_rpm }}"
+    dnf install -y --nogpgcheck "/tmp/{{ oracle_preinstall_rpm }}"
   changed_when: "'already installed' not in _rpm_install.stdout"
   register: _rpm_install
   tags: oracle_prereqs
