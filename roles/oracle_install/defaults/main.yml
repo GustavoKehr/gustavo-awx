@@ -10,7 +10,7 @@ oracle_scripts_dir: "{{ oracle_base }}/scripts/db_creation/{{ oracle_sid }}"
 # oracle_patches_src:  OPatch / RU / post-install patches (/opt/patches)
 oracle_software_src: "/opt/oracle"
 oracle_patches_src: "/opt/patches"
-oracle_software_dst: "/home/oracle/software"
+oracle_software_dst: "/oracle/AWOR/software"
 oracle_installer_zip: "LINUX.X64_193000_db_home.zip"
 oracle_preinstall_rpm: "oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm"
 
