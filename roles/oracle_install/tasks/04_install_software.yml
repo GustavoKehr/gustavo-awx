@@ -11,45 +11,32 @@
 
 - name: "INSTALL | Unzip Oracle installer into ORACLE_HOME"
   ansible.builtin.shell: |
-    unzip -q "{{ oracle_software_dst }}/{{ oracle_installer_zip }}" -d "{{ oracle_home }}"
-  args:
-    creates: "{{ oracle_home }}/runInstaller"
+    test -f "{{ oracle_home }}/runInstaller" && exit 0
+    cd "{{ oracle_home }}"
+    unzip -oq "{{ oracle_software_dst }}/{{ oracle_installer_zip }}"
   become: true
   become_user: oracle
+  changed_when: true
   tags: oracle_install_sw
 
 - name: "INSTALL | Back up bundled OPatch"
   ansible.builtin.shell: |
-    mv "{{ oracle_home }}/OPatch" "{{ oracle_home }}/OPatchOLD"
-  args:
-    creates: "{{ oracle_home }}/OPatchOLD"
+    test -d "{{ oracle_home }}/OPatchOLD" && exit 0
+    cd "{{ oracle_home }}"
+    mv OPatch OPatchOLD
   become: true
   become_user: oracle
+  changed_when: true
   tags: oracle_install_sw
 
 - name: "INSTALL | Install new OPatch"
   ansible.builtin.shell: |
-    cp -r "{{ oracle_software_dst }}/{{ oracle_opatch_dir }}/OPatch" "{{ oracle_home }}/OPatch"
-    chown -R oracle:oinstall "{{ oracle_home }}/OPatch"
-  args:
-    creates: "{{ oracle_home }}/OPatch"
+    test -d "{{ oracle_home }}/OPatch" && exit 0
+    cd "{{ oracle_home }}"
+    cp -r "{{ oracle_software_dst }}/{{ oracle_opatch_dir }}/OPatch" .
   become: true
-  tags: oracle_install_sw
-
-- name: "INSTALL | Deploy runInstaller response file"
-  ansible.builtin.template:
-    src: db_install.rsp.j2
-    dest: "{{ oracle_software_dst }}/db_install.rsp"
-    owner: oracle
-    group: oinstall
-    mode: "0640"
-  tags: oracle_install_sw
-
-- name: "INSTALL | Remove stale .patch_storage if install not yet complete"
-  ansible.builtin.shell: |
-    test -s "{{ oracle_home }}/bin/oracle" && exit 0
-    rm -rf "{{ oracle_home }}/.patch_storage"
-  changed_when: false
+  become_user: oracle
+  changed_when: true
   tags: oracle_install_sw
 
 - name: "INSTALL | Run silent Oracle software installation"
@@ -58,13 +45,30 @@
     export CV_ASSUME_DISTID=RHEL8
     export ORACLE_BASE={{ oracle_base }}
     export ORACLE_HOME={{ oracle_home }}
-    {{ oracle_home }}/runInstaller \
+    export ORACLE_HOSTNAME=$(hostname)
+    cd "{{ oracle_home }}"
+    ./runInstaller \
       -applyRU {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_ru_subpath }} \
       -applyOneOffs {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_oneoff_subpath }} \
       -silent \
-      -responseFile {{ oracle_software_dst }}/db_install.rsp \
+      -responseFile {{ oracle_home }}/install/response/db_install.rsp \
       -ignorePrereq \
-      -waitforcompletion
+      -waitforcompletion \
+      oracle.install.option=INSTALL_DB_SWONLY \
+      ORACLE_HOSTNAME=${ORACLE_HOSTNAME} \
+      UNIX_GROUP_NAME=oinstall \
+      INVENTORY_LOCATION={{ oracle_base }}/oraInventory \
+      SELECTED_LANGUAGES=en \
+      ORACLE_HOME={{ oracle_home }} \
+      ORACLE_BASE={{ oracle_base }} \
+      oracle.install.db.InstallEdition=EE \
+      oracle.install.db.OSDBA_GROUP=dba \
+      oracle.install.db.OSBACKUPDBA_GROUP=dba \
+      oracle.install.db.OSDGDBA_GROUP=dba \
+      oracle.install.db.OSKMDBA_GROUP=kmdba \
+      oracle.install.db.OSRACDBA_GROUP=dba \
+      SECURITY_UPDATES_VIA_MYORACLESUPPORT=false \
+      DECLINE_SECURITY_UPDATES=true
   become: true
   become_user: oracle
   register: oracle_installer_result
@@ -72,7 +76,7 @@
     - oracle_installer_result.rc is defined
     - oracle_installer_result.rc not in [0, 6]
     - "'Successfully Setup Software' not in oracle_installer_result.stdout"
-  changed_when: oracle_installer_result.changed
+  changed_when: "'Successfully Setup Software' in oracle_installer_result.stdout"
   tags: oracle_install_sw
 
 - name: "INSTALL | Run root.sh (required post-install step)"
