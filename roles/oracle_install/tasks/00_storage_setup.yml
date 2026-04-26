@@ -37,7 +37,8 @@
 
 - name: "STORAGE | Format LVs as XFS (skip if filesystem already present)"
   ansible.builtin.shell: |
-    blkid -o value -s TYPE {{ item.lv }} | grep -q xfs && exit 0
+    lsblk -no FSTYPE {{ item.lv }} 2>/dev/null | grep -q xfs && exit 0
+    mountpoint -q {{ item.mp }} && exit 0
     mkfs.xfs {{ item.lv }}
   loop: "{{ _oracle_lv_mounts }}"
   loop_control:
