@@ -33,9 +33,11 @@
   tags: oracle_prereqs
 
 - name: "PREREQS | Back up /etc/init.d (required for Oracle installer on RHEL9)"
-  ansible.builtin.command:
-    cmd: mv /etc/init.d /etc/initd.back
-    creates: /etc/initd.back
+  ansible.builtin.shell: |
+    test -d /etc/initd.back && exit 0
+    test -d /etc/init.d || exit 0
+    mv /etc/init.d /etc/initd.back
+  changed_when: false
   tags: oracle_prereqs
 
 # --- HugePages calculation ---
