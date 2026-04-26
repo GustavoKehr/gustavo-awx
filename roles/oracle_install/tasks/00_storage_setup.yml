@@ -1,7 +1,7 @@
 ---
 # Format and mount Oracle LVs.
-# fstab entries are assumed to already exist (pre-configured by the provisioning workflow).
-# Mount order matters: lv_awor (/oracle/AWOR) must be mounted first before subdirectory mounts.
+# Uses explicit device paths — does NOT rely on /etc/fstab entries.
+# Mount order matters: lv_awor (/oracle/AWOR) must be mounted first.
 
 - name: "STORAGE | Define LV mount map"
   ansible.builtin.set_fact:
@@ -59,9 +59,9 @@
 
 - name: "STORAGE | Mount lv_awor to /oracle/{{ oracle_sid }}"
   ansible.builtin.shell: |
-    mountpoint -q "/oracle/{{ oracle_sid }}" && exit 0
+    /usr/bin/mountpoint -q "/oracle/{{ oracle_sid }}" && exit 0
     mkdir -p "/oracle/{{ oracle_sid }}"
-    mount "/oracle/{{ oracle_sid }}"
+    mount /dev/mapper/vg_data-lv_awor "/oracle/{{ oracle_sid }}"
   changed_when: true
   tags: oracle_storage
 
@@ -79,8 +79,8 @@
 
 - name: "STORAGE | Mount all oracle subdirectory LVs"
   ansible.builtin.shell: |
-    mountpoint -q "{{ item.mp }}" && exit 0
-    mount "{{ item.mp }}"
+    /usr/bin/mountpoint -q "{{ item.mp }}" && exit 0
+    mount {{ item.lv }} "{{ item.mp }}"
   loop: "{{ _oracle_lv_mounts | selectattr('order', 'eq', 1) | list }}"
   loop_control:
     label: "{{ item.mp }}"
@@ -89,7 +89,7 @@
 
 - name: "STORAGE | Verify all oracle mounts are active"
   ansible.builtin.shell: |
-    mountpoint -q "{{ item.mp }}" || (echo "FAIL: {{ item.mp }} not mounted" && exit 1)
+    /usr/bin/mountpoint -q "{{ item.mp }}" || (echo "FAIL: {{ item.mp }} not mounted" && exit 1)
   loop: "{{ _oracle_lv_mounts }}"
   loop_control:
     label: "{{ item.mp }}"
