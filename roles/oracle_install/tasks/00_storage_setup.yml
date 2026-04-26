@@ -45,6 +45,7 @@
   loop_control:
     label: "{{ item.lv }}"
   changed_when: true
+  ignore_errors: true
   tags: oracle_storage
 
 - name: "STORAGE | Create /oracle root mount point"
