@@ -1,6 +1,6 @@
 ---
 # Format and mount Oracle LVs.
-# Uses explicit device paths — does NOT rely on /etc/fstab entries.
+# Uses /proc/mounts for idempotency — no PATH dependency, always readable.
 # Mount order matters: lv_awor (/oracle/AWOR) must be mounted first.
 
 - name: "STORAGE | Define LV mount map"
@@ -35,11 +35,9 @@
         order: 1
   tags: oracle_storage
 
-- name: "STORAGE | Format LVs as XFS (skip if filesystem already present)"
+- name: "STORAGE | Format LVs as XFS (skip if already mounted)"
   ansible.builtin.shell: |
-    export PATH=/usr/sbin:/usr/bin:/sbin:/bin
-    /usr/bin/lsblk -no FSTYPE {{ item.lv }} 2>/dev/null | grep -qi xfs && exit 0
-    /usr/bin/mountpoint -q {{ item.mp }} 2>/dev/null && exit 0
+    grep -q " {{ item.mp }} " /proc/mounts && exit 0
     /usr/sbin/mkfs.xfs {{ item.lv }}
   loop: "{{ _oracle_lv_mounts }}"
   loop_control:
@@ -59,7 +57,7 @@
 
 - name: "STORAGE | Mount lv_awor to /oracle/{{ oracle_sid }}"
   ansible.builtin.shell: |
-    /usr/bin/mountpoint -q "/oracle/{{ oracle_sid }}" && exit 0
+    grep -q " /oracle/{{ oracle_sid }} " /proc/mounts && exit 0
     mkdir -p "/oracle/{{ oracle_sid }}"
     mount /dev/mapper/vg_data-lv_awor "/oracle/{{ oracle_sid }}"
   changed_when: true
@@ -79,7 +77,7 @@
 
 - name: "STORAGE | Mount all oracle subdirectory LVs"
   ansible.builtin.shell: |
-    /usr/bin/mountpoint -q "{{ item.mp }}" && exit 0
+    grep -q " {{ item.mp }} " /proc/mounts && exit 0
     mount {{ item.lv }} "{{ item.mp }}"
   loop: "{{ _oracle_lv_mounts | selectattr('order', 'eq', 1) | list }}"
   loop_control:
@@ -89,7 +87,7 @@
 
 - name: "STORAGE | Verify all oracle mounts are active"
   ansible.builtin.shell: |
-    /usr/bin/mountpoint -q "{{ item.mp }}" || (echo "FAIL: {{ item.mp }} not mounted" && exit 1)
+    grep -q " {{ item.mp }} " /proc/mounts || (echo "FAIL: {{ item.mp }} not mounted" && exit 1)
   loop: "{{ _oracle_lv_mounts }}"
   loop_control:
     label: "{{ item.mp }}"
