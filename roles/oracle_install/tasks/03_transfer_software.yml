@@ -59,8 +59,8 @@
 
 - name: "TRANSFER | Check RU patch directory on target"
   ansible.builtin.shell: >-
-    test -d "{{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}" &&
-    [ -n "$(ls -A {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }} 2>/dev/null)" ] &&
+    test -d "{{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_ru_subpath }}" &&
+    [ -n "$(ls -A {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_ru_subpath }} 2>/dev/null)" ] &&
     echo present || echo absent
   register: _ru_stat
   changed_when: false

@@ -1,6 +1,6 @@
 ---
 # --- Identity ---
-oracle_sid: "TSTOR"
+oracle_sid: "AWOR"
 oracle_base: "/oracle/{{ oracle_sid }}"
 oracle_home: "{{ oracle_base }}/19.0.0"
 oracle_scripts_dir: "{{ oracle_base }}/scripts/db_creation/{{ oracle_sid }}"
