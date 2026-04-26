@@ -21,6 +21,9 @@ PERL5LIB={{ oracle_home }}/rdbms/admin:$PERL5LIB; export PERL5LIB
 ORACLE_SID={{ oracle_sid }}; export ORACLE_SID
 PATH={{ oracle_home }}/bin:{{ oracle_home }}/perl/bin:$PATH; export PATH
 
+# Ensure dbs/ directory exists (created by runInstaller, but guard on reruns)
+mkdir -p {{ oracle_home }}/dbs
+
 # Create password file (non-interactive)
 {{ oracle_home }}/bin/orapwd \
   file={{ oracle_home }}/dbs/orapw{{ oracle_sid }} \

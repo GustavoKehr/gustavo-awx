@@ -1,7 +1,7 @@
 # Oracle init.ora - managed by Ansible
 # {{ oracle_scripts_dir }}/init.ora
 
-*._audit_file_dest='{{ oracle_base }}/admin/adump'
+*.audit_file_dest='{{ oracle_base }}/admin/adump'
 *.audit_trail='db'
 *.compatible='19.0.0'
 *.control_files='{{ oracle_base }}/mirrlogA/cntrl/control01.ctl','{{ oracle_base }}/oradata1/cntrl/control02.ctl','{{ oracle_base }}/origlogA/cntrl/control03.ctl'
