@@ -1,11 +1,35 @@
 ---
 # All tasks here run as root (become: yes inherited from playbook)
 
-- name: "PREREQS | Install Oracle preinstall RPM"
-  ansible.builtin.dnf:
-    name: "{{ oracle_software_src }}/{{ oracle_preinstall_rpm }}"
-    state: present
-    disable_gpg_check: true
+- name: "PREREQS | Auto-calculate SGA (40%) and PGA (20%) from available RAM"
+  ansible.builtin.set_fact:
+    oracle_sga_target: "{{ (ansible_memtotal_mb * 0.40) | int }}m"
+    oracle_pga_target: "{{ (ansible_memtotal_mb * 0.20) | int }}m"
+  tags: oracle_prereqs
+
+- name: "PREREQS | Check preinstall RPM on target"
+  ansible.builtin.shell: >-
+    test -f "/tmp/{{ oracle_preinstall_rpm }}" && echo present || echo absent
+  register: _rpm_stat
+  changed_when: false
+  become: false
+  tags: oracle_prereqs
+
+- name: "PREREQS | Copy preinstall RPM from controller to target /tmp"
+  ansible.builtin.copy:
+    src: "{{ oracle_software_src }}/{{ oracle_preinstall_rpm }}"
+    dest: "/tmp/{{ oracle_preinstall_rpm }}"
+    mode: "0644"
+  become: false
+  when: _rpm_stat.stdout == "absent"
+  tags: oracle_prereqs
+
+- name: "PREREQS | Install Oracle preinstall RPM from /tmp"
+  ansible.builtin.shell: |
+    rpm -q oracle-database-preinstall-19c && exit 0
+    dnf install -y --disablegpgcheck "/tmp/{{ oracle_preinstall_rpm }}"
+  changed_when: "'already installed' not in _rpm_install.stdout"
+  register: _rpm_install
   tags: oracle_prereqs
 
 - name: "PREREQS | Back up /etc/init.d (required for Oracle installer on RHEL9)"
@@ -91,10 +115,10 @@
   tags: oracle_prereqs
 
 - name: "PREREQS | Ensure software staging directory exists on target"
-  ansible.builtin.file:
-    path: "{{ oracle_software_dst }}"
-    state: directory
-    owner: oracle
-    group: oinstall
-    mode: "0750"
+  ansible.builtin.shell: |
+    mkdir -p "{{ oracle_software_dst }}"
+    chown oracle:oinstall "{{ oracle_software_dst }}"
+    chmod 0750 "{{ oracle_software_dst }}"
+  args:
+    creates: "{{ oracle_software_dst }}"
   tags: oracle_prereqs

@@ -1,4 +1,8 @@
 ---
+- name: "ORACLE | Phase 0 - Storage setup (format and mount LVs)"
+  ansible.builtin.include_tasks: 00_storage_setup.yml
+  tags: [oracle, oracle_storage]
+
 - name: "ORACLE | Validate required variables"
   ansible.builtin.assert:
     that:
