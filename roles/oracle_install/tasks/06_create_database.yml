@@ -55,7 +55,7 @@
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH={{ oracle_home }}/bin:$PATH
-    sqlplus -s "/ as sysdba" @{{ oracle_scripts_dir }}/Users_and_Objects.sql
+    sqlplus -s "/ as sysdba" @{{ oracle_scripts_dir }}/Users_and_Objects.sql < /dev/null
   become: true
   become_user: oracle
   changed_when: true
