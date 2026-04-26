@@ -1,4 +1,14 @@
 ---
+- name: "INSTALL | Wipe Oracle home if installation never completed"
+  ansible.builtin.shell: |
+    test -s "{{ oracle_home }}/bin/oracle" && exit 0
+    rm -rf "{{ oracle_home }}"
+    mkdir -p "{{ oracle_home }}"
+    chown oracle:oinstall "{{ oracle_home }}"
+    chmod 0750 "{{ oracle_home }}"
+  changed_when: false
+  tags: oracle_install_sw
+
 - name: "INSTALL | Unzip Oracle installer into ORACLE_HOME"
   ansible.builtin.shell: |
     unzip -q "{{ oracle_software_dst }}/{{ oracle_installer_zip }}" -d "{{ oracle_home }}"
