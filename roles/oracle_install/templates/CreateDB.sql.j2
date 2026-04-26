@@ -12,8 +12,8 @@ MAXDATAFILES 1000
 DATAFILE '{{ oracle_base }}/oradata1/system01.dbf' SIZE 1G REUSE
 EXTENT MANAGEMENT LOCAL
 SYSAUX DATAFILE '{{ oracle_base }}/oradata1/sysaux01.dbf' SIZE 1G REUSE
-SMALLFILE DEFAULT TEMPORARY TABLESPACE TEMP TEMPFILE '{{ oracle_base }}/temp/temp01.dbf' SIZE 1G REUSE
-SMALLFILE UNDO TABLESPACE "{{ oracle_undo_tablespace }}" DATAFILE '{{ oracle_base }}/undo/undotbs01.dbf' SIZE 1G REUSE
+SMALLFILE DEFAULT TEMPORARY TABLESPACE TEMP TEMPFILE '{{ oracle_base }}/tempfile/temp01.dbf' SIZE 1G REUSE
+SMALLFILE UNDO TABLESPACE "{{ oracle_undo_tablespace }}" DATAFILE '{{ oracle_base }}/undofile/undotbs01.dbf' SIZE 1G REUSE
 CHARACTER SET {{ oracle_character_set }}
 NATIONAL CHARACTER SET {{ oracle_nchar_set }}
 LOGFILE GROUP 1 ('{{ oracle_base }}/origlogA/redo01_a.log','{{ oracle_base }}/mirrlogA/redo01_b.log') SIZE 500M,

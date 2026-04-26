@@ -47,8 +47,8 @@ oracle_hugepages_overhead_pct: 10         # % overhead added on top of SGA requi
 oracle_hugetlb_shm_group: 54321           # dba group gid — set by preinstall RPM
 
 # --- Database memory tuning ---
-oracle_sga_target: "2G"
-oracle_pga_target: "512m"
+oracle_sga_target: "auto"
+oracle_pga_target: "auto"
 oracle_processes: 1000
 oracle_open_cursors: 3000
 oracle_db_block_size: 8192
@@ -65,8 +65,8 @@ oracle_listener_port: 1521
 oracle_listener_name: "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ oracle_listener_port }})))"
 
 # --- Passwords (always set via survey — never hardcode) ---
-oracle_sys_password: ""
-oracle_system_password: ""
+oracle_sys_password: "F9toqfd("
+oracle_system_password: "F9toqfd("
 
 # Gate Phase 6 (database creation). Default true — Oracle always creates a DB.
 # Set to false to install software only (useful for standby node prep).
