@@ -1,5 +1,5 @@
--- Oracle init.ora — managed by Ansible
--- {{ oracle_scripts_dir }}/init.ora
+# Oracle init.ora - managed by Ansible
+# {{ oracle_scripts_dir }}/init.ora
 
 *._audit_file_dest='{{ oracle_base }}/admin/adump'
 *.audit_trail='db'
@@ -23,4 +23,4 @@
 *.remote_login_passwordfile='EXCLUSIVE'
 *.sga_target={{ oracle_sga_target }}
 *.undo_tablespace='{{ oracle_undo_tablespace }}'
-*.use_large_pages='ONLY'
+*.use_large_pages='TRUE'

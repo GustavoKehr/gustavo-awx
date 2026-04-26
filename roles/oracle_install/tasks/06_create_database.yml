@@ -11,6 +11,7 @@
 
 - name: "DBCREATE | Run database creation script"
   ansible.builtin.shell: |
+    test -f "{{ oracle_base }}/mirrlogA/cntrl/control01.ctl" && exit 0
     export ORACLE_BASE={{ oracle_base }}
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
@@ -20,7 +21,7 @@
   become: true
   become_user: oracle
   register: dbcreate_result
-  changed_when: true
+  changed_when: dbcreate_result.rc == 0 and dbcreate_result.stdout | length > 0
   tags: oracle_dbcreate
 
 - name: "DBCREATE | Show creation output summary"
