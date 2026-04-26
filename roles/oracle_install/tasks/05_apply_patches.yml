@@ -6,6 +6,23 @@
 #   4. opatch post_patch3 (p34672698)
 #   5. root: chown root oradism + chmod 4750
 
+- name: "PATCHES | Free hugepages so OPatch JVM has sufficient RAM"
+  ansible.builtin.shell: |
+    cat /proc/sys/vm/nr_hugepages > /tmp/oracle_hugepages_saved
+    echo 0 > /proc/sys/vm/nr_hugepages
+  changed_when: false
+  tags: oracle_patches
+
+- name: "PATCHES | Clean stale OPatch staging from previous failed applies"
+  ansible.builtin.shell: |
+    rm -rf "{{ oracle_home }}/.patch_storage/oracle-home-"*
+    rm -rf "{{ oracle_home }}/.patch_storage/unzip_action"
+    exit 0
+  become: true
+  become_user: oracle
+  changed_when: false
+  tags: oracle_patches
+
 - name: "PATCHES | Apply post_patch1 ({{ oracle_post_patch1_dir }})"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
@@ -13,7 +30,7 @@
     opatch lsinventory | grep -q "Patch  {{ oracle_post_patch1_sub }} " && exit 0
     test -d "{{ oracle_software_dst }}/{{ oracle_post_patch1_dir }}/{{ oracle_post_patch1_sub }}" || exit 0
     cd {{ oracle_software_dst }}/{{ oracle_post_patch1_dir }}/{{ oracle_post_patch1_sub }}
-    yes | opatch apply
+    opatch apply -silent
   become: true
   become_user: oracle
   register: patch1_result
@@ -28,7 +45,7 @@
     opatch lsinventory | grep -q "Patch  {{ oracle_post_patch2_sub }} " && exit 0
     test -d "{{ oracle_software_dst }}/{{ oracle_post_patch2_dir }}/{{ oracle_post_patch2_sub }}" || exit 0
     cd {{ oracle_software_dst }}/{{ oracle_post_patch2_dir }}/{{ oracle_post_patch2_sub }}
-    yes | opatch apply
+    opatch apply -silent
   become: true
   become_user: oracle
   register: patch2_result
@@ -48,7 +65,7 @@
     opatch lsinventory | grep -q "Patch  {{ oracle_post_patch3_sub }} " && exit 0
     test -d "{{ oracle_software_dst }}/{{ oracle_post_patch3_dir }}/{{ oracle_post_patch3_sub }}" || exit 0
     cd {{ oracle_software_dst }}/{{ oracle_post_patch3_dir }}/{{ oracle_post_patch3_sub }}
-    yes | opatch apply
+    opatch apply -silent
   become: true
   become_user: oracle
   register: patch3_result
@@ -59,6 +76,14 @@
   ansible.builtin.shell: |
     chown root "{{ oracle_home }}/bin/oradism"
     chmod 4750 "{{ oracle_home }}/bin/oradism"
+  tags: oracle_patches
+
+- name: "PATCHES | Restore hugepages after patching"
+  ansible.builtin.shell: |
+    saved=$(cat /tmp/oracle_hugepages_saved 2>/dev/null || echo 0)
+    echo "$saved" > /proc/sys/vm/nr_hugepages
+    rm -f /tmp/oracle_hugepages_saved
+  changed_when: false
   tags: oracle_patches
 
 - name: "PATCHES | Verify patch inventory"
