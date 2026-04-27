@@ -63,6 +63,15 @@
   changed_when: true
   tags: oracle_storage
 
+- name: "STORAGE | Set oracle:oinstall ownership on /oracle/{{ oracle_sid }} LV root"
+  ansible.builtin.file:
+    path: "/oracle/{{ oracle_sid }}"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: "0755"
+  tags: oracle_storage
+
 - name: "STORAGE | Create subdirectory mount points under /oracle/{{ oracle_sid }}"
   ansible.builtin.file:
     path: "{{ item.mp }}"
