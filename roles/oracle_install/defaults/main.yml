@@ -36,6 +36,20 @@ oracle_post_patch2_sub: "38632161"
 oracle_post_patch3_dir: "p34672698"
 oracle_post_patch3_sub: "34672698"
 
+# --- LVM storage layout (used to create LVs on fresh VMs) ---
+# VG must already exist (e.g. vg_data on /dev/sdb or /dev/sdc).
+# LVs are created idempotently if missing.
+oracle_vg_name: "vg_data"
+oracle_lv_awor_size: "60G"       # Oracle base + software staging
+oracle_lv_oradata_size: "10G"    # Datafiles
+oracle_lv_mirrlogA_size: "1G"    # Mirrored redo log A
+oracle_lv_mirrlogB_size: "1G"    # Mirrored redo log B
+oracle_lv_origlogA_size: "1G"    # Original redo log A
+oracle_lv_origlogB_size: "1G"    # Original redo log B
+oracle_lv_oraarch_size: "5G"     # Archive logs
+oracle_lv_undofile_size: "5G"    # Undo tablespace
+oracle_lv_tempfile_size: "5G"    # Temp tablespace
+
 # --- Kernel: HugePages ---
 # Set to 0 to auto-calculate from oracle_sga_target and target VM memory.
 # Set to a positive integer to force an exact count.

@@ -1,6 +1,6 @@
 {
   "name": "Oracle 19c Installation Survey",
-  "description": "Minimal survey — only the SID is required. All other parameters (passwords, memory, directories, patches) are automatic defaults.",
+  "description": "SID is required. LV sizes are pre-filled with defaults — adjust for your storage layout.",
   "spec": [
     {
       "question_name": "Oracle SID",
@@ -11,6 +11,86 @@
       "default": "AWOR",
       "min": 1,
       "max": 8
+    },
+    {
+      "question_name": "VG Name",
+      "question_description": "LVM Volume Group name containing the Oracle LVs. Must already exist on the target disk.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_vg_name",
+      "default": "vg_data",
+      "min": 1,
+      "max": 32
+    },
+    {
+      "question_name": "LV: lv_awor size (Oracle base + software)",
+      "question_description": "Size of the main Oracle base LV. Holds Oracle home, software staging, admin dirs. Format: e.g. 60G",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_lv_awor_size",
+      "default": "60G",
+      "min": 2,
+      "max": 10
+    },
+    {
+      "question_name": "LV: lv_oradata size (datafiles)",
+      "question_description": "Size of the Oracle datafiles LV. Format: e.g. 10G",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_lv_oradata_size",
+      "default": "10G",
+      "min": 2,
+      "max": 10
+    },
+    {
+      "question_name": "LV: lv_oraarch size (archive logs)",
+      "question_description": "Size of the archive log LV. Format: e.g. 5G",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_lv_oraarch_size",
+      "default": "5G",
+      "min": 2,
+      "max": 10
+    },
+    {
+      "question_name": "LV: lv_undofile size (undo tablespace)",
+      "question_description": "Size of the undo tablespace LV. Format: e.g. 5G",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_lv_undofile_size",
+      "default": "5G",
+      "min": 2,
+      "max": 10
+    },
+    {
+      "question_name": "LV: lv_tempfile size (temp tablespace)",
+      "question_description": "Size of the temp tablespace LV. Format: e.g. 5G",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_lv_tempfile_size",
+      "default": "5G",
+      "min": 2,
+      "max": 10
+    },
+    {
+      "question_name": "LV: lv_mirrlogA/B size (mirrored redo logs)",
+      "question_description": "Size for each mirrored redo log LV (A and B use the same size). Format: e.g. 1G",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_lv_mirrlogA_size",
+      "default": "1G",
+      "min": 2,
+      "max": 10
+    },
+    {
+      "question_name": "LV: lv_origlogA/B size (original redo logs)",
+      "question_description": "Size for each original redo log LV (A and B use the same size). Format: e.g. 1G",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_lv_origlogA_size",
+      "default": "1G",
+      "min": 2,
+      "max": 10
     }
   ]
 }

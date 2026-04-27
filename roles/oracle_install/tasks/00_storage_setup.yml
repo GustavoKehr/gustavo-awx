@@ -2,6 +2,41 @@
 # Format and mount Oracle LVs.
 # Uses /proc/mounts for idempotency — no PATH dependency, always readable.
 # Mount order matters: lv_awor (/oracle/AWOR) must be mounted first.
+# LV creation is idempotent — skipped if LV already exists in vg_data.
+
+- name: "STORAGE | Define LV layout for creation and mounting"
+  ansible.builtin.set_fact:
+    _oracle_lv_layout:
+      - lv: lv_awor
+        size: "{{ oracle_lv_awor_size }}"
+      - lv: lv_oradata
+        size: "{{ oracle_lv_oradata_size }}"
+      - lv: lv_mirrlogA
+        size: "{{ oracle_lv_mirrlogA_size }}"
+      - lv: lv_mirrlogB
+        size: "{{ oracle_lv_mirrlogB_size }}"
+      - lv: lv_origlogA
+        size: "{{ oracle_lv_origlogA_size }}"
+      - lv: lv_origlogB
+        size: "{{ oracle_lv_origlogB_size }}"
+      - lv: lv_oraarch
+        size: "{{ oracle_lv_oraarch_size }}"
+      - lv: lv_undofile
+        size: "{{ oracle_lv_undofile_size }}"
+      - lv: lv_tempfile
+        size: "{{ oracle_lv_tempfile_size }}"
+  tags: oracle_storage
+
+- name: "STORAGE | Create Oracle LVs in {{ oracle_vg_name }} if missing"
+  ansible.builtin.shell: |
+    lvs {{ oracle_vg_name }}/{{ item.lv }} > /dev/null 2>&1 && exit 0
+    lvcreate -L {{ item.size }} -n {{ item.lv }} {{ oracle_vg_name }}
+  loop: "{{ _oracle_lv_layout }}"
+  loop_control:
+    label: "{{ item.lv }} ({{ item.size }})"
+  changed_when: true
+  ignore_errors: true
+  tags: oracle_storage
 
 - name: "STORAGE | Define LV mount map"
   ansible.builtin.set_fact:
