@@ -70,9 +70,10 @@
         order: 1
   tags: oracle_storage
 
-- name: "STORAGE | Format LVs as XFS (skip if already mounted)"
+- name: "STORAGE | Format LVs as XFS (skip if mounted or already has filesystem)"
   ansible.builtin.shell: |
     grep -q " {{ item.mp }} " /proc/mounts && exit 0
+    blkid {{ item.lv }} | grep -q xfs && exit 0
     /usr/sbin/mkfs.xfs {{ item.lv }}
   loop: "{{ _oracle_lv_mounts }}"
   loop_control:

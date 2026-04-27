@@ -29,6 +29,18 @@
     msg: "{{ dbcreate_result.stdout_lines[-30:] }}"
   tags: oracle_dbcreate
 
+- name: "DBCREATE | Start database if not running (uses creation pfile)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH={{ oracle_home }}/bin:$PATH
+    pgrep -f "ora_pmon_{{ oracle_sid }}" > /dev/null && exit 0
+    echo "STARTUP PFILE={{ oracle_scripts_dir }}/init.ora;" | sqlplus -s / as sysdba
+  become: true
+  become_user: oracle
+  changed_when: true
+  tags: oracle_dbcreate
+
 - name: "DBCREATE | Verify database is open"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
@@ -48,6 +60,44 @@
   ansible.builtin.assert:
     that: "'OPEN' in db_status.stdout"
     fail_msg: "Database did not reach OPEN status. Check {{ oracle_scripts_dir }}/CreateDB.log"
+  tags: oracle_dbcreate
+
+- name: "DBCREATE | Create SPFILE from pfile and restart"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH={{ oracle_home }}/bin:$PATH
+    test -f "{{ oracle_home }}/dbs/spfile{{ oracle_sid }}.ora" && exit 0
+    sqlplus -s / as sysdba <<EOF
+    CREATE SPFILE='{{ oracle_home }}/dbs/spfile{{ oracle_sid }}.ora' FROM PFILE='{{ oracle_scripts_dir }}/init.ora';
+    SHUTDOWN IMMEDIATE;
+    STARTUP;
+    EXIT;
+    EOF
+  become: true
+  become_user: oracle
+  changed_when: true
+  tags: oracle_dbcreate
+
+- name: "DBCREATE | Verify SPFILE is in use"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH={{ oracle_home }}/bin:$PATH
+    sqlplus -s / as sysdba <<EOF
+    SELECT VALUE FROM v\$parameter WHERE name = 'spfile';
+    EXIT;
+    EOF
+  become: true
+  become_user: oracle
+  register: spfile_check
+  changed_when: false
+  tags: oracle_dbcreate
+
+- name: "DBCREATE | Assert SPFILE is active"
+  ansible.builtin.fail:
+    msg: "SPFILE not active — spfile{{ oracle_sid | lower }}.ora not found in v$parameter"
+  when: spfile_check.stdout is not search('spfile', ignorecase=True)
   tags: oracle_dbcreate
 
 - name: "DBCREATE | Apply Users_and_Objects profile settings"
