@@ -2,7 +2,8 @@
 # Transfers Oracle software from AWX VM (/opt/oracle, /opt/patches) to oracle_software_dst on target.
 # Uses rsync delegated to awxvm (not the EE container) for speed on large files.
 # --rsync-path="sudo rsync" writes directly to oracle-owned dirs without a temp stage.
-# Each block checks destination existence first — skips entirely if already present.
+# Each block checks destination existence first — skips rsync if already present.
+# Ownership fix always runs (idempotent chown) regardless of whether rsync ran.
 
 - name: "TRANSFER | Check installer zip on target"
   ansible.builtin.shell: >-
@@ -27,7 +28,7 @@
   ansible.builtin.shell: |
     chown oracle:oinstall "{{ oracle_software_dst }}/{{ oracle_installer_zip }}"
     chmod 0640 "{{ oracle_software_dst }}/{{ oracle_installer_zip }}"
-  when: _zip_stat.stdout == "absent"
+  changed_when: false
   tags: oracle_transfer
 
 - name: "TRANSFER | Check OPatch directory on target"
@@ -54,7 +55,7 @@
 - name: "TRANSFER | Fix OPatch directory ownership"
   ansible.builtin.shell: |
     chown -R oracle:oinstall "{{ oracle_software_dst }}/{{ oracle_opatch_dir }}"
-  when: _opatch_stat.stdout == "absent"
+  changed_when: false
   tags: oracle_transfer
 
 - name: "TRANSFER | Check RU patch directory on target"
@@ -81,7 +82,7 @@
 - name: "TRANSFER | Fix RU patch directory ownership"
   ansible.builtin.shell: |
     chown -R oracle:oinstall "{{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}"
-  when: _ru_stat.stdout == "absent"
+  changed_when: false
   tags: oracle_transfer
 
 - name: "TRANSFER | Check post_patch1 directory on target"
@@ -122,9 +123,9 @@
 - name: "TRANSFER | Fix post_patch1 directory ownership"
   ansible.builtin.shell: |
     chown -R oracle:oinstall "{{ oracle_software_dst }}/{{ oracle_post_patch1_dir }}"
+  changed_when: false
   when:
     - oracle_post_patch1_enabled | bool
-    - _patch1_stat.stdout == "absent"
     - _patch1_src.stdout == "present"
   tags: oracle_transfer
 
@@ -175,7 +176,7 @@
   loop: "{{ _patch23_stat.results | zip(_patch23_src.results) | list }}"
   loop_control:
     label: "{{ item.0.item }}"
+  changed_when: false
   when:
-    - item.0.stdout == "absent"
     - item.1.stdout == "present"
   tags: oracle_transfer
