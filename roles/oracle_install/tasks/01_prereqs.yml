@@ -116,6 +116,26 @@
     password: "{{ oracle_sys_password | password_hash('sha512') }}"
   tags: oracle_prereqs
 
+- name: "PREREQS | Check libnsl.so.1 presence (required by Oracle 19c perl)"
+  ansible.builtin.shell: test -f /usr/lib64/libnsl.so.1 && echo present || echo absent
+  register: _libnsl_stat
+  changed_when: false
+  tags: oracle_prereqs
+
+- name: "PREREQS | Copy libnsl libraries to target (missing on RHEL9 minimal)"
+  ansible.builtin.shell: |
+    rsync -a \
+      -e "ssh -i ~/.ssh/id_user_aap -o StrictHostKeyChecking=no" \
+      --rsync-path="sudo rsync" \
+      /opt/oracle/libnsl_libs/ \
+      user_aap@{{ ansible_host }}:/usr/lib64/
+    ssh -i ~/.ssh/id_user_aap -o StrictHostKeyChecking=no \
+      user_aap@{{ ansible_host }} "sudo ldconfig"
+  delegate_to: awxvm
+  become: false
+  when: _libnsl_stat.stdout == "absent"
+  tags: oracle_prereqs
+
 - name: "PREREQS | Ensure software staging directory exists on target"
   ansible.builtin.shell: |
     mkdir -p "{{ oracle_software_dst }}"
