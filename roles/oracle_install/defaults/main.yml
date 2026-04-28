@@ -37,8 +37,9 @@ oracle_post_patch3_dir: "p34672698"
 oracle_post_patch3_sub: "34672698"
 
 # --- LVM storage layout (used to create LVs on fresh VMs) ---
-# VG must already exist (e.g. vg_data on /dev/sdb or /dev/sdc).
-# LVs are created idempotently if missing.
+# oracle_data_disk: raw disk to initialize as PV and VG (created if VG absent).
+# Set to "" to skip PV/VG creation (VG must already exist).
+oracle_data_disk: "/dev/sdc"
 oracle_vg_name: "vg_data"
 oracle_lv_awor_size: "60G"       # Oracle base + software staging
 oracle_lv_oradata_size: "10G"    # Datafiles

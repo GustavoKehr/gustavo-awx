@@ -1,4 +1,22 @@
 ---
+- name: "INSTALL | Detect corrupted Oracle home (0-byte .a library files from interrupted patch)"
+  ansible.builtin.shell: |
+    test -s "{{ oracle_home }}/bin/oracle" || exit 0
+    find "{{ oracle_home }}/lib" -name "*.a" -empty 2>/dev/null | grep -q . && echo corrupt || echo ok
+  register: _ohome_corrupt
+  changed_when: false
+  tags: oracle_install_sw
+
+- name: "INSTALL | Wipe corrupted Oracle home to force full reinstall"
+  ansible.builtin.shell: |
+    rm -rf "{{ oracle_home }}"
+    mkdir -p "{{ oracle_home }}"
+    chown oracle:oinstall "{{ oracle_home }}"
+    chmod 0750 "{{ oracle_home }}"
+  when: _ohome_corrupt.stdout == "corrupt"
+  changed_when: true
+  tags: oracle_install_sw
+
 - name: "INSTALL | Wipe Oracle home if installation never completed"
   ansible.builtin.shell: |
     test -s "{{ oracle_home }}/bin/oracle" && exit 0

@@ -9,6 +9,7 @@
     group: oinstall
     mode: "0750"
   loop:
+    - "{{ oracle_base }}"
     - "{{ oracle_home }}"
     - "{{ oracle_base }}/oraInventory"
     - "{{ oracle_base }}/admin/adump"
