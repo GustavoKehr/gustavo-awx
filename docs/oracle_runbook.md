@@ -38,26 +38,27 @@ O EE deve ter `/opt/oracle` montado (configurado via operador patch no AWX). Ver
 
 ---
 
-## Estrutura de Diretórios Criada (Fase 2)
+## Estrutura de LVs e Diretórios no Target
 
 ```
-/oracle/TSTOR/
-├── 19.0.0/              ← ORACLE_HOME (binários)
-├── oraInventory/        ← inventory Oracle
+/oracle/<SID>/                       ← lv_<SID> (base: Oracle home, software, scripts)
+├── 19.0.0/                          ← ORACLE_HOME (binários)
+├── oraInventory/                    ← inventory Oracle
+├── software/                        ← staging dos binários (rsync do AWX)
 ├── admin/
-│   ├── adump/           ← audit dump
-│   ├── dpdump/          ← data pump
-│   ├── pfile/           ← parâmetros
-│   └── audit/           ← auditoria
-├── oradata1/            ← datafiles + control02
-├── origlogA/            ← redo log grupo 1 membro A + control03
-├── origlogB/            ← redo log grupo 2 membro A
-├── mirrlogA/            ← mirror redo grupo 1 + control01
-├── mirrlogB/            ← mirror redo grupo 2
-├── temp/                ← temporary tablespace
-├── undo/                ← undo tablespace
-├── oraarch/             ← archive logs
-└── scripts/db_creation/TSTOR/  ← scripts de criação + logs
+│   ├── adump/                       ← audit dump
+│   ├── dpdump/                      ← data pump
+│   ├── pfile/                       ← parâmetros
+│   └── audit/                       ← auditoria
+├── oradata1/                        ← lv_oradata (datafiles + control02)
+├── origlogA/                        ← lv_origlogA (redo log grupo 1 membro A + control03)
+├── origlogB/                        ← lv_origlogB (redo log grupo 2 membro A)
+├── mirrlogA/                        ← lv_mirrlogA (mirror redo grupo 1 + control01)
+├── mirrlogB/                        ← lv_mirrlogB (mirror redo grupo 2)
+├── oraarch/                         ← lv_oraarch (archive logs)
+├── undofile/                        ← lv_undofile (undo tablespace)
+├── tempfile/                        ← lv_tempfile (temp tablespace)
+└── scripts/db_creation/<SID>/       ← scripts de criação + logs
 ```
 
 ---
@@ -79,15 +80,15 @@ O EE deve ter `/opt/oracle` montado (configurado via operador patch no AWX). Ver
 
 | Tag | Fase | O que executa | Duração aprox. |
 |---|---|---|---|
-| `oracle_validate` | Pre | Validação de variáveis (SID, senhas) | < 1 min |
-| `oracle_prereqs` | 1 | RPM preinstall, sysctl, workaround RHEL 9, hugepages | 5-10 min |
+| `oracle_storage` | 0 | PV/VG/LV creation, mkfs.xfs, mount de todos os LVs | 1-2 min |
+| `oracle_prereqs` | 1 | RPM preinstall, sysctl, workaround RHEL 9, hugepages, calc SGA/PGA | 5-10 min |
 | `oracle_dirs` | 2 | Estrutura de diretórios, bash_profile, sysctl Oracle | 2-3 min |
-| `oracle_transfer` | 3 | Rsync ~8 GB do AWX para oraclevm | 15-30 min |
-| `oracle_install_sw` | 4 | Descompactar + runInstaller silencioso + root.sh | 20-40 min |
-| `oracle_patches` | 5 | opatch: RU → one-off → post1 → post2 → oradism → post3 | 30-60 min |
-| `oracle_dbcreate` | 6 | dbca silencioso + sqlplus check + oratab + datapatch | 20-40 min |
+| `oracle_transfer` | 3 | Rsync ~8 GB do AWX para `/oracle/<SID>/software` | 15-30 min |
+| `oracle_install_sw` | 4 | Descompactar + runInstaller silencioso + root.sh | 10-20 min |
+| `oracle_patches` | 5 | opatch: RU → one-off → post1 → post2 → oradism → post3 | 15-30 min |
+| `oracle_dbcreate` | 6 | Criação do banco, catalog/catproc, datapatch, SPFILE | 10-20 min |
 
-**Tempo total estimado:** 1h30 a 3h (dependendo da velocidade da rede e disco)
+**Tempo total medido:** ~47 min (Job AWX 271, fresh VM, 2026-04-28)
 
 ---
 
@@ -97,17 +98,23 @@ O EE deve ter `/opt/oracle` montado (configurado via operador patch no AWX). Ver
 
 **Survey a preencher:**
 
-| Campo | Valor |
+| Campo | Valor de exemplo |
 |---|---|
-| Oracle SID | `TSTOR` |
-| SYS password | `Sys#Secure2024!` |
-| SYSTEM password | `Sys#Secure2024!` |
-| SGA target | `2G` |
-| PGA target | `512m` |
-| HugePages count | `0` (cálculo automático) |
-| Create initial DB | `true` |
+| Oracle SID | `AWOR` |
+| Data Disk | `/dev/sdc` (deixar vazio se VG já existe) |
+| VG Name | `vg_data` |
+| LV base size | `60G` |
+| LV oradata size | `10G` |
+| LV oraarch size | `5G` |
+| LV undofile size | `5G` |
+| LV tempfile size | `5G` |
+| LV mirrlog size | `1G` |
+| LV origlog size | `1G` |
+| SGA % de RAM | `40` |
+| PGA % de RAM | `20` |
+| Character Set | `AL32UTF8` |
 
-Não especificar tags — roda todas as 6 fases.
+Não especificar tags — roda todas as 7 fases (storage → prereqs → dirs → transfer → install → patches → dbcreate).
 
 ---
 
@@ -211,23 +218,27 @@ O rsync só retransfer o que mudou — se os arquivos estiverem intactos, a task
 ## Checklist de Verificação Pós-Instalação
 
 ```bash
-# SSH no oraclevm
+# SSH no target (ex: oraclevm 192.168.137.163)
+# Substituir <SID> pelo SID usado no survey (ex: AWOR)
 ssh user_aap@192.168.137.163
 
 # Verificar banco OPEN:
-sudo -u oracle /oracle/TSTOR/19.0.0/bin/sqlplus / as sysdba <<EOF
+sudo -u oracle /oracle/<SID>/19.0.0/bin/sqlplus / as sysdba <<EOF
 SELECT status FROM v\$instance;
 SELECT name, db_unique_name FROM v\$database;
 EOF
 
 # Verificar oratab registrado:
-grep TSTOR /etc/oratab
+grep <SID> /etc/oratab
 
 # Verificar listener:
-sudo -u oracle /oracle/TSTOR/19.0.0/bin/lsnrctl status
+sudo -u oracle /oracle/<SID>/19.0.0/bin/lsnrctl status
 
 # Verificar patches aplicados:
-sudo -u oracle /oracle/TSTOR/19.0.0/OPatch/opatch lsinventory | grep "Patch description"
+sudo -u oracle /oracle/<SID>/19.0.0/OPatch/opatch lsinventory | grep "Patch description"
+
+# Verificar LVs montados:
+df -h | grep oracle
 ```
 
 ---
@@ -252,9 +263,9 @@ du -sh /home/oracle/software/
 **rc=6 é sucesso.** O runInstaller retorna 6 quando há warnings — isso é normal. Se falhar com outro rc, verificar:
 
 ```bash
-# Logs do instalador em oraclevm:
-ls -la /oracle/TSTOR/oraInventory/logs/
-tail -100 /oracle/TSTOR/oraInventory/logs/installActions*.log
+# Logs do instalador em oraclevm (substituir <SID>):
+ls -la /oracle/<SID>/oraInventory/logs/
+tail -100 /oracle/<SID>/oraInventory/logs/installActions*.log
 ```
 
 ---
@@ -265,16 +276,16 @@ tail -100 /oracle/TSTOR/oraInventory/logs/installActions*.log
 
 **Verificar:**
 ```bash
-sudo -u oracle /oracle/TSTOR/19.0.0/OPatch/opatch lsinventory
+sudo -u oracle /oracle/<SID>/19.0.0/OPatch/opatch lsinventory
 ```
 
 ---
 
-### Banco não fica OPEN após dbca
+### Banco não fica OPEN após dbcreate
 
 ```bash
-# Tentar subir manualmente:
-sudo -u oracle /oracle/TSTOR/19.0.0/bin/sqlplus / as sysdba <<EOF
+# Tentar subir manualmente (substituir <SID>):
+sudo -u oracle /oracle/<SID>/19.0.0/bin/sqlplus / as sysdba <<EOF
 STARTUP;
 SELECT status FROM v\$instance;
 EOF

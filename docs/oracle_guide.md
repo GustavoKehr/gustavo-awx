@@ -25,9 +25,9 @@ ORACLE_BASE   → Diretório raiz de todas as instalações Oracle no servidor
 ```
 
 **Neste projeto:**
-- `ORACLE_BASE` = `/oracle/TSTOR`
-- `ORACLE_HOME` = `/oracle/TSTOR/19.0.0`
-- `oracle_sid` = `TSTOR` (identificador do banco)
+- `ORACLE_BASE` = `/oracle/<SID>` (dinâmico — ex: `/oracle/AWOR`)
+- `ORACLE_HOME` = `/oracle/<SID>/19.0.0`
+- `oracle_sid` = definido no survey (padrão: `AWOR`)
 
 ### O que é OPatch?
 
@@ -73,15 +73,16 @@ ls -la /opt/oracle/
 
 ## Playbook — deploy_oracle.yml
 
-6 fases sequenciais. Cada fase depende da anterior.
+7 fases sequenciais. Cada fase depende da anterior.
 
 ```
-Phase 1: oracle_prereqs    → tags: oracle_prereqs    → RPM, hugepages, workaround RHEL 9
+Phase 0: oracle_storage    → tags: oracle_storage    → PV/VG/LV creation, mkfs.xfs, mount
+Phase 1: oracle_prereqs    → tags: oracle_prereqs    → RPM, hugepages, workaround RHEL 9, calc SGA/PGA
 Phase 2: oracle_dirs       → tags: oracle_dirs       → estrutura de diretórios, bash_profile
-Phase 3: oracle_transfer   → tags: oracle_transfer   → rsync ~5 GB do AWX para oraclevm
+Phase 3: oracle_transfer   → tags: oracle_transfer   → rsync ~8 GB do AWX para /oracle/<SID>/software
 Phase 4: oracle_install_sw → tags: oracle_install_sw → descompactar + runInstaller + root.sh
 Phase 5: oracle_patches    → tags: oracle_patches    → opatch em sequência (RU → one-off → post)
-Phase 6: oracle_dbcreate   → tags: oracle_dbcreate   → dbca silencioso + verificação + oratab
+Phase 6: oracle_dbcreate   → tags: oracle_dbcreate   → criação do banco, catalog/catproc, datapatch, SPFILE
 ```
 
 ### Comandos de execução
@@ -111,27 +112,42 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_users -l oraclevm
 
 ### Identidade e Caminhos
 
-| Variável | Padrão | Obrigatório | Descrição |
+| Variável | Padrão | Survey | Descrição |
 |---|---|---|---|
-| `oracle_sid` | `TSTOR` | **Sim** | Identificador único do banco. Define o nome dos diretórios e o oratab. |
+| `oracle_sid` | `AWOR` | **Sim** | Identificador único do banco. Define diretórios, LV name, oratab. |
 | `oracle_base` | `/oracle/{{ oracle_sid }}` | Não | Calculado a partir do SID. Raiz de todas as instalações. |
 | `oracle_home` | `{{ oracle_base }}/19.0.0` | Não | Calculado a partir do base. Onde ficam os binários. |
+
+### LVM Storage (survey-driven)
+
+| Variável | Padrão | Survey | Descrição |
+|---|---|---|---|
+| `oracle_data_disk` | `/dev/sdc` | Não | Dispositivo raw para PV/VG. Vazio = skip PV/VG creation. |
+| `oracle_vg_name` | `vg_data` | **Sim** | LVM Volume Group para todos os LVs Oracle. |
+| `oracle_lv_base_size` | `60G` | **Sim** | `lv_<SID>` — Oracle home + software staging + scripts |
+| `oracle_lv_oradata_size` | `10G` | **Sim** | `lv_oradata` — datafiles |
+| `oracle_lv_oraarch_size` | `5G` | **Sim** | `lv_oraarch` — archive logs |
+| `oracle_lv_undofile_size` | `5G` | **Sim** | `lv_undofile` — undo tablespace |
+| `oracle_lv_tempfile_size` | `5G` | **Sim** | `lv_tempfile` — temp tablespace |
+| `oracle_lv_mirrlogA_size` | `1G` | **Sim** | `lv_mirrlogA` e `lv_mirrlogB` (mesmo tamanho para ambos) |
+| `oracle_lv_origlogA_size` | `1G` | **Sim** | `lv_origlogA` e `lv_origlogB` (mesmo tamanho para ambos) |
 
 ### Software e Patches
 
 | Variável | Padrão | Descrição |
 |---|---|---|
-| `oracle_software_src` | `/opt/oracle` | Onde os binários estão no AWX VM (source do rsync). |
-| `oracle_software_dst` | `/home/oracle/software` | Onde os binários chegam no oraclevm (destino do rsync). |
-| `oracle_installer_zip` | `LINUX.X64_193000_db_home.zip` | Nome do arquivo ZIP com os binários do Oracle 19c. |
-| `oracle_preinstall_rpm` | `oracle-database-preinstall-19c-1.0.2.el9.x86_64.rpm` | RPM de pré-requisitos. Configura grupos, limites, kernel params. |
+| `oracle_software_src` | `/opt/oracle` | Source do rsync no AWX VM (installer zip + RPM). |
+| `oracle_patches_src` | `/opt/patches` | Source dos patches no AWX VM (OPatch, RU, post-install). |
+| `oracle_software_dst` | `/oracle/{{ oracle_sid }}/software` | Destino do rsync no target (dentro do LV base). |
+| `oracle_installer_zip` | `LINUX.X64_193000_db_home.zip` | ZIP com binários do Oracle 19c. |
+| `oracle_preinstall_rpm` | `oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm` | RPM de pré-requisitos. Configura grupos, limites, kernel params. |
 | `oracle_opatch_dir` | `p6880880` | Diretório do OPatch substituto (versão mais nova que a do ZIP). |
 | `oracle_ru_patch_dir` | `p37641958` | **Atualizar a cada trimestre** com o RU mais recente. |
 | `oracle_ru_subpath` | `37641958/37642901` | Subpath do patch RU dentro do diretório. |
 | `oracle_oneoff_subpath` | `37641958/37643161` | Subpath do patch one-off (aplicado junto ao RU). |
-| `oracle_post_patch1_dir` | `p38291812` | Patch pós-instalação 1 (aplicado após runInstaller). |
+| `oracle_post_patch1_dir` | `p38291812` | Patch pós-instalação 1 (após runInstaller). |
 | `oracle_post_patch2_dir` | `p38632161` | Patch pós-instalação 2 (Oracle 19.30). |
-| `oracle_post_patch3_dir` | `p3467298` | Patch pós-instalação 3. |
+| `oracle_post_patch3_dir` | `p34672698` | Patch pós-instalação 3. |
 
 ### HugePages (Memória Grande)
 
@@ -149,41 +165,47 @@ hugepages = ceil(SGA_em_MB / hugepage_size_MB) × (1 + overhead_pct/100)
 
 Exemplo com SGA=2G: `ceil(2048 / 2) × 1.1 = 1024 × 1.1 = 1126 páginas`
 
-### Tuning de Memória
+### Tuning de Memória (survey-driven)
 
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `oracle_sga_target` | `2G` | System Global Area — cache principal (buffers, shared pool, redo log). Impacta hugepages. |
-| `oracle_pga_target` | `512m` | Program Global Area — memória por sessão (sorts, hash joins). |
-| `oracle_processes` | `1000` | Máximo de processos Oracle simultâneos. |
-| `oracle_open_cursors` | `3000` | Máximo de cursors abertos por sessão. |
-| `oracle_db_block_size` | `8192` | Tamanho do bloco de dados (8 KB padrão). Não alterar após criação. |
+| Variável | Padrão | Survey | Descrição |
+|---|---|---|---|
+| `oracle_sga_pct` | `40` | **Sim** | % da RAM da VM para SGA. Ex: VM com 6 GB → 40% = ~2,4 GB SGA. |
+| `oracle_pga_pct` | `20` | **Sim** | % da RAM da VM para PGA aggregate. |
+| `oracle_sga_target` | `auto` | Não | **Calculado em `01_prereqs.yml`** a partir de `ansible_memtotal_mb × oracle_sga_pct/100`. Não setar manualmente. |
+| `oracle_pga_target` | `auto` | Não | **Calculado em `01_prereqs.yml`** a partir de `ansible_memtotal_mb × oracle_pga_pct/100`. Não setar manualmente. |
+| `oracle_processes` | `1000` | Não | Máximo de processos Oracle simultâneos. |
+| `oracle_open_cursors` | `3000` | Não | Máximo de cursors abertos por sessão. |
+| `oracle_db_block_size` | `8192` | Não | Tamanho do bloco de dados (8 KB padrão). Não alterar após criação. |
 
 ### Configurações de Banco
 
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `oracle_character_set` | `WE8MSWIN1252` | Character set do banco. Define como textos são armazenados. Western Windows. |
+| Variável | Padrão | Survey | Descrição |
+|---|---|---|---|
+| `oracle_character_set` | `AL32UTF8` | Não | Character set do banco. `AL32UTF8` = Unicode completo (recomendado). `WE8MSWIN1252` para legado Windows. |
 | `oracle_nchar_set` | `AL16UTF16` | National character set (para colunas NCHAR/NVARCHAR2). |
 | `oracle_nls_language` | `AMERICAN` | Idioma para mensagens de erro e formatos. |
 | `oracle_nls_territory` | `AMERICA` | Território para formatos de data/número. |
 | `oracle_listener_port` | `1521` | Porta do listener Oracle (padrão do setor). |
 | `oracle_undo_tablespace` | `UNDOTBS1` | Nome da tablespace de undo. |
 
-### Senhas (Obrigatório via Survey)
+### Senhas (defaults do role — não estão no survey de instalação)
 
 | Variável | Padrão | Descrição |
 |---|---|---|
-| `oracle_sys_password` | `""` | **Obrigatório via AWX survey.** Senha do usuário SYS (superusuário). Vazio = instalação falha intencionalmente. |
-| `oracle_system_password` | `""` | **Obrigatório via AWX survey.** Senha do usuário SYSTEM. |
+| `oracle_sys_password` | definido em `defaults/main.yml` | Senha do usuário SYS (superusuário). Override via extra vars ou vault em produção. |
+| `oracle_system_password` | definido em `defaults/main.yml` | Senha do usuário SYSTEM. Override via extra vars ou vault em produção. |
 
-> **Nunca deixe senhas nos defaults.** O valor vazio é intencional — força o operador a sempre informar via survey.
+> **Em produção:** nunca usar os defaults. Setar via AWX extra variables com vault ou credential injection.
 
-### Controle de Fase
+### Controle de Fase e Tablespace Datafiles
 
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `create_initial_db` | `true` | Se `false`, instala só o software sem criar banco (útil para preparar nó de standby). |
+| Variável | Padrão | Survey | Descrição |
+|---|---|---|---|
+| `create_initial_db` | `true` | Não | Se `false`, instala só o software sem criar banco (útil para preparar nó de standby). |
+| `ts_audit_datafiles` | `1` | Não | Nº de datafiles para `TS_AUDIT_DAT01`. Arquivos nomeados `TS_AUDIT_DAT01_01.DBF`, `_02.DBF`, etc. |
+| `ts_perfstat_datafiles` | `1` | Não | Nº de datafiles para `TS_PERFSTAT_DAT01`. |
+| `ts_sid_dat_datafiles` | `1` | Não | Nº de datafiles para `TS_<SID>_DAT01` (tablespace de dados). |
+| `ts_sid_idx_datafiles` | `1` | Não | Nº de datafiles para `TS_<SID>_IDX01` (tablespace de índices). |
 
 ---
 
@@ -360,13 +382,13 @@ Aplicar o Release Update (RU) durante a instalação faz o banco já nascer no p
 | Tag | O que executa |
 |---|---|
 | `oracle` | Todas as tasks Oracle |
-| `oracle_validate` | Validação de suporte de SO |
-| `oracle_prereqs` | Pré-requisitos Phase 1 |
-| `oracle_dirs` | Criação de diretórios Phase 2 |
-| `oracle_transfer` | Transferência de binários Phase 3 |
-| `oracle_install_sw` | Instalação do software Phase 4 |
-| `oracle_patches` | Aplicação de patches Phase 5 |
-| `oracle_dbcreate` | Criação do banco Phase 6 |
+| `oracle_storage` | PV/VG/LV creation, mkfs.xfs, mount (Phase 0) |
+| `oracle_prereqs` | RPM preinstall, sysctl, hugepages, cálculo SGA/PGA (Phase 1) |
+| `oracle_dirs` | Criação de diretórios, bash_profile (Phase 2) |
+| `oracle_transfer` | Rsync binários AWX → target (Phase 3) |
+| `oracle_install_sw` | Descompactar + runInstaller + root.sh (Phase 4) |
+| `oracle_patches` | opatch em sequência — RU, one-off, post-install (Phase 5) |
+| `oracle_dbcreate` | Criação do banco, catalog, datapatch, SPFILE (Phase 6) |
 | `oracle_users` | Ciclo de gestão de usuários |
 | `oracle_users_validate` | Validação de variáveis de usuário |
 | `oracle_user_create` | Criação do usuário via sqlplus |
@@ -404,9 +426,9 @@ fatal: mv /etc/init.d /etc/initd.back — directory already exists
 FATAL: "OPEN" not in db_status.stdout
 ```
 
-**Verificar no servidor:**
+**Verificar no servidor (substituir `<SID>`):**
 ```bash
-sudo -u oracle /oracle/TSTOR/19.0.0/bin/sqlplus / as sysdba <<EOF
+sudo -u oracle /oracle/<SID>/19.0.0/bin/sqlplus / as sysdba <<EOF
 SELECT status FROM v\$instance;
 SELECT * FROM v\$database;
 EOF
@@ -417,8 +439,8 @@ EOF
 ### Listener não iniciando
 
 ```bash
-sudo -u oracle /oracle/TSTOR/19.0.0/bin/lsnrctl status
-sudo -u oracle /oracle/TSTOR/19.0.0/bin/lsnrctl start
+sudo -u oracle /oracle/<SID>/19.0.0/bin/lsnrctl status
+sudo -u oracle /oracle/<SID>/19.0.0/bin/lsnrctl start
 ```
 
 ---
