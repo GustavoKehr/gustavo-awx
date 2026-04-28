@@ -13,8 +13,18 @@
       "max": 8
     },
     {
+      "question_name": "Data Disk (PV source)",
+      "question_description": "Raw block device to initialize as PV and create the VG on (e.g. /dev/sdb, /dev/sdc). Leave empty if VG already exists on the target. WARNING: device will be wiped with pvcreate.",
+      "required": false,
+      "type": "text",
+      "variable": "oracle_data_disk",
+      "default": "/dev/sdc",
+      "min": 0,
+      "max": 20
+    },
+    {
       "question_name": "VG Name",
-      "question_description": "LVM Volume Group name for all Oracle LVs. Created automatically if oracle_data_disk is set.",
+      "question_description": "LVM Volume Group name for all Oracle LVs. Created automatically on oracle_data_disk if VG does not exist.",
       "required": true,
       "type": "text",
       "variable": "oracle_vg_name",
