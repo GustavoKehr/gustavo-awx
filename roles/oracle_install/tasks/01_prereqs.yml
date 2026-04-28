@@ -1,10 +1,10 @@
 ---
 # All tasks here run as root (become: yes inherited from playbook)
 
-- name: "PREREQS | Auto-calculate SGA (40%) and PGA (20%) from available RAM"
+- name: "PREREQS | Calculate SGA and PGA from VM RAM using survey percentages"
   ansible.builtin.set_fact:
-    oracle_sga_target: "{{ (ansible_memtotal_mb * 0.40) | int }}m"
-    oracle_pga_target: "{{ (ansible_memtotal_mb * 0.20) | int }}m"
+    oracle_sga_target: "{{ (ansible_memtotal_mb * oracle_sga_pct | int / 100) | int }}m"
+    oracle_pga_target: "{{ (ansible_memtotal_mb * oracle_pga_pct | int / 100) | int }}m"
   tags: oracle_prereqs
 
 - name: "PREREQS | Check preinstall RPM on target"

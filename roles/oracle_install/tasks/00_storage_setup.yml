@@ -1,14 +1,14 @@
 ---
 # Format and mount Oracle LVs.
 # Uses /proc/mounts for idempotency — no PATH dependency, always readable.
-# Mount order matters: lv_awor (/oracle/AWOR) must be mounted first.
+# Mount order matters: lv_<SID> (/oracle/<SID>) must be mounted first.
 # LV creation is idempotent — skipped if LV already exists in vg_data.
 
 - name: "STORAGE | Define LV layout for creation and mounting"
   ansible.builtin.set_fact:
     _oracle_lv_layout:
-      - lv: lv_awor
-        size: "{{ oracle_lv_awor_size }}"
+      - lv: "lv_{{ oracle_sid | lower }}"
+        size: "{{ oracle_lv_base_size }}"
       - lv: lv_oradata
         size: "{{ oracle_lv_oradata_size }}"
       - lv: lv_mirrlogA
@@ -50,31 +50,31 @@
 - name: "STORAGE | Define LV mount map"
   ansible.builtin.set_fact:
     _oracle_lv_mounts:
-      - lv: /dev/mapper/vg_data-lv_awor
+      - lv: "/dev/{{ oracle_vg_name }}/lv_{{ oracle_sid | lower }}"
         mp: "/oracle/{{ oracle_sid }}"
         order: 0
-      - lv: /dev/mapper/vg_data-lv_oradata
+      - lv: "/dev/{{ oracle_vg_name }}/lv_oradata"
         mp: "/oracle/{{ oracle_sid }}/oradata1"
         order: 1
-      - lv: /dev/mapper/vg_data-lv_mirrlogA
+      - lv: "/dev/{{ oracle_vg_name }}/lv_mirrlogA"
         mp: "/oracle/{{ oracle_sid }}/mirrlogA"
         order: 1
-      - lv: /dev/mapper/vg_data-lv_mirrlogB
+      - lv: "/dev/{{ oracle_vg_name }}/lv_mirrlogB"
         mp: "/oracle/{{ oracle_sid }}/mirrlogB"
         order: 1
-      - lv: /dev/mapper/vg_data-lv_origlogA
+      - lv: "/dev/{{ oracle_vg_name }}/lv_origlogA"
         mp: "/oracle/{{ oracle_sid }}/origlogA"
         order: 1
-      - lv: /dev/mapper/vg_data-lv_origlogB
+      - lv: "/dev/{{ oracle_vg_name }}/lv_origlogB"
         mp: "/oracle/{{ oracle_sid }}/origlogB"
         order: 1
-      - lv: /dev/mapper/vg_data-lv_oraarch
+      - lv: "/dev/{{ oracle_vg_name }}/lv_oraarch"
         mp: "/oracle/{{ oracle_sid }}/oraarch"
         order: 1
-      - lv: /dev/mapper/vg_data-lv_undofile
+      - lv: "/dev/{{ oracle_vg_name }}/lv_undofile"
         mp: "/oracle/{{ oracle_sid }}/undofile"
         order: 1
-      - lv: /dev/mapper/vg_data-lv_tempfile
+      - lv: "/dev/{{ oracle_vg_name }}/lv_tempfile"
         mp: "/oracle/{{ oracle_sid }}/tempfile"
         order: 1
   tags: oracle_storage
@@ -100,11 +100,11 @@
     mode: "0755"
   tags: oracle_storage
 
-- name: "STORAGE | Mount lv_awor to /oracle/{{ oracle_sid }}"
+- name: "STORAGE | Mount lv_{{ oracle_sid | lower }} to /oracle/{{ oracle_sid }}"
   ansible.builtin.shell: |
     grep -q " /oracle/{{ oracle_sid }} " /proc/mounts && exit 0
     mkdir -p "/oracle/{{ oracle_sid }}"
-    mount /dev/mapper/vg_data-lv_awor "/oracle/{{ oracle_sid }}"
+    mount "/dev/{{ oracle_vg_name }}/lv_{{ oracle_sid | lower }}" "/oracle/{{ oracle_sid }}"
   changed_when: true
   tags: oracle_storage
 

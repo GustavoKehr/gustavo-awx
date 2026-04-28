@@ -1,10 +1,10 @@
 {
   "name": "Oracle 19c Installation Survey",
-  "description": "SID is required. LV sizes are pre-filled with defaults — adjust for your storage layout.",
+  "description": "SID is required. LV sizes and memory % are pre-filled with defaults — adjust for your environment.",
   "spec": [
     {
       "question_name": "Oracle SID",
-      "question_description": "Database SID and name. Also defines the base directory (/oracle/<SID>). Max 8 chars.",
+      "question_description": "Database SID and name. Defines base directory (/oracle/<SID>) and main LV name (lv_<sid>). Max 8 chars.",
       "required": true,
       "type": "text",
       "variable": "oracle_sid",
@@ -14,7 +14,7 @@
     },
     {
       "question_name": "VG Name",
-      "question_description": "LVM Volume Group name containing the Oracle LVs. Must already exist on the target disk.",
+      "question_description": "LVM Volume Group name for all Oracle LVs. Created automatically if oracle_data_disk is set.",
       "required": true,
       "type": "text",
       "variable": "oracle_vg_name",
@@ -23,11 +23,11 @@
       "max": 32
     },
     {
-      "question_name": "LV: lv_awor size (Oracle base + software)",
-      "question_description": "Size of the main Oracle base LV. Holds Oracle home, software staging, admin dirs. Format: e.g. 60G",
+      "question_name": "LV: lv_<SID> size (Oracle base + software)",
+      "question_description": "Size of the main Oracle base LV (named lv_<SID>, e.g. lv_awor). Holds Oracle home, software staging, admin dirs. Format: e.g. 60G",
       "required": true,
       "type": "text",
-      "variable": "oracle_lv_awor_size",
+      "variable": "oracle_lv_base_size",
       "default": "60G",
       "min": 2,
       "max": 10
@@ -90,6 +90,76 @@
       "variable": "oracle_lv_origlogA_size",
       "default": "1G",
       "min": 2,
+      "max": 10
+    },
+    {
+      "question_name": "SGA % of VM RAM",
+      "question_description": "Percentage of total VM RAM to allocate for the Oracle SGA. Example: 40 = 40% of RAM. Recommended: 40-60%.",
+      "required": true,
+      "type": "integer",
+      "variable": "oracle_sga_pct",
+      "default": 40,
+      "min": 10,
+      "max": 80
+    },
+    {
+      "question_name": "PGA % of VM RAM",
+      "question_description": "Percentage of total VM RAM to allocate for the Oracle PGA. Example: 20 = 20% of RAM. Recommended: 10-30%.",
+      "required": true,
+      "type": "integer",
+      "variable": "oracle_pga_pct",
+      "default": 20,
+      "min": 5,
+      "max": 50
+    },
+    {
+      "question_name": "Character Set",
+      "question_description": "Oracle database character set. AL32UTF8 is recommended for new deployments (supports all Unicode). WE8MSWIN1252 for legacy Windows compatibility.",
+      "required": false,
+      "type": "text",
+      "variable": "oracle_character_set",
+      "default": "AL32UTF8",
+      "min": 5,
+      "max": 30
+    },
+    {
+      "question_name": "TS_AUDIT_DAT01 datafile count",
+      "question_description": "Number of datafiles for TS_AUDIT_DAT01. Files named TS_AUDIT_DAT01_01.DBF, _02.DBF, etc.",
+      "required": false,
+      "type": "integer",
+      "variable": "ts_audit_datafiles",
+      "default": 1,
+      "min": 1,
+      "max": 10
+    },
+    {
+      "question_name": "TS_PERFSTAT_DAT01 datafile count",
+      "question_description": "Number of datafiles for TS_PERFSTAT_DAT01. Files named TS_PERFSTAT_DAT01_01.DBF, _02.DBF, etc.",
+      "required": false,
+      "type": "integer",
+      "variable": "ts_perfstat_datafiles",
+      "default": 1,
+      "min": 1,
+      "max": 10
+    },
+    {
+      "question_name": "TS_<SID>_DAT01 datafile count",
+      "question_description": "Number of datafiles for the main data tablespace (TS_<SID>_DAT01). Files named TS_<SID>_DAT01_01.DBF, _02.DBF, etc.",
+      "required": false,
+      "type": "integer",
+      "variable": "ts_sid_dat_datafiles",
+      "default": 1,
+      "min": 1,
+      "max": 10
+    },
+    {
+      "question_name": "TS_<SID>_IDX01 datafile count",
+      "question_description": "Number of datafiles for the index tablespace (TS_<SID>_IDX01). Files named TS_<SID>_IDX01_01.DBF, _02.DBF, etc.",
+      "required": false,
+      "type": "integer",
+      "variable": "ts_sid_idx_datafiles",
+      "default": 1,
+      "min": 1,
       "max": 10
     }
   ]
