@@ -1,0 +1,141 @@
+---
+# Format and mount Oracle LVs.
+# Uses /proc/mounts for idempotency — no PATH dependency, always readable.
+# Mount order matters: lv_<SID> (/oracle/<SID>) must be mounted first.
+# LV creation is idempotent — skipped if LV already exists in vg_data.
+
+- name: "STORAGE | Define LV layout for creation and mounting"
+  ansible.builtin.set_fact:
+    _oracle_lv_layout:
+      - lv: "lv_{{ oracle_sid | lower }}"
+        size: "{{ oracle_lv_base_size }}"
+      - lv: lv_oradata
+        size: "{{ oracle_lv_oradata_size }}"
+      - lv: lv_mirrlogA
+        size: "{{ oracle_lv_mirrlogA_size }}"
+      - lv: lv_mirrlogB
+        size: "{{ oracle_lv_mirrlogB_size }}"
+      - lv: lv_origlogA
+        size: "{{ oracle_lv_origlogA_size }}"
+      - lv: lv_origlogB
+        size: "{{ oracle_lv_origlogB_size }}"
+      - lv: lv_oraarch
+        size: "{{ oracle_lv_oraarch_size }}"
+      - lv: lv_undofile
+        size: "{{ oracle_lv_undofile_size }}"
+      - lv: lv_tempfile
+        size: "{{ oracle_lv_tempfile_size }}"
+  tags: oracle_storage
+
+- name: "STORAGE | Create PV and VG {{ oracle_vg_name }} on {{ oracle_data_disk }} if not present"
+  ansible.builtin.shell: |
+    vgs {{ oracle_vg_name }} > /dev/null 2>&1 && exit 0
+    pvcreate {{ oracle_data_disk }}
+    vgcreate {{ oracle_vg_name }} {{ oracle_data_disk }}
+  when: oracle_data_disk | length > 0
+  changed_when: true
+  tags: oracle_storage
+
+- name: "STORAGE | Create Oracle LVs in {{ oracle_vg_name }} if missing"
+  ansible.builtin.shell: |
+    lvs {{ oracle_vg_name }}/{{ item.lv }} > /dev/null 2>&1 && exit 0
+    lvcreate -L {{ item.size }} -n {{ item.lv }} {{ oracle_vg_name }}
+  loop: "{{ _oracle_lv_layout }}"
+  loop_control:
+    label: "{{ item.lv }} ({{ item.size }})"
+  changed_when: true
+  ignore_errors: true
+  tags: oracle_storage
+
+- name: "STORAGE | Define LV mount map"
+  ansible.builtin.set_fact:
+    _oracle_lv_mounts:
+      - lv: "/dev/{{ oracle_vg_name }}/lv_{{ oracle_sid | lower }}"
+        mp: "/oracle/{{ oracle_sid }}"
+        order: 0
+      - lv: "/dev/{{ oracle_vg_name }}/lv_oradata"
+        mp: "/oracle/{{ oracle_sid }}/oradata1"
+        order: 1
+      - lv: "/dev/{{ oracle_vg_name }}/lv_mirrlogA"
+        mp: "/oracle/{{ oracle_sid }}/mirrlogA"
+        order: 1
+      - lv: "/dev/{{ oracle_vg_name }}/lv_mirrlogB"
+        mp: "/oracle/{{ oracle_sid }}/mirrlogB"
+        order: 1
+      - lv: "/dev/{{ oracle_vg_name }}/lv_origlogA"
+        mp: "/oracle/{{ oracle_sid }}/origlogA"
+        order: 1
+      - lv: "/dev/{{ oracle_vg_name }}/lv_origlogB"
+        mp: "/oracle/{{ oracle_sid }}/origlogB"
+        order: 1
+      - lv: "/dev/{{ oracle_vg_name }}/lv_oraarch"
+        mp: "/oracle/{{ oracle_sid }}/oraarch"
+        order: 1
+      - lv: "/dev/{{ oracle_vg_name }}/lv_undofile"
+        mp: "/oracle/{{ oracle_sid }}/undofile"
+        order: 1
+      - lv: "/dev/{{ oracle_vg_name }}/lv_tempfile"
+        mp: "/oracle/{{ oracle_sid }}/tempfile"
+        order: 1
+  tags: oracle_storage
+
+- name: "STORAGE | Format LVs as XFS (skip if mounted or already has filesystem)"
+  ansible.builtin.shell: |
+    grep -q " {{ item.mp }} " /proc/mounts && exit 0
+    blkid {{ item.lv }} | grep -q xfs && exit 0
+    /usr/sbin/mkfs.xfs {{ item.lv }}
+  loop: "{{ _oracle_lv_mounts }}"
+  loop_control:
+    label: "{{ item.lv }}"
+  changed_when: true
+  ignore_errors: true
+  tags: oracle_storage
+
+- name: "STORAGE | Create /oracle root mount point"
+  ansible.builtin.file:
+    path: /oracle
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: oracle_storage
+
+- name: "STORAGE | Mount lv_{{ oracle_sid | lower }} to /oracle/{{ oracle_sid }}"
+  ansible.builtin.shell: |
+    grep -q " /oracle/{{ oracle_sid }} " /proc/mounts && exit 0
+    mkdir -p "/oracle/{{ oracle_sid }}"
+    mount "/dev/{{ oracle_vg_name }}/lv_{{ oracle_sid | lower }}" "/oracle/{{ oracle_sid }}"
+  changed_when: true
+  tags: oracle_storage
+
+
+- name: "STORAGE | Create subdirectory mount points under /oracle/{{ oracle_sid }}"
+  ansible.builtin.file:
+    path: "{{ item.mp }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ _oracle_lv_mounts | selectattr('order', 'eq', 1) | list }}"
+  loop_control:
+    label: "{{ item.mp }}"
+  tags: oracle_storage
+
+- name: "STORAGE | Mount all oracle subdirectory LVs"
+  ansible.builtin.shell: |
+    grep -q " {{ item.mp }} " /proc/mounts && exit 0
+    mount {{ item.lv }} "{{ item.mp }}"
+  loop: "{{ _oracle_lv_mounts | selectattr('order', 'eq', 1) | list }}"
+  loop_control:
+    label: "{{ item.mp }}"
+  changed_when: true
+  tags: oracle_storage
+
+- name: "STORAGE | Verify all oracle mounts are active"
+  ansible.builtin.shell: |
+    grep -q " {{ item.mp }} " /proc/mounts || (echo "FAIL: {{ item.mp }} not mounted" && exit 1)
+  loop: "{{ _oracle_lv_mounts }}"
+  loop_control:
+    label: "{{ item.mp }}"
+  changed_when: false
+  tags: oracle_storage

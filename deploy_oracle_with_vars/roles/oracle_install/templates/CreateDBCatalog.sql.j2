@@ -1,0 +1,18 @@
+SET VERIFY OFF
+connect "SYS"/"{{ oracle_sys_password }}" as SYSDBA
+set echo on
+spool {{ oracle_scripts_dir }}/CreateDBCatalog.log append
+@{{ oracle_home }}/rdbms/admin/catalog.sql;
+@{{ oracle_home }}/rdbms/admin/catproc.sql;
+@{{ oracle_home }}/rdbms/admin/catoctk.sql;
+@{{ oracle_home }}/rdbms/admin/owminst.plb;
+connect "SYSTEM"/"{{ oracle_system_password }}"
+@{{ oracle_home }}/sqlplus/admin/pupbld.sql;
+connect "SYS"/"{{ oracle_sys_password }}" as SYSDBA
+@{{ oracle_home }}/sqlplus/admin/pupdel.sql;
+connect "SYSTEM"/"{{ oracle_system_password }}"
+set echo on
+spool {{ oracle_scripts_dir }}/sqlPlusHelp.log append
+@{{ oracle_home }}/sqlplus/admin/help/hlpbld.sql helpus.sql;
+spool off
+spool off

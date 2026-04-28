@@ -1,0 +1,37 @@
+SET VERIFY OFF
+connect "SYS"/"{{ oracle_sys_password }}" as SYSDBA
+set echo on
+spool {{ oracle_scripts_dir }}/CreateDBFiles.log append
+CREATE SMALLFILE TABLESPACE "USERS" LOGGING
+  DATAFILE '{{ oracle_base }}/oradata1/users01.dbf' SIZE 200M REUSE
+  EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO;
+ALTER DATABASE DEFAULT TABLESPACE "USERS";
+CREATE TABLESPACE TS_AUDIT_DAT01
+  DATAFILE
+{% for i in range(1, ts_audit_datafiles | int + 1) %}
+  '{{ oracle_base }}/oradata1/TS_AUDIT_DAT01_{{ '%02d' % i }}.DBF' SIZE 1000M REUSE{% if not loop.last %},{% endif %}
+
+{% endfor %}
+  EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO;
+CREATE TABLESPACE TS_PERFSTAT_DAT01
+  DATAFILE
+{% for i in range(1, ts_perfstat_datafiles | int + 1) %}
+  '{{ oracle_base }}/oradata1/TS_PERFSTAT_DAT01_{{ '%02d' % i }}.DBF' SIZE 1000M REUSE{% if not loop.last %},{% endif %}
+
+{% endfor %}
+  EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO;
+CREATE TABLESPACE TS_{{ oracle_sid }}_DAT01
+  DATAFILE
+{% for i in range(1, ts_sid_dat_datafiles | int + 1) %}
+  '{{ oracle_base }}/oradata1/TS_{{ oracle_sid }}_DAT01_{{ '%02d' % i }}.DBF' SIZE 1000M REUSE{% if not loop.last %},{% endif %}
+
+{% endfor %}
+  EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO;
+CREATE TABLESPACE TS_{{ oracle_sid }}_IDX01
+  DATAFILE
+{% for i in range(1, ts_sid_idx_datafiles | int + 1) %}
+  '{{ oracle_base }}/oradata1/TS_{{ oracle_sid }}_IDX01_{{ '%02d' % i }}.DBF' SIZE 1000M REUSE{% if not loop.last %},{% endif %}
+
+{% endfor %}
+  EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO;
+spool off

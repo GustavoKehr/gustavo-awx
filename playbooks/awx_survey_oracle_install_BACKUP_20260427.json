@@ -1,0 +1,1 @@
+{"name":"Oracle 19c Installation Survey","spec":[{"max":8,"min":1,"type":"text","default":"AWOR","required":true,"variable":"oracle_sid","question_name":"Oracle SID","question_description":"Database SID and name. Max 8 chars."}],"description":"Minimal survey — only the SID is required."}

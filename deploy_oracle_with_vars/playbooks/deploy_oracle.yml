@@ -1,0 +1,29 @@
+---
+- name: "Deploy and configure Oracle Database 19c"
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: "Phase 1-6: Install Oracle 19c (and create DB if create_initial_db=true)"
+      ansible.builtin.include_role:
+        name: oracle_install
+      tags: [oracle, oracle_install]
+
+    - name: "Phase 7: Optional user management"
+      ansible.builtin.include_role:
+        name: oracle_manage_users
+      when:
+        - oracle_manage_users_enabled | default(false) | bool
+          or ('oracle_users' in (ansible_run_tags | default([])))
+      tags: [oracle, oracle_users, post_install]
+
+    - name: "Phase 8: Discover patches (no apply)"
+      ansible.builtin.include_role:
+        name: db_patches
+      when:
+        - db_patches_enabled | default(false) | bool
+          or ('db_patches' in (ansible_run_tags | default([])))
+      vars:
+        db_patch_platform: "oracle"
+      tags: [oracle, db_patches, patching]

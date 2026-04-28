@@ -1,0 +1,19 @@
+# Oracle 19c kernel parameters — managed by Ansible
+# /etc/sysctl.d/97-oracle.conf
+#
+# hugepages: {{ _oracle_hugepages_final }} pages × {{ oracle_hugepage_size_mb }} MB
+#            = {{ _oracle_hugepages_final | int * oracle_hugepage_size_mb | int }} MB reserved
+# SGA target: {{ oracle_sga_target }} | VM RAM: {{ ansible_memtotal_mb }} MB
+
+vm.nr_hugepages = {{ _oracle_hugepages_final }}
+vm.hugetlb_shm_group = {{ oracle_hugetlb_shm_group }}
+vm.force_cgroup_v2_swappiness = 1
+
+kernel.sysrq = 1
+kernel.unknown_nmi_panic = 1
+kernel.panic_on_unrecovered_nmi = 1
+
+net.ipv4.tcp_max_syn_backlog = 2048
+
+vm.swappiness = 1
+vm.min_free_kbytes = 524288

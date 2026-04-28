@@ -1,0 +1,25 @@
+---
+all:
+  children:
+    database_servers:
+      hosts:
+        zabbixvm:
+          ansible_host: 192.168.137.159
+        oraclevm:
+          ansible_host: 192.168.137.163
+        oraclevm-test:
+          ansible_host: 192.168.137.164
+        oraclevm-fresh:
+          ansible_host: 192.168.137.165
+        repositoryvm:
+          ansible_host: 192.168.137.148
+        proxmox:
+          ansible_host: 192.168.137.145
+        mysqlvm:
+          ansible_host: 192.168.137.160
+          mysql_port: 13306
+        postgresvm:
+          ansible_host: 192.168.137.158
+          postgres_port: 15432
+        awxvm:
+          ansible_host: 192.168.137.153

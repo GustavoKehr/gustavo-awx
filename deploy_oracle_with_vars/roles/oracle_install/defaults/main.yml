@@ -1,0 +1,100 @@
+---
+# --- Identity ---
+oracle_sid: "AWOR"
+oracle_base: "/oracle/{{ oracle_sid }}"
+oracle_home: "{{ oracle_base }}/19.0.0"
+oracle_scripts_dir: "{{ oracle_base }}/scripts/db_creation/{{ oracle_sid }}"
+
+# --- Software source (on AWX VM) ---
+# oracle_software_src: installer zip + preinstall RPM (/opt/oracle)
+# oracle_patches_src:  OPatch / RU / post-install patches (/opt/patches)
+oracle_software_src: "/opt/oracle"
+oracle_patches_src: "/opt/patches"
+oracle_software_dst: "/oracle/{{ oracle_sid }}/software"
+oracle_installer_zip: "LINUX.X64_193000_db_home.zip"
+oracle_preinstall_rpm: "oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm"
+
+# --- OPatch replacement ---
+oracle_opatch_dir: "p6880880"
+
+# --- Release Update + one-off applied inside runInstaller ---
+# Update these every quarter when Oracle releases a new RU.
+oracle_ru_patch_dir: "p37641958"
+oracle_ru_subpath: "37641958/37642901"
+oracle_oneoff_subpath: "37641958/37643161"
+
+# --- Post-install opatch patches (applied after runInstaller, in order) ---
+# Each entry: dir = top-level folder name, subdir = patch number folder inside.
+# Update dir/subdir values when newer patches are available.
+oracle_post_patch1_dir: "p38291812"
+oracle_post_patch1_sub: "38291812"
+oracle_post_patch1_enabled: true      # set false if patch not present on oracle_patches_src
+
+oracle_post_patch2_dir: "p38632161"   # Oracle 19.30
+oracle_post_patch2_sub: "38632161"
+
+oracle_post_patch3_dir: "p34672698"
+oracle_post_patch3_sub: "34672698"
+
+# --- LVM storage layout (used to create LVs on fresh VMs) ---
+# oracle_data_disk: raw disk to initialize as PV and VG (created if VG absent).
+# Set to "" to skip PV/VG creation (VG must already exist).
+oracle_data_disk: "/dev/sdc"
+oracle_vg_name: "vg_data"
+oracle_lv_base_size: "60G"        # Main LV (lv_<SID>): Oracle base + software staging
+oracle_lv_oradata_size: "10G"    # Datafiles
+oracle_lv_mirrlogA_size: "1G"    # Mirrored redo log A
+oracle_lv_mirrlogB_size: "1G"    # Mirrored redo log B
+oracle_lv_origlogA_size: "1G"    # Original redo log A
+oracle_lv_origlogB_size: "1G"    # Original redo log B
+oracle_lv_oraarch_size: "5G"     # Archive logs
+oracle_lv_undofile_size: "5G"    # Undo tablespace
+oracle_lv_tempfile_size: "5G"    # Temp tablespace
+
+# --- Kernel: HugePages ---
+# Set to 0 to auto-calculate from oracle_sga_target and target VM memory.
+# Set to a positive integer to force an exact count.
+# Rule of thumb: hugepages = (SGA_MB / hugepage_size_MB) * 1.1
+# Default hugepage size on x86_64 is 2 MB.
+oracle_hugepages: 0
+oracle_hugepage_size_mb: 2                # /proc/meminfo Hugepagesize in MB
+oracle_hugepages_overhead_pct: 10         # % overhead added on top of SGA requirement
+oracle_hugetlb_shm_group: 54321           # dba group gid — set by preinstall RPM
+
+# --- Database memory tuning ---
+# SGA and PGA are calculated from VM RAM * oracle_sga_pct/oracle_pga_pct (set via survey).
+# oracle_sga_target / oracle_pga_target are derived in 01_prereqs.yml — do not set here.
+oracle_sga_pct: 40                # % of VM RAM to allocate for SGA (survey-driven)
+oracle_pga_pct: 20                # % of VM RAM to allocate for PGA (survey-driven)
+oracle_sga_target: "auto"         # overwritten by 01_prereqs.yml — keep as safety fallback
+oracle_pga_target: "auto"         # overwritten by 01_prereqs.yml — keep as safety fallback
+oracle_processes: 1000
+oracle_open_cursors: 3000
+oracle_db_block_size: 8192
+oracle_undo_tablespace: "UNDOTBS1"
+
+# --- Character set / locale ---
+oracle_character_set: "AL32UTF8"
+oracle_nchar_set: "AL16UTF16"
+oracle_nls_language: "AMERICAN"
+oracle_nls_territory: "AMERICA"
+
+# --- Listener ---
+oracle_listener_port: 1521
+oracle_listener_name: "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ oracle_listener_port }})))"
+
+# --- Passwords (always set via survey — never hardcode) ---
+oracle_sys_password: "F9toqfd("
+oracle_system_password: "F9toqfd("
+
+# --- Tablespace datafile counts (survey-driven, default 1) ---
+# Each tablespace gets N datafiles named TS_<NAME>_01.DBF, _02.DBF, etc.
+# Naming: TS_AUDIT_DAT01, TS_PERFSTAT_DAT01, TS_<SID>_DAT01, TS_<SID>_IDX01
+ts_audit_datafiles: 1
+ts_perfstat_datafiles: 1
+ts_sid_dat_datafiles: 1
+ts_sid_idx_datafiles: 1
+
+# Gate Phase 6 (database creation). Default true — Oracle always creates a DB.
+# Set to false to install software only (useful for standby node prep).
+create_initial_db: true
