@@ -26,7 +26,7 @@
 
   tasks:
     - name: "Clone template to sqlvm01"
-      community.general.proxmox_kvm:
+      community.proxmox.proxmox_kvm:
         api_host: "192.168.137.145"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
@@ -41,7 +41,7 @@
         timeout: 300
 
     - name: "Clone template to sqlvm02"
-      community.general.proxmox_kvm:
+      community.proxmox.proxmox_kvm:
         api_host: "192.168.137.145"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
@@ -56,7 +56,7 @@
         timeout: 300
 
     - name: "Add data disk to sqlvm01 (E: drive for SQL data)"
-      community.general.proxmox_disk:
+      community.proxmox.proxmox_disk:
         api_host: "192.168.137.145"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
@@ -67,7 +67,7 @@
         state: present
 
     - name: "Add data disk to sqlvm02 (E: drive for SQL data)"
-      community.general.proxmox_disk:
+      community.proxmox.proxmox_disk:
         api_host: "192.168.137.145"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
@@ -78,7 +78,7 @@
         state: present
 
     - name: "Start sqlvm01"
-      community.general.proxmox_kvm:
+      community.proxmox.proxmox_kvm:
         api_host: "192.168.137.145"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
@@ -86,7 +86,7 @@
         state: started
 
     - name: "Start sqlvm02"
-      community.general.proxmox_kvm:
+      community.proxmox.proxmox_kvm:
         api_host: "192.168.137.145"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
