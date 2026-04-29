@@ -1,0 +1,29 @@
+---
+# Pass 2 of cert exchange: push peer cert from AWX controller and import into TrustedPeople.
+# Run AFTER all nodes have completed 02a_cert_generate.yml so all certs exist in /tmp/.
+
+- name: "Set peer hostname fact"
+  ansible.builtin.set_fact:
+    _wsfc_peer_hostname: >-
+      {{ wsfc_secondary_node if inventory_hostname == wsfc_primary_node else wsfc_primary_node }}
+
+- name: "Copy peer certificate to this node"
+  ansible.windows.win_copy:
+    src: "/tmp/{{ _wsfc_peer_hostname }}_cluster.cer"
+    dest: "C:\\ansible_temp\\{{ _wsfc_peer_hostname }}_cluster.cer"
+
+- name: "Import peer certificate into Trusted People store"
+  ansible.windows.win_shell: |
+    $certPath = "C:\ansible_temp\{{ _wsfc_peer_hostname }}_cluster.cer"
+    $existing = Get-ChildItem Cert:\LocalMachine\TrustedPeople |
+      Where-Object { $_.Subject -like "*{{ _wsfc_peer_hostname }}*" }
+    if (-not $existing) {
+      Import-Certificate `
+        -FilePath $certPath `
+        -CertStoreLocation "Cert:\LocalMachine\TrustedPeople"
+      Write-Output "CHANGED"
+    } else {
+      Write-Output "OK"
+    }
+  register: _cert_import
+  changed_when: "'CHANGED' in _cert_import.stdout"

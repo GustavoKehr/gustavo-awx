@@ -8,18 +8,46 @@
 # Survey vars: wsfc_cluster_name, wsfc_cluster_ip, wsfc_primary_node,
 #              wsfc_secondary_node, wsfc_primary_ip, wsfc_secondary_ip
 
-# Play 1: Install prerequisites and exchange certificates (serial=1 for cert exchange)
-- name: "WSFC Play 1: Prerequisites + certificate exchange"
+# Play 1: Install prerequisites on both nodes (serial=1 avoids parallel reboot chaos)
+- name: "WSFC Play 1: Install prerequisites on all nodes"
   hosts: sql_ha_nodes
   gather_facts: false
   serial: 1
 
-  roles:
-    - role: wsfc_setup
-      tags: [wsfc, wsfc_prereqs, wsfc_certs, wsfc_disk]
+  tasks:
+    - name: "Install prerequisites"
+      ansible.builtin.include_role:
+        name: wsfc_setup
+        tasks_from: 01_prerequisites.yml
+      tags: [wsfc, wsfc_prereqs]
 
-# Play 2: Create cluster (primary only) + configure quorum witness
-- name: "WSFC Play 2: Create cluster and configure quorum"
+# Play 2: Generate certs and fetch to controller (serial=1, each node fetches own cert)
+- name: "WSFC Play 2: Generate and fetch node certificates"
+  hosts: sql_ha_nodes
+  gather_facts: false
+  serial: 1
+
+  tasks:
+    - name: "Generate cert and fetch to controller"
+      ansible.builtin.include_role:
+        name: wsfc_setup
+        tasks_from: 02a_cert_generate.yml
+      tags: [wsfc, wsfc_certs]
+
+# Play 3: Push peer cert and import (all nodes, certs now on controller)
+- name: "WSFC Play 3: Import peer certificates on all nodes"
+  hosts: sql_ha_nodes
+  gather_facts: false
+
+  tasks:
+    - name: "Push and import peer certificate"
+      ansible.builtin.include_role:
+        name: wsfc_setup
+        tasks_from: 02b_cert_import.yml
+      tags: [wsfc, wsfc_certs]
+
+# Play 4: Create cluster (primary only) + configure quorum witness
+- name: "WSFC Play 4: Create cluster and configure quorum"
   hosts: sql_ha_nodes
   gather_facts: false
 
