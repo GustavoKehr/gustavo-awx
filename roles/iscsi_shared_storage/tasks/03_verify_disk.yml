@@ -1,0 +1,23 @@
+---
+# Verify the iSCSI shared disk is accessible on both nodes.
+# Does NOT initialize or format — that happens in sql_fci_install role (primary only).
+
+- name: "Get disk count (iSCSI)"
+  ansible.windows.win_shell: |
+    Update-HostStorageCache
+    $disks = Get-Disk
+    $disks | ForEach-Object {
+      Write-Output "Disk $($_.Number): $($_.FriendlyName) | BusType=$($_.BusType) | Size=$([math]::Round($_.Size/1GB,0))GB | Status=$($_.OperationalStatus)"
+    }
+  register: _all_disks
+  changed_when: false
+
+- name: "Show all disks"
+  ansible.builtin.debug:
+    msg: "Disks on {{ inventory_hostname }}:\n{{ _all_disks.stdout }}"
+
+- name: "Assert at least 2 disks visible (OS disk + iSCSI shared)"
+  ansible.builtin.assert:
+    that: (_all_disks.stdout_lines | length) >= 2
+    fail_msg: "Expected at least 2 disks on {{ inventory_hostname }}. Only found: {{ _all_disks.stdout_lines | length }}"
+    success_msg: "Shared disk visible on {{ inventory_hostname }}."

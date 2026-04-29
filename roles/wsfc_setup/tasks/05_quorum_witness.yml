@@ -1,0 +1,88 @@
+---
+# Configure file share quorum witness on repositoryvm (Linux/Samba).
+# Play delegates Samba setup tasks to repositoryvm, then configures
+# cluster quorum from the primary node.
+# Run only on primary node (enforced in playbook).
+
+- name: "Install Samba on repositoryvm"
+  ansible.builtin.dnf:
+    name:
+      - samba
+      - samba-common
+      - samba-client
+    state: present
+  delegate_to: "{{ wsfc_witness_host }}"
+
+- name: "Create witness share directory on repositoryvm"
+  ansible.builtin.file:
+    path: "{{ wsfc_witness_path }}"
+    state: directory
+    owner: nobody
+    group: nobody
+    mode: '0777'
+  delegate_to: "{{ wsfc_witness_host }}"
+
+- name: "Configure Samba share for witness on repositoryvm"
+  ansible.builtin.blockinfile:
+    path: /etc/samba/smb.conf
+    block: |
+      [sqlwitness]
+        path = {{ wsfc_witness_path }}
+        browsable = yes
+        writable = yes
+        guest ok = yes
+        force user = nobody
+        create mask = 0777
+        directory mask = 0777
+    marker: "# {mark} ANSIBLE MANAGED BLOCK sqlwitness"
+  delegate_to: "{{ wsfc_witness_host }}"
+
+- name: "Enable and start Samba services on repositoryvm"
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop:
+    - smb
+    - nmb
+  delegate_to: "{{ wsfc_witness_host }}"
+
+- name: "Allow guest SMB access from Windows (disable insecure guest auth block)"
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters
+    name: AllowInsecureGuestAuth
+    data: 1
+    type: dword
+
+- name: "Test SMB share accessible from primary node"
+  ansible.windows.win_shell: |
+    $result = Test-Path "{{ wsfc_witness_share }}" -ErrorAction SilentlyContinue
+    if ($result) { Write-Output "ACCESSIBLE" } else { Write-Output "INACCESSIBLE" }
+  register: _share_test
+  changed_when: false
+  failed_when: "'INACCESSIBLE' in _share_test.stdout"
+
+- name: "Configure cluster quorum to use file share witness"
+  ansible.windows.win_shell: |
+    $quorum = Get-ClusterQuorum -Cluster "{{ wsfc_cluster_name }}"
+    if ($quorum.QuorumResource -notlike "*FileShare*") {
+      Set-ClusterQuorum -Cluster "{{ wsfc_cluster_name }}" `
+        -FileShareWitness "{{ wsfc_witness_share }}"
+      Write-Output "CHANGED"
+    } else {
+      Write-Output "OK"
+    }
+  register: _quorum_result
+  changed_when: "'CHANGED' in _quorum_result.stdout"
+
+- name: "Verify quorum configuration"
+  ansible.windows.win_shell: |
+    $q = Get-ClusterQuorum -Cluster "{{ wsfc_cluster_name }}"
+    Write-Output "QuorumType: $($q.QuorumType)"
+    Write-Output "QuorumResource: $($q.QuorumResource)"
+  register: _quorum_verify
+  changed_when: false
+
+- name: "Show quorum config"
+  ansible.builtin.debug:
+    msg: "{{ _quorum_verify.stdout_lines }}"

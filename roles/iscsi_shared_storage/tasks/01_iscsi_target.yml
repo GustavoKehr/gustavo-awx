@@ -1,0 +1,97 @@
+---
+# Configure iSCSI target on repositoryvm (RHEL 9) using targetcli.
+# Exports a file-backed LUN that both Windows nodes connect to as shared disk.
+
+- name: "Install targetcli"
+  ansible.builtin.dnf:
+    name: targetcli
+    state: present
+
+- name: "Enable and start target service"
+  ansible.builtin.systemd:
+    name: target
+    state: started
+    enabled: true
+
+- name: "Create directory for iSCSI disk images"
+  ansible.builtin.file:
+    path: "{{ iscsi_lun_path | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: "Create file-backed LUN image ({{ iscsi_lun_size_gb }}GB)"
+  ansible.builtin.command: >
+    targetcli /backstores/fileio create
+    name=sqlshared
+    file_or_dev={{ iscsi_lun_path }}
+    size={{ iscsi_lun_size_gb }}G
+    write_back=false
+  args:
+    creates: "{{ iscsi_lun_path }}"
+
+- name: "Create iSCSI target IQN"
+  ansible.builtin.command: >
+    targetcli /iscsi create {{ iscsi_iqn }}
+  register: _iqn_create
+  changed_when: "'Created target' in _iqn_create.stdout"
+  failed_when:
+    - _iqn_create.rc != 0
+    - "'already exists' not in _iqn_create.stderr"
+
+- name: "Create LUN under target"
+  ansible.builtin.command: >
+    targetcli /iscsi/{{ iscsi_iqn }}/tpg1/luns create
+    /backstores/fileio/sqlshared
+  register: _lun_create
+  changed_when: "'Created LUN' in _lun_create.stdout"
+  failed_when:
+    - _lun_create.rc != 0
+    - "'already mapped' not in _lun_create.stderr"
+
+# Set ACL to allow all initiators (lab environment — no IQN filtering)
+- name: "Set portal listen address to all interfaces"
+  ansible.builtin.command: >
+    targetcli /iscsi/{{ iscsi_iqn }}/tpg1 set attribute authentication=0
+  changed_when: true
+
+- name: "Disable initiator IQN ACL (allow all)"
+  ansible.builtin.command: >
+    targetcli /iscsi/{{ iscsi_iqn }}/tpg1 set attribute generate_node_acls=1
+  changed_when: true
+
+- name: "Set portal to listen on target IP"
+  ansible.builtin.command: >
+    targetcli /iscsi/{{ iscsi_iqn }}/tpg1/portals delete ip_address=0.0.0.0 ip_port=3260
+  register: _portal_del
+  changed_when: true
+  failed_when: false
+
+- name: "Create portal on target IP"
+  ansible.builtin.command: >
+    targetcli /iscsi/{{ iscsi_iqn }}/tpg1/portals create
+    {{ iscsi_target_ip }} 3260
+  register: _portal_create
+  changed_when: "'Created network portal' in _portal_create.stdout"
+  failed_when:
+    - _portal_create.rc != 0
+    - "'already exists' not in _portal_create.stderr"
+
+- name: "Save targetcli configuration"
+  ansible.builtin.command: targetcli saveconfig
+  changed_when: true
+
+- name: "Open iSCSI port 3260 in firewalld"
+  ansible.posix.firewalld:
+    service: iscsi-target
+    state: enabled
+    permanent: true
+    immediate: true
+  ignore_errors: true
+
+- name: "Verify target is listening on port 3260"
+  ansible.builtin.wait_for:
+    port: 3260
+    host: "{{ iscsi_target_ip }}"
+    timeout: 30

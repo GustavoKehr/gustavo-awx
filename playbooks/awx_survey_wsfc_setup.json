@@ -1,0 +1,72 @@
+{
+  "name": "SQL Server HA | WSFC Setup",
+  "description": "Survey for setup_wsfc.yml — Windows Server Failover Cluster (workgroup, no AD) with file share quorum witness",
+  "spec": [
+    {
+      "question_name": "Cluster Name",
+      "question_description": "Windows cluster name (max 15 chars, no spaces)",
+      "required": true,
+      "type": "text",
+      "variable": "wsfc_cluster_name",
+      "min": 1,
+      "max": 15,
+      "default": "SQLHACLUSTER",
+      "choices": ""
+    },
+    {
+      "question_name": "Cluster Static IP",
+      "question_description": "Static IP for the cluster administrative access point (must be free in 192.168.137.0/24)",
+      "required": true,
+      "type": "text",
+      "variable": "wsfc_cluster_ip",
+      "min": 7,
+      "max": 15,
+      "default": "192.168.137.172",
+      "choices": ""
+    },
+    {
+      "question_name": "Primary Node Hostname",
+      "question_description": "Hostname of the primary cluster node (must match inventory)",
+      "required": true,
+      "type": "text",
+      "variable": "wsfc_primary_node",
+      "min": 1,
+      "max": 64,
+      "default": "sqlvm01",
+      "choices": ""
+    },
+    {
+      "question_name": "Secondary Node Hostname",
+      "question_description": "Hostname of the secondary cluster node (must match inventory)",
+      "required": true,
+      "type": "text",
+      "variable": "wsfc_secondary_node",
+      "min": 1,
+      "max": 64,
+      "default": "sqlvm02",
+      "choices": ""
+    },
+    {
+      "question_name": "Primary Node IP",
+      "question_description": "IP address of the primary node",
+      "required": true,
+      "type": "text",
+      "variable": "wsfc_primary_ip",
+      "min": 7,
+      "max": 15,
+      "default": "192.168.137.170",
+      "choices": ""
+    },
+    {
+      "question_name": "Secondary Node IP",
+      "question_description": "IP address of the secondary node",
+      "required": true,
+      "type": "text",
+      "variable": "wsfc_secondary_ip",
+      "min": 7,
+      "max": 15,
+      "default": "192.168.137.171",
+      "choices": ""
+    }
+  ]
+}

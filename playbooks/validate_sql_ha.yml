@@ -1,0 +1,218 @@
+---
+# Phase 5: SQL Server FCI validation — cluster health + SQL connectivity + failover test.
+# Tests planned failover (move SQL resource to sqlvm02) and failback to sqlvm01.
+#
+# Usage: AWX template "SQL Server HA - Validation"
+# Limit: sql_ha_nodes
+# Prerequisites: FCI install complete (Phase 4)
+
+- name: "VALIDATION Play 1: Cluster health check"
+  hosts: sql_ha_nodes
+  gather_facts: false
+
+  vars:
+    fci_primary_node: "{{ fci_primary_node | default('sqlvm01') }}"
+    fci_secondary_node: "{{ fci_secondary_node | default('sqlvm02') }}"
+    fci_virtual_ip: "{{ fci_virtual_ip | default('192.168.137.173') }}"
+    fci_virtual_name: "{{ fci_virtual_name | default('SQLHA-SQL') }}"
+
+  tasks:
+    - name: "Get cluster node states"
+      ansible.windows.win_shell: |
+        Get-ClusterNode | Select-Object Name, State |
+          ForEach-Object { "$($_.Name): $($_.State)" }
+      register: _cluster_nodes
+      changed_when: false
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Assert all nodes are Up"
+      ansible.windows.win_shell: |
+        $down = Get-ClusterNode | Where-Object { $_.State -ne "Up" }
+        if ($down) { Write-Output "DOWN: $($down.Name -join ',')" } else { Write-Output "ALL_UP" }
+      register: _node_check
+      changed_when: false
+      failed_when: "'DOWN' in _node_check.stdout"
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Show cluster resources"
+      ansible.windows.win_shell: |
+        Get-ClusterResource | Select-Object Name, ResourceType, State, OwnerGroup, OwnerNode |
+          Format-Table -AutoSize | Out-String
+      register: _resources
+      changed_when: false
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Show resources"
+      ansible.builtin.debug:
+        msg: "{{ _resources.stdout }}"
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Assert SQL Server resource Online"
+      ansible.windows.win_shell: |
+        $r = Get-ClusterResource | Where-Object { $_.ResourceType -eq "SQL Server" }
+        if ($r.State -eq "Online") { Write-Output "ONLINE" } else { Write-Output "NOT_ONLINE: $($r.State)" }
+      register: _sql_res
+      changed_when: false
+      failed_when: "'NOT_ONLINE' in _sql_res.stdout"
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Assert shared disk resource Online"
+      ansible.windows.win_shell: |
+        $r = Get-ClusterResource | Where-Object { $_.ResourceType -eq "Physical Disk" }
+        if ($r.State -eq "Online") { Write-Output "ONLINE" } else { Write-Output "NOT_ONLINE: $($r.State)" }
+      register: _disk_res
+      changed_when: false
+      failed_when: "'NOT_ONLINE' in _disk_res.stdout"
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Get quorum config"
+      ansible.windows.win_shell: |
+        $q = Get-ClusterQuorum
+        Write-Output "QuorumType: $($q.QuorumType) | Resource: $($q.QuorumResource)"
+      register: _quorum
+      changed_when: false
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Show quorum"
+      ansible.builtin.debug:
+        msg: "{{ _quorum.stdout | trim }}"
+      when: inventory_hostname == fci_primary_node
+
+
+- name: "VALIDATION Play 2: SQL Server connectivity via VIP"
+  hosts: sql_ha_nodes
+  gather_facts: false
+
+  vars:
+    fci_primary_node: "{{ fci_primary_node | default('sqlvm01') }}"
+    fci_virtual_ip: "{{ fci_virtual_ip | default('192.168.137.173') }}"
+
+  tasks:
+    - name: "Find sqlcmd path"
+      ansible.windows.win_shell: |
+        (Get-ChildItem "C:\Program Files\Microsoft SQL Server" -Recurse -Filter sqlcmd.exe -ErrorAction SilentlyContinue |
+          Select-Object -First 1).FullName
+      register: _sqlcmd
+      changed_when: false
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Connect to SQL Server via VIP and get server info"
+      ansible.windows.win_shell: |
+        $s = "{{ _sqlcmd.stdout | trim }}"
+        & $s -S "{{ fci_virtual_ip }},1433" -U sa -P "{{ sql_sa_password }}" -C -Q "
+          SELECT @@SERVERNAME AS ServerName, @@VERSION AS Version
+        "
+      register: _sql_info
+      changed_when: false
+      no_log: true
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Show SQL Server info"
+      ansible.builtin.debug:
+        msg: "{{ _sql_info.stdout_lines }}"
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Verify active node is primary"
+      ansible.windows.win_shell: |
+        $r = Get-ClusterResource | Where-Object { $_.ResourceType -eq "SQL Server" }
+        Write-Output "SQL resource owner: $($r.OwnerNode)"
+      register: _owner
+      changed_when: false
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Show active owner"
+      ansible.builtin.debug:
+        msg: "{{ _owner.stdout | trim }}"
+      when: inventory_hostname == fci_primary_node
+
+
+- name: "VALIDATION Play 3: Failover test and failback"
+  hosts: sql_ha_nodes
+  gather_facts: false
+
+  vars:
+    fci_primary_node: "{{ fci_primary_node | default('sqlvm01') }}"
+    fci_secondary_node: "{{ fci_secondary_node | default('sqlvm02') }}"
+    fci_virtual_ip: "{{ fci_virtual_ip | default('192.168.137.173') }}"
+
+  tasks:
+    - name: "Find sqlcmd path"
+      ansible.windows.win_shell: |
+        (Get-ChildItem "C:\Program Files\Microsoft SQL Server" -Recurse -Filter sqlcmd.exe -ErrorAction SilentlyContinue |
+          Select-Object -First 1).FullName
+      register: _sqlcmd
+      changed_when: false
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Move SQL Server resource group to secondary node (failover)"
+      ansible.windows.win_shell: |
+        $group = (Get-ClusterResource | Where-Object { $_.ResourceType -eq "SQL Server" }).OwnerGroup
+        Move-ClusterGroup -Name $group -Node "{{ fci_secondary_node }}"
+        Write-Output "MOVED to {{ fci_secondary_node }}"
+      register: _failover
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Wait for SQL resource to come Online on secondary"
+      ansible.windows.win_shell: |
+        $retries = 0
+        do {
+          Start-Sleep -Seconds 10
+          $r = Get-ClusterResource | Where-Object { $_.ResourceType -eq "SQL Server" }
+          $retries++
+        } until ($r.State -eq "Online" -or $retries -ge 12)
+        Write-Output "State=$($r.State) | Owner=$($r.OwnerNode)"
+      register: _failover_wait
+      changed_when: false
+      failed_when: "'Online' not in _failover_wait.stdout"
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Show failover state"
+      ansible.builtin.debug:
+        msg: "After failover: {{ _failover_wait.stdout | trim }}"
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Test SQL connectivity via VIP after failover"
+      ansible.windows.win_shell: |
+        $s = "{{ _sqlcmd.stdout | trim }}"
+        & $s -S "{{ fci_virtual_ip }},1433" -U sa -P "{{ sql_sa_password }}" -C -h-1 -Q "SELECT @@SERVERNAME"
+      register: _sql_post_failover
+      changed_when: false
+      no_log: true
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Show active server after failover"
+      ansible.builtin.debug:
+        msg: "VIP connects to: {{ _sql_post_failover.stdout | trim }}"
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Move SQL resource back to primary (failback)"
+      ansible.windows.win_shell: |
+        $group = (Get-ClusterResource | Where-Object { $_.ResourceType -eq "SQL Server" }).OwnerGroup
+        Move-ClusterGroup -Name $group -Node "{{ fci_primary_node }}"
+        Write-Output "MOVED back to {{ fci_primary_node }}"
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Wait for SQL resource Online on primary after failback"
+      ansible.windows.win_shell: |
+        $retries = 0
+        do {
+          Start-Sleep -Seconds 10
+          $r = Get-ClusterResource | Where-Object { $_.ResourceType -eq "SQL Server" }
+          $retries++
+        } until ($r.State -eq "Online" -and $r.OwnerNode -eq "{{ fci_primary_node }}" -or $retries -ge 12)
+        Write-Output "State=$($r.State) | Owner=$($r.OwnerNode)"
+      register: _failback_wait
+      changed_when: false
+      failed_when: >
+        'Online' not in _failback_wait.stdout or
+        fci_primary_node not in _failback_wait.stdout
+      when: inventory_hostname == fci_primary_node
+
+    - name: "Failover test result"
+      ansible.builtin.debug:
+        msg: >
+          Failover test PASSED.
+          Failover to {{ fci_secondary_node }}: OK.
+          Failback to {{ fci_primary_node }}: OK.
+          Final state: {{ _failback_wait.stdout | trim }}
+      when: inventory_hostname == fci_primary_node

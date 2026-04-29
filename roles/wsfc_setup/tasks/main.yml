@@ -1,0 +1,13 @@
+---
+- name: "WSFC: Install prerequisites"
+  ansible.builtin.include_tasks: 01_prerequisites.yml
+  tags: [wsfc, wsfc_prereqs]
+
+- name: "WSFC: Exchange certificates for workgroup cluster auth"
+  ansible.builtin.include_tasks: 02_certificates.yml
+  tags: [wsfc, wsfc_certs]
+
+- name: "WSFC: Add shared iSCSI disk to cluster (FCI prerequisite)"
+  ansible.builtin.include_tasks: 06_add_cluster_disk.yml
+  tags: [wsfc, wsfc_disk]
+  when: inventory_hostname == wsfc_primary_node

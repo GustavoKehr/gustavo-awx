@@ -1,0 +1,11 @@
+---
+wsfc_cluster_name: "SQLHACLUSTER"
+wsfc_cluster_ip: "192.168.137.172"
+wsfc_primary_node: "sqlvm01"
+wsfc_secondary_node: "sqlvm02"
+wsfc_primary_ip: "192.168.137.170"
+wsfc_secondary_ip: "192.168.137.171"
+wsfc_workgroup: "SQLHALAB"
+wsfc_witness_share: "\\\\192.168.137.148\\sqlwitness"
+wsfc_witness_path: "/srv/samba/sqlwitness"
+wsfc_witness_host: "repositoryvm"

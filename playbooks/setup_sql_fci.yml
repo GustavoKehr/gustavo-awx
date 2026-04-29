@@ -1,0 +1,60 @@
+---
+# Phase 4: Install SQL Server as Failover Cluster Instance (FCI).
+# Play 1: Prepare (both nodes — download ISO, init shared disk on primary).
+# Play 2: Install primary node FCI (serial — primary must finish before secondary).
+# Play 3: Add secondary node.
+# Play 4: Verify FCI health.
+#
+# Usage: AWX template "SQL Server HA - FCI Install"
+# Limit: sql_ha_nodes
+# Prerequisites: WSFC cluster healthy with Cluster Disk resource (Phase 3 complete)
+#
+# Survey vars: sql_sa_password, fci_virtual_name, fci_virtual_ip,
+#              fci_shared_disk_letter, fci_data_dir, fci_log_dir
+
+- name: "FCI Play 1: Prepare (both nodes)"
+  hosts: sql_ha_nodes
+  gather_facts: false
+
+  tasks:
+    - name: "FCI preparation"
+      ansible.builtin.include_role:
+        name: sql_fci_install
+        tasks_from: 01_prepare.yml
+      tags: [fci, fci_prepare]
+
+
+- name: "FCI Play 2: Install primary node (serial)"
+  hosts: "{{ fci_primary_node | default('sqlvm01') }}"
+  gather_facts: false
+
+  tasks:
+    - name: "FCI primary install"
+      ansible.builtin.include_role:
+        name: sql_fci_install
+        tasks_from: 02_install_primary.yml
+      tags: [fci, fci_primary]
+
+
+- name: "FCI Play 3: Add secondary node"
+  hosts: "{{ fci_secondary_node | default('sqlvm02') }}"
+  gather_facts: false
+
+  tasks:
+    - name: "FCI AddNode"
+      ansible.builtin.include_role:
+        name: sql_fci_install
+        tasks_from: 03_add_secondary.yml
+      tags: [fci, fci_secondary]
+
+
+- name: "FCI Play 4: Verify FCI health"
+  hosts: "{{ fci_primary_node | default('sqlvm01') }}"
+  gather_facts: false
+
+  tasks:
+    - name: "FCI verification"
+      ansible.builtin.include_role:
+        name: sql_fci_install
+        tasks_from: 04_verify_fci.yml
+      tags: [fci, fci_verify]

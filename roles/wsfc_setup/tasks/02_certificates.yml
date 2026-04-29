@@ -1,0 +1,74 @@
+---
+# Exchange self-signed certificates between nodes for workgroup cluster authentication.
+# Windows Server 2022 workgroup clusters authenticate nodes via certificates in
+# the Trusted People store instead of Active Directory computer accounts.
+#
+# Flow (serial=1 in playbook ensures ordered execution):
+#   1. Generate self-signed cert on each node
+#   2. Export cert to C:\ansible_temp\
+#   3. Fetch cert from each node to AWX controller /tmp/
+#   4. Push peer cert to each node
+#   5. Import peer cert into Trusted People store
+
+- name: "Generate self-signed certificate for cluster node authentication"
+  ansible.windows.win_shell: |
+    $subject = "CN={{ inventory_hostname }}"
+    $existing = Get-ChildItem Cert:\LocalMachine\My |
+      Where-Object { $_.Subject -eq $subject }
+    if (-not $existing) {
+      $cert = New-SelfSignedCertificate `
+        -DnsName "{{ inventory_hostname }}" `
+        -CertStoreLocation "Cert:\LocalMachine\My" `
+        -KeyUsage KeyEncipherment,DataEncipherment,CertSign `
+        -NotAfter (Get-Date).AddYears(5)
+      Write-Output "CHANGED:$($cert.Thumbprint)"
+    } else {
+      Write-Output "OK:$($existing.Thumbprint)"
+    }
+  register: _cert_gen
+  changed_when: "'CHANGED' in _cert_gen.stdout"
+
+- name: "Export node certificate to file"
+  ansible.windows.win_shell: |
+    $subject = "CN={{ inventory_hostname }}"
+    $cert = Get-ChildItem Cert:\LocalMachine\My |
+      Where-Object { $_.Subject -eq $subject } | Select-Object -First 1
+    Export-Certificate `
+      -Cert "Cert:\LocalMachine\My\$($cert.Thumbprint)" `
+      -FilePath "C:\ansible_temp\{{ inventory_hostname }}_cluster.cer" `
+      -Type CERT -Force
+    Write-Output "Exported: $($cert.Thumbprint)"
+  changed_when: false
+
+- name: "Fetch node certificate to AWX controller"
+  ansible.builtin.fetch:
+    src: "C:\\ansible_temp\\{{ inventory_hostname }}_cluster.cer"
+    dest: "/tmp/{{ inventory_hostname }}_cluster.cer"
+    flat: yes
+
+# Determine peer hostname for cert exchange
+- name: "Set peer hostname fact"
+  ansible.builtin.set_fact:
+    _wsfc_peer_hostname: >-
+      {{ wsfc_secondary_node if inventory_hostname == wsfc_primary_node else wsfc_primary_node }}
+
+- name: "Copy peer certificate to this node"
+  ansible.windows.win_copy:
+    src: "/tmp/{{ _wsfc_peer_hostname }}_cluster.cer"
+    dest: "C:\\ansible_temp\\{{ _wsfc_peer_hostname }}_cluster.cer"
+
+- name: "Import peer certificate into Trusted People store"
+  ansible.windows.win_shell: |
+    $certPath = "C:\ansible_temp\{{ _wsfc_peer_hostname }}_cluster.cer"
+    $existing = Get-ChildItem Cert:\LocalMachine\TrustedPeople |
+      Where-Object { $_.Subject -like "*{{ _wsfc_peer_hostname }}*" }
+    if (-not $existing) {
+      Import-Certificate `
+        -FilePath $certPath `
+        -CertStoreLocation "Cert:\LocalMachine\TrustedPeople"
+      Write-Output "CHANGED"
+    } else {
+      Write-Output "OK"
+    }
+  register: _cert_import
+  changed_when: "'CHANGED' in _cert_import.stdout"

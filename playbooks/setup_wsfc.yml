@@ -1,0 +1,46 @@
+---
+# Phase 3: Windows Server Failover Cluster (workgroup, no AD) + quorum witness + shared disk.
+#
+# Usage: AWX template "SQL Server HA - WSFC Setup"
+# Limit: sql_ha_nodes
+# Prerequisites: Phase 2 (iSCSI shared storage) complete — shared disk visible on both nodes
+#
+# Survey vars: wsfc_cluster_name, wsfc_cluster_ip, wsfc_primary_node,
+#              wsfc_secondary_node, wsfc_primary_ip, wsfc_secondary_ip
+
+# Play 1: Install prerequisites and exchange certificates (serial=1 for cert exchange)
+- name: "WSFC Play 1: Prerequisites + certificate exchange"
+  hosts: sql_ha_nodes
+  gather_facts: false
+  serial: 1
+
+  roles:
+    - role: wsfc_setup
+      tags: [wsfc, wsfc_prereqs, wsfc_certs, wsfc_disk]
+
+# Play 2: Create cluster (primary only) + configure quorum witness
+- name: "WSFC Play 2: Create cluster and configure quorum"
+  hosts: sql_ha_nodes
+  gather_facts: false
+
+  tasks:
+    - name: "Create cluster"
+      ansible.builtin.include_role:
+        name: wsfc_setup
+        tasks_from: 03_create_cluster.yml
+      tags: [wsfc, wsfc_create]
+      when: inventory_hostname == wsfc_primary_node | default('sqlvm01')
+
+    - name: "Verify cluster health"
+      ansible.builtin.include_role:
+        name: wsfc_setup
+        tasks_from: 04_verify_cluster.yml
+      tags: [wsfc, wsfc_verify]
+      when: inventory_hostname == wsfc_primary_node | default('sqlvm01')
+
+    - name: "Configure quorum witness"
+      ansible.builtin.include_role:
+        name: wsfc_setup
+        tasks_from: 05_quorum_witness.yml
+      tags: [wsfc, wsfc_quorum]
+      when: inventory_hostname == wsfc_primary_node | default('sqlvm01')

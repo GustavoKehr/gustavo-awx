@@ -19,6 +19,11 @@ Referência central: qual playbook, tags e arquivo de survey usar para cada oper
 | `ORACLE \| Deploy` | `deploy_oracle.yml` | *(vazio — all phases)* | `awx_survey_oracle_install.json` |
 | `ORACLE \| Manage Users` | `manage_oracle_users.yml` | `oracle_users` | `awx_survey_oracle_manage_users.json` |
 | `DB \| Patch Discovery` | qualquer engine | `db_patches` | *(vars manuais)* |
+| `SQL Server HA \| VM Provisioning` | `provision_sqlha_vms.yml` | *(vazio)* | `awx_survey_sqlha_provisioning.json` |
+| `SQL Server HA \| iSCSI Shared Storage` | `setup_iscsi_storage.yml` | *(vazio)* | *(sem survey)* |
+| `SQL Server HA \| WSFC Setup` | `setup_wsfc.yml` | *(vazio)* | `awx_survey_wsfc_setup.json` |
+| `SQL Server HA \| FCI Install` | `setup_sql_fci.yml` | *(vazio)* | `awx_survey_sql_fci.json` |
+| `SQL Server HA \| Validation` | `validate_sql_ha.yml` | *(vazio)* | *(sem survey)* |
 
 ---
 

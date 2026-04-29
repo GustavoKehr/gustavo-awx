@@ -1,0 +1,55 @@
+---
+# Create WSFC on primary node. Uses -AdministrativeAccessPoint DNS for workgroup
+# clusters (no AD computer object — DNS-only CAP).
+# Run only on primary node (enforced in playbook).
+
+- name: "Run cluster prerequisite validation"
+  ansible.windows.win_shell: |
+    $result = Test-Cluster `
+      -Node "{{ wsfc_primary_node }}","{{ wsfc_secondary_node }}" `
+      -Include "System Configuration","Network","Inventory" `
+      -ErrorAction SilentlyContinue
+    $errors = $result | Where-Object { $_.Severity -eq "Error" }
+    if ($errors) {
+      Write-Output "VALIDATION_FAILED"
+      $errors | ForEach-Object { Write-Output "$($_.Description)" }
+    } else {
+      Write-Output "VALIDATION_OK"
+    }
+  register: _cluster_validation
+  changed_when: false
+  failed_when: "'VALIDATION_FAILED' in _cluster_validation.stdout"
+
+- name: "Create failover cluster (DNS CAP — workgroup mode)"
+  ansible.windows.win_shell: |
+    $existing = Get-Cluster -Name "{{ wsfc_cluster_name }}" -ErrorAction SilentlyContinue
+    if (-not $existing) {
+      New-Cluster `
+        -Name "{{ wsfc_cluster_name }}" `
+        -Node "{{ wsfc_primary_node }}","{{ wsfc_secondary_node }}" `
+        -StaticAddress "{{ wsfc_cluster_ip }}" `
+        -NoStorage `
+        -AdministrativeAccessPoint DNS
+      Write-Output "CHANGED"
+    } else {
+      Write-Output "OK: Cluster already exists"
+    }
+  register: _cluster_create
+  changed_when: "'CHANGED' in _cluster_create.stdout"
+
+- name: "Wait for cluster to stabilize"
+  ansible.windows.win_shell: |
+    $retries = 0
+    do {
+      Start-Sleep -Seconds 5
+      $nodes = Get-ClusterNode -Cluster "{{ wsfc_cluster_name }}" -ErrorAction SilentlyContinue
+      $retries++
+    } until ($nodes -or $retries -ge 12)
+    if (-not $nodes) {
+      Write-Output "TIMEOUT"
+    } else {
+      $nodes | ForEach-Object { Write-Output "$($_.Name): $($_.State)" }
+    }
+  register: _cluster_wait
+  changed_when: false
+  failed_when: "'TIMEOUT' in _cluster_wait.stdout"

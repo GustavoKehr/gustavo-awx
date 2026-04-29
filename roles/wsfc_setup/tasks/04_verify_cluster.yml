@@ -1,0 +1,48 @@
+---
+# Verify cluster health after creation.
+# Run only on primary node (enforced in playbook).
+
+- name: "Get cluster node states"
+  ansible.windows.win_shell: |
+    Get-ClusterNode -Cluster "{{ wsfc_cluster_name }}" |
+      Select-Object Name, State |
+      ForEach-Object { "$($_.Name): $($_.State)" }
+  register: _nodes
+  changed_when: false
+
+- name: "Show cluster node states"
+  ansible.builtin.debug:
+    msg: "{{ _nodes.stdout_lines }}"
+
+- name: "Assert all nodes are Up"
+  ansible.windows.win_shell: |
+    $down = Get-ClusterNode -Cluster "{{ wsfc_cluster_name }}" |
+      Where-Object { $_.State -ne "Up" }
+    if ($down) {
+      Write-Output "NODES_DOWN: $($down.Name -join ',')"
+    } else {
+      Write-Output "ALL_UP"
+    }
+  register: _node_check
+  changed_when: false
+  failed_when: "'NODES_DOWN' in _node_check.stdout"
+
+- name: "Verify cluster network"
+  ansible.windows.win_shell: |
+    Get-ClusterNetwork -Cluster "{{ wsfc_cluster_name }}" |
+      Select-Object Name, State, Role |
+      ForEach-Object { "$($_.Name): $($_.State) | Role=$($_.Role)" }
+  register: _networks
+  changed_when: false
+
+- name: "Show cluster networks"
+  ansible.builtin.debug:
+    msg: "{{ _networks.stdout_lines }}"
+
+- name: "Verify cluster VIP reachable"
+  ansible.windows.win_shell: |
+    $result = Test-Connection "{{ wsfc_cluster_ip }}" -Count 2 -Quiet
+    if ($result) { Write-Output "REACHABLE" } else { Write-Output "UNREACHABLE" }
+  register: _vip_check
+  changed_when: false
+  failed_when: "'UNREACHABLE' in _vip_check.stdout"

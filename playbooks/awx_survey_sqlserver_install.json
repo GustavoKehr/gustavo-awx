@@ -1,0 +1,61 @@
+{
+  "name": "SQL Server | Install (HA nodes)",
+  "description": "Survey for deploy_sqlserver.yml when installing on HA cluster nodes. Use allowed_management_ip to include both node IPs for IPsec.",
+  "spec": [
+    {
+      "question_name": "SA Password",
+      "question_description": "SQL Server SA account password. Store the value securely in vault after use.",
+      "required": true,
+      "type": "password",
+      "variable": "sql_sa_password",
+      "min": 8,
+      "max": 128,
+      "default": "",
+      "choices": ""
+    },
+    {
+      "question_name": "Data Disk Number",
+      "question_description": "Windows disk number to format as E: (SQL data drive). Usually 1 for the extra disk added in provisioning.",
+      "required": true,
+      "type": "text",
+      "variable": "win_disk_number",
+      "min": 1,
+      "max": 2,
+      "default": "1",
+      "choices": ""
+    },
+    {
+      "question_name": "Allowed Management IPs",
+      "question_description": "Comma-separated IPs allowed through IPsec on ports 1433 and 3389. MUST include AWX IP (192.168.137.153) and both node IPs (192.168.137.170,192.168.137.171) for HA to work.",
+      "required": true,
+      "type": "textarea",
+      "variable": "allowed_management_ip",
+      "min": 7,
+      "max": 500,
+      "default": "192.168.137.153,192.168.137.170,192.168.137.171",
+      "choices": ""
+    },
+    {
+      "question_name": "Create Initial Database",
+      "question_description": "Create initial database after install. Required for AG enrollment in Phase 4.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "create_initial_db",
+      "min": null,
+      "max": null,
+      "default": "true",
+      "choices": "true\nfalse"
+    },
+    {
+      "question_name": "Initial Database Name",
+      "question_description": "Name for the initial database. This database will be added to the Availability Group.",
+      "required": true,
+      "type": "text",
+      "variable": "sql_initial_db_name",
+      "min": 1,
+      "max": 128,
+      "default": "sqldb",
+      "choices": ""
+    }
+  ]
+}

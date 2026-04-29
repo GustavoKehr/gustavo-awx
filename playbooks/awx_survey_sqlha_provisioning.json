@@ -1,0 +1,105 @@
+{
+  "name": "SQL Server HA | VM Provisioning",
+  "description": "Survey for cloning 2 Windows Server VMs from templateWServer2022 and configuring for SQL Server HA",
+  "spec": [
+    {
+      "question_name": "Proxmox API User",
+      "question_description": "Proxmox API user (e.g. root@pam)",
+      "required": true,
+      "type": "text",
+      "variable": "proxmox_api_user",
+      "min": 1,
+      "max": 100,
+      "default": "root@pam",
+      "choices": ""
+    },
+    {
+      "question_name": "Proxmox API Password",
+      "question_description": "Proxmox root or API token password",
+      "required": true,
+      "type": "password",
+      "variable": "proxmox_api_password",
+      "min": 1,
+      "max": 200,
+      "default": "",
+      "choices": ""
+    },
+    {
+      "question_name": "sqlvm01 VMID",
+      "question_description": "Proxmox VMID to assign to sqlvm01 (must not conflict with existing VMs)",
+      "required": true,
+      "type": "text",
+      "variable": "sqlvm01_vmid",
+      "min": 3,
+      "max": 10,
+      "default": "170",
+      "choices": ""
+    },
+    {
+      "question_name": "sqlvm02 VMID",
+      "question_description": "Proxmox VMID to assign to sqlvm02 (must not conflict with existing VMs)",
+      "required": true,
+      "type": "text",
+      "variable": "sqlvm02_vmid",
+      "min": 3,
+      "max": 10,
+      "default": "171",
+      "choices": ""
+    },
+    {
+      "question_name": "sqlvm01 IP Address",
+      "question_description": "Static IP for sqlvm01 (must be free in 192.168.137.0/24)",
+      "required": true,
+      "type": "text",
+      "variable": "sqlvm01_ip",
+      "min": 7,
+      "max": 15,
+      "default": "192.168.137.170",
+      "choices": ""
+    },
+    {
+      "question_name": "sqlvm02 IP Address",
+      "question_description": "Static IP for sqlvm02 (must be free in 192.168.137.0/24)",
+      "required": true,
+      "type": "text",
+      "variable": "sqlvm02_ip",
+      "min": 7,
+      "max": 15,
+      "default": "192.168.137.171",
+      "choices": ""
+    },
+    {
+      "question_name": "VM RAM (MB)",
+      "question_description": "RAM in MB per VM. Minimum 4096 for SQL Server.",
+      "required": true,
+      "type": "text",
+      "variable": "vm_memory_mb",
+      "min": 4,
+      "max": 10,
+      "default": "4096",
+      "choices": ""
+    },
+    {
+      "question_name": "VM vCPUs",
+      "question_description": "Number of vCPUs per VM",
+      "required": true,
+      "type": "text",
+      "variable": "vm_vcpus",
+      "min": 1,
+      "max": 3,
+      "default": "2",
+      "choices": ""
+    },
+    {
+      "question_name": "SQL Data Disk Size (GB)",
+      "question_description": "Size in GB for the extra disk used as E: drive (SQL data directory)",
+      "required": true,
+      "type": "text",
+      "variable": "sql_data_disk_gb",
+      "min": 2,
+      "max": 5,
+      "default": "40",
+      "choices": ""
+    }
+  ]
+}

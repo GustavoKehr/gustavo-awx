@@ -1,0 +1,104 @@
+---
+# Prepare shared disk (primary only) and download SQL Server ISO (both nodes).
+# Primary initializes + formats the shared disk, creates FCI directories.
+# Both nodes download the ISO for AddNode operation.
+
+- name: "Create temp directories"
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ fci_temp_dir }}"
+    - "{{ fci_temp_dir }}\\install"
+
+- name: "Download SQL Server ISO"
+  ansible.windows.win_get_url:
+    url: "{{ fci_iso_url }}"
+    dest: "{{ fci_temp_dir }}\\SQLServer.iso"
+    timeout: 1200
+  register: _iso_download
+
+- name: "Download SSMS (primary only — installed after FCI)"
+  ansible.windows.win_get_url:
+    url: "{{ fci_ssms_url }}"
+    dest: "{{ fci_temp_dir }}\\SSMS-Setup-ENU.exe"
+    timeout: 600
+  when: inventory_hostname == fci_primary_node
+
+- name: "Mount SQL Server ISO"
+  community.windows.win_disk_image:
+    image_path: "{{ fci_temp_dir }}\\SQLServer.iso"
+    state: present
+  register: _iso_mount
+
+- name: "Set ISO drive letter fact"
+  ansible.builtin.set_fact:
+    _iso_drive: "{{ _iso_mount.mount_path }}"
+
+# --- Shared disk initialization (primary only) ---
+- name: "Initialize iSCSI shared disk (primary only)"
+  ansible.windows.win_shell: |
+    Update-HostStorageCache
+    # Find the raw iSCSI disk (not yet initialized)
+    $disk = Get-Disk | Where-Object {
+      $_.OperationalStatus -in @('Offline','Unknown') -and $_.PartitionStyle -eq 'RAW'
+    } | Select-Object -First 1
+
+    if (-not $disk) {
+      # Maybe already initialized — check for our label
+      $vol = Get-Volume -FileSystemLabel "{{ fci_shared_disk_label }}" -ErrorAction SilentlyContinue
+      if ($vol) { Write-Output "OK: already initialized"; exit 0 }
+      Write-Output "NO_RAW_DISK"
+      exit 1
+    }
+
+    # Bring online and initialize as GPT
+    Set-Disk -Number $disk.Number -IsOffline $false
+    Set-Disk -Number $disk.Number -IsReadOnly $false
+    Initialize-Disk -Number $disk.Number -PartitionStyle GPT -Confirm:$false
+
+    # Create single partition and assign drive letter S:
+    $part = New-Partition -DiskNumber $disk.Number -UseMaximumSize -DriveLetter {{ fci_shared_disk_letter }}
+    Format-Volume -DriveLetter {{ fci_shared_disk_letter }} -FileSystem NTFS `
+      -NewFileSystemLabel "{{ fci_shared_disk_label }}" `
+      -AllocationUnitSize 65536 -Confirm:$false
+
+    Write-Output "CHANGED: Disk $($disk.Number) formatted as {{ fci_shared_disk_letter }}:"
+  register: _disk_init
+  changed_when: "'CHANGED' in _disk_init.stdout"
+  failed_when: "'NO_RAW_DISK' in _disk_init.stdout"
+  when: inventory_hostname == fci_primary_node
+
+- name: "Create SQL Server directories on shared disk (primary only)"
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ fci_instance_dir }}"
+    - "{{ fci_data_dir }}"
+    - "{{ fci_log_dir }}"
+    - "{{ fci_backup_dir }}"
+  when: inventory_hostname == fci_primary_node
+
+- name: "Grant permissions on shared disk directories (primary only)"
+  ansible.windows.win_acl:
+    path: "{{ fci_instance_dir }}"
+    user: "NT AUTHORITY\\Network Service"
+    rights: FullControl
+    type: allow
+    state: present
+    inherit: ContainerInherit, ObjectInherit
+    propagation: None
+  when: inventory_hostname == fci_primary_node
+
+- name: "Generate FCI ConfigurationFile.ini (primary only)"
+  ansible.windows.win_template:
+    src: "FciConfigurationFile.ini.j2"
+    dest: "{{ fci_temp_dir }}\\FciConfigurationFile.ini"
+  when: inventory_hostname == fci_primary_node
+
+- name: "Generate AddNode ConfigurationFile.ini (secondary only)"
+  ansible.windows.win_template:
+    src: "AddNodeConfigurationFile.ini.j2"
+    dest: "{{ fci_temp_dir }}\\AddNodeConfigurationFile.ini"
+  when: inventory_hostname == fci_secondary_node

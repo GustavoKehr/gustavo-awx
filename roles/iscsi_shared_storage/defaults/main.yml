@@ -1,0 +1,8 @@
+---
+iscsi_target_host: "repositoryvm"
+iscsi_target_ip: "192.168.137.148"
+iscsi_iqn: "iqn.2025-01.lab.gustavo:sqlshared"
+iscsi_lun_path: "/var/lib/iscsi_disks/sqlshared.img"
+iscsi_lun_size_gb: 40
+iscsi_disk_letter: "S"
+iscsi_disk_label: "SQLShared"

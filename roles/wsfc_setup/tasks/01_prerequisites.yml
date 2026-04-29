@@ -1,0 +1,83 @@
+---
+# Install Failover Clustering Windows features on both nodes.
+# Add host file entries so nodes resolve each other without DNS.
+# Open cluster communication ports in the existing IPsec policy.
+
+- name: "Install Failover-Clustering Windows features"
+  ansible.windows.win_feature:
+    name:
+      - Failover-Clustering
+      - RSAT-Clustering
+      - RSAT-Clustering-PowerShell
+      - RSAT-Clustering-Mgmt
+    state: present
+    include_management_tools: true
+  register: _wsfc_feature
+
+- name: "Reboot after feature install if required"
+  ansible.windows.win_reboot:
+    reboot_timeout: 600
+    post_reboot_delay: 30
+  when: _wsfc_feature.reboot_required
+
+- name: "Wait for WinRM after reboot"
+  ansible.builtin.wait_for_connection:
+    delay: 15
+    timeout: 300
+  when: _wsfc_feature.reboot_required
+
+- name: "Ensure ansible_temp directory exists"
+  ansible.windows.win_file:
+    path: C:\ansible_temp
+    state: directory
+
+- name: "Add node IPs and cluster name to Windows hosts file"
+  ansible.windows.win_lineinfile:
+    path: C:\Windows\System32\drivers\etc\hosts
+    line: "{{ item.ip }}  {{ item.name }}"
+    state: present
+  loop:
+    - { ip: "{{ wsfc_primary_ip }}", name: "{{ wsfc_primary_node }}" }
+    - { ip: "{{ wsfc_secondary_ip }}", name: "{{ wsfc_secondary_node }}" }
+    - { ip: "{{ wsfc_cluster_ip }}", name: "{{ wsfc_cluster_name }}" }
+
+# Permit cluster communication ports from peer node in the existing IPsec policy.
+# Ports required by WSFC: TCP/UDP 3343 (cluster heartbeat), TCP 135 (RPC),
+# TCP 445 (SMB for cluster), TCP 5022 (will be used by AG endpoint).
+- name: "Add peer node IP to IPsec permit list (cluster ports)"
+  ansible.windows.win_shell: |
+    $peerIp = if ("{{ inventory_hostname }}" -eq "{{ wsfc_primary_node }}") {
+      "{{ wsfc_secondary_ip }}"
+    } else {
+      "{{ wsfc_primary_ip }}"
+    }
+
+    $policyName = "IP restriction policy"
+    $filterList = "Cluster Node Communication"
+
+    # Create dedicated filter list for cluster if not exists
+    $existing = netsh ipsec static show filterlist name="$filterList" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+      netsh ipsec static add filterlist name="$filterList"
+    }
+
+    # Permit all traffic from peer node (cluster uses many dynamic ports)
+    netsh ipsec static add filter filterlist="$filterList" `
+      srcaddr=$peerIp dstaddr=Me proto=any mirrored=yes description="WSFC peer node"
+
+    # Create filter action Permit if not present
+    $permitExists = netsh ipsec static show filteraction name="Permit" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+      netsh ipsec static add filteraction name="Permit" action=permit
+    }
+
+    # Create and assign rule
+    netsh ipsec static add rule name="Allow Cluster Peer $peerIp" `
+      policy="$policyName" `
+      filterlist="$filterList" `
+      filteraction="Permit"
+
+    netsh ipsec static set policy name="$policyName" assign=y
+    Write-Output "DONE"
+  changed_when: true
+  ignore_errors: true

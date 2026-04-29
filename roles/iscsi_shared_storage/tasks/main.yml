@@ -1,0 +1,15 @@
+---
+- name: "iSCSI: Configure target on repositoryvm"
+  ansible.builtin.include_tasks: 01_iscsi_target.yml
+  tags: [iscsi, iscsi_target]
+  when: inventory_hostname == iscsi_target_host
+
+- name: "iSCSI: Connect initiator on Windows nodes"
+  ansible.builtin.include_tasks: 02_iscsi_initiator.yml
+  tags: [iscsi, iscsi_initiator]
+  when: inventory_hostname != iscsi_target_host
+
+- name: "iSCSI: Verify shared disk visible"
+  ansible.builtin.include_tasks: 03_verify_disk.yml
+  tags: [iscsi, iscsi_verify]
+  when: inventory_hostname != iscsi_target_host

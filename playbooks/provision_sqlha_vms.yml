@@ -1,0 +1,209 @@
+---
+# Phase 1: Clone 2 Windows Server VMs from templateWServer2022 (VMID 102)
+# and configure networking/WinRM for Ansible connectivity.
+#
+# Usage: Run from AWX template "SQL Server HA - VM Provisioning"
+# Survey vars: sqlvm01_vmid, sqlvm02_vmid, sqlvm01_ip, sqlvm02_ip,
+#              proxmox_api_user, proxmox_api_password,
+#              vm_memory_mb, vm_vcpus, sql_data_disk_gb
+
+- name: "PHASE 1a: Clone VMs from Proxmox template"
+  hosts: proxmox
+  gather_facts: false
+
+  vars:
+    template_vmid: 102
+    sqlvm01_vmid: "{{ sqlvm01_vmid | default('170') }}"
+    sqlvm02_vmid: "{{ sqlvm02_vmid | default('171') }}"
+    sqlvm01_ip: "{{ sqlvm01_ip | default('192.168.137.170') }}"
+    sqlvm02_ip: "{{ sqlvm02_ip | default('192.168.137.171') }}"
+    vm_memory_mb: "{{ vm_memory_mb | default('4096') }}"
+    vm_vcpus: "{{ vm_vcpus | default('2') }}"
+    sql_data_disk_gb: "{{ sql_data_disk_gb | default('40') }}"
+    proxmox_api_user: "{{ proxmox_api_user | default('root@pam') }}"
+    proxmox_api_password: "{{ proxmox_api_password }}"
+
+  tasks:
+    - name: "Clone template to sqlvm01"
+      community.general.proxmox_kvm:
+        api_host: "{{ ansible_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_password: "{{ proxmox_api_password }}"
+        clone: "templateWServer2022"
+        newid: "{{ sqlvm01_vmid }}"
+        name: "sqlvm01"
+        node: "proxmox"
+        full: true
+        memory: "{{ vm_memory_mb | int }}"
+        cores: "{{ vm_vcpus | int }}"
+        state: present
+        timeout: 300
+
+    - name: "Clone template to sqlvm02"
+      community.general.proxmox_kvm:
+        api_host: "{{ ansible_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_password: "{{ proxmox_api_password }}"
+        clone: "templateWServer2022"
+        newid: "{{ sqlvm02_vmid }}"
+        name: "sqlvm02"
+        node: "proxmox"
+        full: true
+        memory: "{{ vm_memory_mb | int }}"
+        cores: "{{ vm_vcpus | int }}"
+        state: present
+        timeout: 300
+
+    - name: "Add data disk to sqlvm01 (E: drive for SQL data)"
+      community.general.proxmox_disk:
+        api_host: "{{ ansible_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_password: "{{ proxmox_api_password }}"
+        vmid: "{{ sqlvm01_vmid }}"
+        disk: "scsi1"
+        storage: "local-lvm"
+        size: "{{ sql_data_disk_gb }}G"
+        state: present
+
+    - name: "Add data disk to sqlvm02 (E: drive for SQL data)"
+      community.general.proxmox_disk:
+        api_host: "{{ ansible_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_password: "{{ proxmox_api_password }}"
+        vmid: "{{ sqlvm02_vmid }}"
+        disk: "scsi1"
+        storage: "local-lvm"
+        size: "{{ sql_data_disk_gb }}G"
+        state: present
+
+    - name: "Start sqlvm01"
+      community.general.proxmox_kvm:
+        api_host: "{{ ansible_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_password: "{{ proxmox_api_password }}"
+        vmid: "{{ sqlvm01_vmid }}"
+        state: started
+
+    - name: "Start sqlvm02"
+      community.general.proxmox_kvm:
+        api_host: "{{ ansible_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_password: "{{ proxmox_api_password }}"
+        vmid: "{{ sqlvm02_vmid }}"
+        state: started
+
+    - name: "Wait for sqlvm01 WinRM port 5985"
+      ansible.builtin.wait_for:
+        host: "{{ sqlvm01_ip }}"
+        port: 5985
+        delay: 30
+        timeout: 300
+
+    - name: "Wait for sqlvm02 WinRM port 5985"
+      ansible.builtin.wait_for:
+        host: "{{ sqlvm02_ip }}"
+        port: 5985
+        delay: 30
+        timeout: 300
+
+
+- name: "PHASE 1b: Configure hostname, IP, and workgroup on Windows nodes"
+  hosts: sql_ha_nodes
+  gather_facts: false
+
+  vars:
+    vm_gateway: "192.168.137.1"
+    vm_prefix_length: 24
+    vm_dns_servers: "8.8.8.8"
+    sqlvm01_hostname: "sqlvm01"
+    sqlvm02_hostname: "sqlvm02"
+
+  tasks:
+    - name: "Wait for WinRM connection"
+      ansible.builtin.wait_for_connection:
+        delay: 10
+        timeout: 300
+
+    - name: "Ensure ansible_temp directory exists"
+      ansible.windows.win_file:
+        path: C:\ansible_temp
+        state: directory
+
+    - name: "Set static IP address"
+      ansible.windows.win_shell: |
+        $adapter = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1
+        $existing = Get-NetIPAddress -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue
+        if ($existing.IPAddress -ne "{{ ansible_host }}") {
+          Remove-NetIPAddress -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 -Confirm:$false -ErrorAction SilentlyContinue
+          Remove-NetRoute -InterfaceIndex $adapter.ifIndex -Confirm:$false -ErrorAction SilentlyContinue
+          New-NetIPAddress -InterfaceIndex $adapter.ifIndex `
+            -IPAddress "{{ ansible_host }}" `
+            -PrefixLength {{ vm_prefix_length }} `
+            -DefaultGateway "{{ vm_gateway }}"
+          Set-DnsClientServerAddress -InterfaceIndex $adapter.ifIndex `
+            -ServerAddresses "{{ vm_dns_servers }}"
+          Write-Output "CHANGED"
+        } else {
+          Write-Output "OK"
+        }
+      register: _ip_result
+      changed_when: "'CHANGED' in _ip_result.stdout"
+
+    - name: "Set hostname"
+      ansible.windows.win_hostname:
+        name: "{{ sqlvm01_hostname if ansible_host == '192.168.137.170' else sqlvm02_hostname }}"
+      register: _hostname_result
+
+    - name: "Join workgroup SQLHALAB"
+      ansible.windows.win_domain_membership:
+        state: workgroup
+        workgroup_name: "SQLHALAB"
+      register: _workgroup_result
+
+    - name: "Reboot if hostname or workgroup changed"
+      ansible.windows.win_reboot:
+        reboot_timeout: 600
+        post_reboot_delay: 30
+      when: _hostname_result.reboot_required or _workgroup_result.reboot_required
+
+    - name: "Wait for connection after reboot"
+      ansible.builtin.wait_for_connection:
+        delay: 30
+        timeout: 300
+
+
+- name: "PHASE 1c: Verify connectivity and WinRM"
+  hosts: sql_ha_nodes
+  gather_facts: false
+
+  tasks:
+    - name: "WinRM ping test"
+      ansible.windows.win_ping:
+
+    - name: "Verify hostname"
+      ansible.windows.win_shell: hostname
+      register: _hostname
+      changed_when: false
+
+    - name: "Show hostname"
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} reports hostname: {{ _hostname.stdout | trim }}"
+
+    - name: "Verify workgroup"
+      ansible.windows.win_shell: "(Get-WmiObject Win32_ComputerSystem).Workgroup"
+      register: _workgroup
+      changed_when: false
+
+    - name: "Assert workgroup is SQLHALAB"
+      ansible.builtin.assert:
+        that: "'SQLHALAB' in _workgroup.stdout"
+        fail_msg: "Expected workgroup SQLHALAB, got: {{ _workgroup.stdout }}"
+
+    - name: "Verify data disk visible"
+      ansible.windows.win_shell: "Get-Disk | Select-Object Number, OperationalStatus, Size | ConvertTo-Json"
+      register: _disks
+      changed_when: false
+
+    - name: "Show disk info"
+      ansible.builtin.debug:
+        msg: "Disks on {{ inventory_hostname }}: {{ _disks.stdout }}"

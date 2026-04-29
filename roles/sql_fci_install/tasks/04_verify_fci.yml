@@ -1,0 +1,70 @@
+---
+# Verify FCI is healthy: cluster resource online, VIP reachable, SQL connectable.
+
+- name: "Find sqlcmd path"
+  ansible.windows.win_shell: |
+    (Get-ChildItem "C:\Program Files\Microsoft SQL Server" -Recurse -Filter sqlcmd.exe -ErrorAction SilentlyContinue |
+      Select-Object -First 1).FullName
+  register: _sqlcmd
+  changed_when: false
+
+- name: "Show all cluster resources"
+  ansible.windows.win_shell: |
+    Get-ClusterResource | Select-Object Name, ResourceType, State, OwnerGroup |
+      Format-Table -AutoSize | Out-String
+  register: _resources
+  changed_when: false
+
+- name: "Show cluster resources"
+  ansible.builtin.debug:
+    msg: "{{ _resources.stdout }}"
+
+- name: "Assert SQL Server cluster resource is Online"
+  ansible.windows.win_shell: |
+    $r = Get-ClusterResource | Where-Object { $_.ResourceType -eq "SQL Server" }
+    if ($r.State -eq "Online") { Write-Output "ONLINE" } else { Write-Output "NOT_ONLINE: $($r.State)" }
+  register: _sql_state
+  changed_when: false
+  failed_when: "'NOT_ONLINE' in _sql_state.stdout"
+
+- name: "Assert VIP cluster resource is Online"
+  ansible.windows.win_shell: |
+    $r = Get-ClusterResource | Where-Object {
+      $_.ResourceType -eq "IP Address" -and
+      (Get-ClusterResourceDependency $_.Name -ErrorAction SilentlyContinue) -notlike "*Cluster Name*"
+    }
+    $sqlIp = $r | Where-Object {
+      (Get-ClusterParameter $_.Name -Name Address -ErrorAction SilentlyContinue).Value -eq "{{ fci_virtual_ip }}"
+    }
+    if ($sqlIp -and $sqlIp.State -eq "Online") {
+      Write-Output "ONLINE: {{ fci_virtual_ip }}"
+    } else {
+      Write-Output "VIP_NOT_ONLINE"
+    }
+  register: _vip_state
+  changed_when: false
+  failed_when: "'VIP_NOT_ONLINE' in _vip_state.stdout"
+
+- name: "Test SQL Server connectivity via VIP"
+  ansible.windows.win_shell: |
+    $s = "{{ _sqlcmd.stdout | trim }}"
+    & $s -S "{{ fci_virtual_ip }},1433" -U sa -P "{{ sql_sa_password }}" -C -h-1 -Q "SELECT @@SERVERNAME + ' | ' + @@VERSION"
+  register: _sql_connect
+  changed_when: false
+  no_log: true
+
+- name: "Show SQL Server version via VIP"
+  ansible.builtin.debug:
+    msg: "{{ _sql_connect.stdout_lines }}"
+
+- name: "Verify both nodes are possible owners of SQL resource"
+  ansible.windows.win_shell: |
+    $resource = Get-ClusterResource | Where-Object { $_.ResourceType -eq "SQL Server" }
+    $owners = Get-ClusterResourceOwner -Name $resource.Name
+    $owners | ForEach-Object { Write-Output "PossibleOwner: $($_.Name)" }
+  register: _owners
+  changed_when: false
+
+- name: "Show possible owners"
+  ansible.builtin.debug:
+    msg: "{{ _owners.stdout_lines }}"
