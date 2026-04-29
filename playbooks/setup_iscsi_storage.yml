@@ -9,6 +9,7 @@
 - name: "iSCSI Play 1: Configure target on repositoryvm"
   hosts: repositoryvm
   gather_facts: false
+  become: true
 
   roles:
     - role: iscsi_shared_storage
