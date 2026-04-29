@@ -58,20 +58,44 @@
 
 - name: "Create failover cluster (DNS CAP — workgroup mode)"
   ansible.windows.win_shell: |
+    # Check if cluster already exists
     $existing = Get-Cluster -Name "{{ wsfc_cluster_name }}" -ErrorAction SilentlyContinue
-    if (-not $existing) {
-      New-Cluster `
-        -Name "{{ wsfc_cluster_name }}" `
-        -Node "{{ wsfc_primary_node }}","{{ wsfc_secondary_node }}" `
-        -StaticAddress "{{ wsfc_cluster_ip }}" `
-        -NoStorage `
-        -AdministrativeAccessPoint DNS
-      Write-Output "CHANGED"
-    } else {
+    if ($existing) {
       Write-Output "OK: Cluster already exists"
+      exit 0
     }
+
+    # New-Cluster needs to reach sqlvm02 via WMI/RPC. WinRM NTLM sessions cannot
+    # delegate credentials (double-hop limitation). Workaround: run New-Cluster
+    # inside an Invoke-Command loopback session with explicit credentials, which
+    # creates a new authentication context that CAN make outbound network connections.
+    $secPass = ConvertTo-SecureString "{{ ansible_password }}" -AsPlainText -Force
+    $cred    = New-Object System.Management.Automation.PSCredential("Administrator", $secPass)
+
+    $result = Invoke-Command -ComputerName localhost -Credential $cred -ScriptBlock {
+      param($clusterName, $primaryNode, $secondaryNode, $clusterIp)
+      Import-Module FailoverClusters
+      try {
+        New-Cluster `
+          -Name $clusterName `
+          -Node $primaryNode,$secondaryNode `
+          -StaticAddress $clusterIp `
+          -NoStorage `
+          -AdministrativeAccessPoint DNS `
+          -ErrorAction Stop
+        Write-Output "CHANGED"
+      } catch {
+        Write-Output "ERROR: $($_.Exception.Message)"
+        Write-Output "INNER: $($_.Exception.InnerException.Message)"
+        exit 1
+      }
+    } -ArgumentList "{{ wsfc_cluster_name }}","{{ wsfc_primary_node }}","{{ wsfc_secondary_node }}","{{ wsfc_cluster_ip }}"
+
+    Write-Output $result
   register: _cluster_create
   changed_when: "'CHANGED' in _cluster_create.stdout"
+  failed_when: "'ERROR:' in _cluster_create.stdout"
+  no_log: true
 
 - name: "Wait for cluster to stabilize"
   ansible.windows.win_shell: |
