@@ -59,10 +59,23 @@
   failed_when: "'VALIDATION_FAILED' in _cluster_validation.stdout"
 
 - name: "Deploy New-Cluster script to primary node"
-  ansible.windows.win_template:
-    src: new_cluster.ps1.j2
+  ansible.windows.win_copy:
+    content: |
+      Import-Module FailoverClusters
+      try {
+          $r = New-Cluster `
+              -Name '{{ wsfc_cluster_name }}' `
+              -Node '{{ wsfc_primary_node }}','{{ wsfc_secondary_node }}' `
+              -StaticAddress '{{ wsfc_cluster_ip }}' `
+              -NoStorage `
+              -AdministrativeAccessPoint DNS `
+              -ErrorAction Stop
+          "CHANGED:$($r.Name)" | Out-File 'C:\ansible_temp\cluster_result.txt' -Encoding UTF8
+      } catch {
+          "ERROR:$($_.Exception.Message)" | Out-File 'C:\ansible_temp\cluster_result.txt' -Encoding UTF8
+          exit 1
+      }
     dest: C:\ansible_temp\new_cluster.ps1
-  register: _script_deploy
 
 - name: "Create failover cluster via scheduled task (bypasses WinRM double-hop)"
   ansible.windows.win_shell: |
