@@ -32,14 +32,22 @@
     state: directory
 
 - name: "Add node IPs and cluster name to Windows hosts file"
-  ansible.windows.win_lineinfile:
-    path: C:\Windows\System32\drivers\etc\hosts
-    line: "{{ item.ip }}  {{ item.name }}"
-    state: present
-  loop:
-    - { ip: "{{ wsfc_primary_ip }}", name: "{{ wsfc_primary_node }}" }
-    - { ip: "{{ wsfc_secondary_ip }}", name: "{{ wsfc_secondary_node }}" }
-    - { ip: "{{ wsfc_cluster_ip }}", name: "{{ wsfc_cluster_name }}" }
+  ansible.windows.win_shell: |
+    $hostsFile = "C:\Windows\System32\drivers\etc\hosts"
+    $entries = @(
+      "{{ wsfc_primary_ip }}  {{ wsfc_primary_node }}",
+      "{{ wsfc_secondary_ip }}  {{ wsfc_secondary_node }}",
+      "{{ wsfc_cluster_ip }}  {{ wsfc_cluster_name }}"
+    )
+    $content = Get-Content $hostsFile -Raw
+    foreach ($entry in $entries) {
+      $name = ($entry -split '\s+')[1]
+      if ($content -notmatch [regex]::Escape($name)) {
+        Add-Content -Path $hostsFile -Value $entry
+        Write-Output "ADDED: $entry"
+      }
+    }
+  changed_when: true
 
 # Permit cluster communication ports from peer node in the existing IPsec policy.
 # Ports required by WSFC: TCP/UDP 3343 (cluster heartbeat), TCP 135 (RPC),
