@@ -111,7 +111,7 @@
   failed_when: >
     'ERROR:' in _cluster_create.stdout or
     'TIMEOUT:' in _cluster_create.stdout
-  no_log: true
+  # no_log: true  # temporarily disabled for debugging
 
 - name: "Show cluster creation result"
   ansible.builtin.debug:
