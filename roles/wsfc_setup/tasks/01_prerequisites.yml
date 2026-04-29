@@ -89,3 +89,12 @@
     Write-Output "DONE"
   changed_when: true
   ignore_errors: true
+
+# Required for workgroup clusters: allows local admin accounts to authenticate
+# over the network without UAC token filtering blocking cluster node communication.
+- name: "Enable LocalAccountTokenFilterPolicy for workgroup cluster auth"
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+    name: LocalAccountTokenFilterPolicy
+    data: 1
+    type: dword

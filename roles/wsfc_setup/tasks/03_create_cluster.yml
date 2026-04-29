@@ -3,6 +3,42 @@
 # clusters (no AD computer object — DNS-only CAP).
 # Run only on primary node (enforced in playbook).
 
+# Clean up any partial cluster state from failed previous attempts.
+# Safe to run even if no cluster exists.
+- name: "Clean up partial cluster state on primary if needed"
+  ansible.windows.win_shell: |
+    # If cluster service is stopped but Automatic, a previous New-Cluster failed
+    $svc = Get-Service ClusSvc -ErrorAction SilentlyContinue
+    if ($svc -and $svc.StartType -in @('Automatic','Manual') -and $svc.Status -eq 'Stopped') {
+      # Try to remove cluster if partially formed
+      $cluster = Get-Cluster -ErrorAction SilentlyContinue
+      if ($cluster) {
+        Remove-Cluster -Force -CleanUpAD -ErrorAction SilentlyContinue
+      }
+      # Disable service and clean up files
+      Set-Service ClusSvc -StartupType Disabled -ErrorAction SilentlyContinue
+      Remove-Item "C:\Windows\Cluster\*" -Recurse -Force -ErrorAction SilentlyContinue
+      Write-Output "CLEANED"
+    } else {
+      Write-Output "OK: no partial state"
+    }
+  changed_when: "'CLEANED' in _cluster_cleanup.stdout"
+  register: _cluster_cleanup
+
+- name: "Clean up partial cluster state on secondary if needed"
+  ansible.windows.win_shell: |
+    $svc = Get-Service ClusSvc -ErrorAction SilentlyContinue
+    if ($svc -and $svc.StartType -in @('Automatic','Manual') -and $svc.Status -eq 'Stopped') {
+      Set-Service ClusSvc -StartupType Disabled -ErrorAction SilentlyContinue
+      Remove-Item "C:\Windows\Cluster\*" -Recurse -Force -ErrorAction SilentlyContinue
+      Write-Output "CLEANED"
+    } else {
+      Write-Output "OK: no partial state"
+    }
+  changed_when: "'CLEANED' in _secondary_cleanup.stdout"
+  register: _secondary_cleanup
+  delegate_to: "{{ wsfc_secondary_node }}"
+
 - name: "Run cluster prerequisite validation"
   ansible.windows.win_shell: |
     $result = Test-Cluster `
