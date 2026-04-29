@@ -33,7 +33,7 @@
         clone: "templateWServer2022"
         newid: "{{ sqlvm01_vmid }}"
         name: "sqlvm01"
-        node: "proxmox"
+        node: "pve"
         full: true
         memory: "{{ vm_memory_mb | int }}"
         cores: "{{ vm_vcpus | int }}"
@@ -48,7 +48,7 @@
         clone: "templateWServer2022"
         newid: "{{ sqlvm02_vmid }}"
         name: "sqlvm02"
-        node: "proxmox"
+        node: "pve"
         full: true
         memory: "{{ vm_memory_mb | int }}"
         cores: "{{ vm_vcpus | int }}"
