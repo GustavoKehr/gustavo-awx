@@ -14,14 +14,14 @@
 
   vars:
     template_vmid: 102
-    sqlvm01_vmid: "{{ sqlvm01_vmid | default('170') }}"
-    sqlvm02_vmid: "{{ sqlvm02_vmid | default('171') }}"
-    sqlvm01_ip: "{{ sqlvm01_ip | default('192.168.137.170') }}"
-    sqlvm02_ip: "{{ sqlvm02_ip | default('192.168.137.171') }}"
-    vm_memory_mb: "{{ vm_memory_mb | default('4096') }}"
-    vm_vcpus: "{{ vm_vcpus | default('2') }}"
-    sql_data_disk_gb: "{{ sql_data_disk_gb | default('40') }}"
-    proxmox_api_user: "{{ proxmox_api_user | default('root@pam') }}"
+    sqlvm01_vmid: 170
+    sqlvm02_vmid: 171
+    sqlvm01_ip: "192.168.137.170"
+    sqlvm02_ip: "192.168.137.171"
+    vm_memory_mb: 4096
+    vm_vcpus: 2
+    sql_data_disk_gb: 40
+    proxmox_api_user: "root@pam"
     proxmox_api_password: "{{ proxmox_api_password }}"
 
   tasks:
