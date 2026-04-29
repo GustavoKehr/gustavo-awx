@@ -1,0 +1,14 @@
+Import-Module FailoverClusters
+try {
+    $r = New-Cluster `
+        -Name '{{ wsfc_cluster_name }}' `
+        -Node '{{ wsfc_primary_node }}','{{ wsfc_secondary_node }}' `
+        -StaticAddress '{{ wsfc_cluster_ip }}' `
+        -NoStorage `
+        -AdministrativeAccessPoint DNS `
+        -ErrorAction Stop
+    "CHANGED:$($r.Name)" | Out-File 'C:\ansible_temp\cluster_result.txt' -Encoding UTF8
+} catch {
+    "ERROR:$($_.Exception.Message)" | Out-File 'C:\ansible_temp\cluster_result.txt' -Encoding UTF8
+    exit 1
+}
