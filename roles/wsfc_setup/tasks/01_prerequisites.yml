@@ -98,3 +98,23 @@
     name: LocalAccountTokenFilterPolicy
     data: 1
     type: dword
+
+# Store peer node credentials in Windows Credential Manager.
+# New-Cluster runs in a WinRM session (non-delegatable NTLM) and cannot
+# implicitly pass credentials to the peer node. cmdkey pre-caches them so
+# WMI/RPC connections from this node to the peer node authenticate correctly.
+- name: "Cache peer node credentials for cluster node communication"
+  ansible.windows.win_shell: |
+    $peerIp   = if ("{{ inventory_hostname }}" -eq "{{ wsfc_primary_node }}") { "{{ wsfc_secondary_ip }}" } else { "{{ wsfc_primary_ip }}" }
+    $peerName = if ("{{ inventory_hostname }}" -eq "{{ wsfc_primary_node }}") { "{{ wsfc_secondary_node }}" } else { "{{ wsfc_primary_node }}" }
+    $pass = "{{ ansible_password }}"
+
+    # Add credential by IP and by hostname
+    cmdkey /add:$peerIp   /user:Administrator /pass:$pass | Out-Null
+    cmdkey /add:$peerName /user:Administrator /pass:$pass | Out-Null
+
+    # Also establish a test SMB session to pre-authenticate
+    $net = net use "\\$peerIp\IPC$" /user:Administrator $pass 2>&1
+    Write-Output "DONE: credentials cached for $peerName ($peerIp)"
+  changed_when: true
+  no_log: true
