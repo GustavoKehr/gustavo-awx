@@ -156,16 +156,22 @@
       register: _hostname_result
 
     - name: "Join workgroup SQLHALAB"
-      ansible.windows.win_domain_membership:
-        state: workgroup
-        workgroup_name: "SQLHALAB"
+      ansible.windows.win_shell: |
+        $cs = Get-WmiObject Win32_ComputerSystem
+        if ($cs.Workgroup -ne 'SQLHALAB') {
+          Add-Computer -WorkgroupName 'SQLHALAB' -Force
+          Write-Output "CHANGED"
+        } else {
+          Write-Output "OK"
+        }
       register: _workgroup_result
+      changed_when: "'CHANGED' in _workgroup_result.stdout"
 
     - name: "Reboot if hostname or workgroup changed"
       ansible.windows.win_reboot:
         reboot_timeout: 600
         post_reboot_delay: 30
-      when: _hostname_result.reboot_required or _workgroup_result.reboot_required
+      when: _hostname_result.reboot_required or 'CHANGED' in _workgroup_result.stdout
 
     - name: "Wait for connection after reboot"
       ansible.builtin.wait_for_connection:
@@ -191,7 +197,7 @@
         msg: "{{ inventory_hostname }} reports hostname: {{ _hostname.stdout | trim }}"
 
     - name: "Verify workgroup"
-      ansible.windows.win_shell: "(Get-WmiObject Win32_ComputerSystem).Workgroup"
+      ansible.windows.win_shell: "(Get-CimInstance Win32_ComputerSystem).Workgroup"
       register: _workgroup
       changed_when: false
 
