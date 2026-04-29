@@ -8,7 +8,8 @@
 #              vm_memory_mb, vm_vcpus, sql_data_disk_gb
 
 - name: "PHASE 1a: Clone VMs from Proxmox template"
-  hosts: proxmox
+  hosts: localhost
+  connection: local
   gather_facts: false
 
   vars:
@@ -26,7 +27,7 @@
   tasks:
     - name: "Clone template to sqlvm01"
       community.general.proxmox_kvm:
-        api_host: "{{ ansible_host }}"
+        api_host: "192.168.137.145"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
         clone: "templateWServer2022"
@@ -41,7 +42,7 @@
 
     - name: "Clone template to sqlvm02"
       community.general.proxmox_kvm:
-        api_host: "{{ ansible_host }}"
+        api_host: "192.168.137.145"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
         clone: "templateWServer2022"
@@ -56,7 +57,7 @@
 
     - name: "Add data disk to sqlvm01 (E: drive for SQL data)"
       community.general.proxmox_disk:
-        api_host: "{{ ansible_host }}"
+        api_host: "192.168.137.145"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
         vmid: "{{ sqlvm01_vmid }}"
@@ -67,7 +68,7 @@
 
     - name: "Add data disk to sqlvm02 (E: drive for SQL data)"
       community.general.proxmox_disk:
-        api_host: "{{ ansible_host }}"
+        api_host: "192.168.137.145"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
         vmid: "{{ sqlvm02_vmid }}"
@@ -78,7 +79,7 @@
 
     - name: "Start sqlvm01"
       community.general.proxmox_kvm:
-        api_host: "{{ ansible_host }}"
+        api_host: "192.168.137.145"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
         vmid: "{{ sqlvm01_vmid }}"
@@ -86,7 +87,7 @@
 
     - name: "Start sqlvm02"
       community.general.proxmox_kvm:
-        api_host: "{{ ansible_host }}"
+        api_host: "192.168.137.145"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
         vmid: "{{ sqlvm02_vmid }}"
