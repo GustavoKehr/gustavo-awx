@@ -47,9 +47,14 @@
       tags: [wsfc, wsfc_certs]
 
 # Play 4: Create cluster (primary only) + configure quorum witness
+# Uses CredSSP transport — New-Cluster needs to authenticate to secondary node
+# via WMI/RPC; NTLM sessions cannot delegate credentials (double-hop).
+# Prerequisites (Play 1) enable CredSSP server on all nodes first.
 - name: "WSFC Play 4: Create cluster and configure quorum"
   hosts: sql_ha_nodes
   gather_facts: false
+  vars:
+    ansible_winrm_transport: credssp
 
   tasks:
     - name: "Create cluster"

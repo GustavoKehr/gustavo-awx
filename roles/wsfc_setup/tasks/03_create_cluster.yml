@@ -3,11 +3,8 @@
 # clusters (no AD computer object — DNS-only CAP).
 # Run only on primary node (enforced in playbook).
 #
-# New-Cluster requires admin access to the secondary node via WMI/RPC.
-# Running inside a WinRM NTLM session causes double-hop auth failures.
-# Solution: use schtasks.exe to run New-Cluster as a scheduled task with
-# explicit credentials — scheduled tasks execute in a full logon session
-# that can authenticate to remote machines.
+# Requires CredSSP transport (set in playbook Play 4 vars) so New-Cluster
+# can authenticate to the secondary node. Prerequisites enable CredSSP server.
 
 # Clean up any partial cluster state from failed previous attempts.
 - name: "Clean up partial cluster state on primary if needed"
@@ -58,73 +55,24 @@
   changed_when: false
   failed_when: "'VALIDATION_FAILED' in _cluster_validation.stdout"
 
-- name: "Deploy New-Cluster script to primary node"
-  ansible.windows.win_copy:
-    content: |
-      Import-Module FailoverClusters
-      try {
-          $r = New-Cluster `
-              -Name '{{ wsfc_cluster_name }}' `
-              -Node '{{ wsfc_primary_node }}','{{ wsfc_secondary_node }}' `
-              -StaticAddress '{{ wsfc_cluster_ip }}' `
-              -NoStorage `
-              -AdministrativeAccessPoint DNS `
-              -ErrorAction Stop
-          "CHANGED:$($r.Name)" | Out-File 'C:\ansible_temp\cluster_result.txt' -Encoding UTF8
-      } catch {
-          "ERROR:$($_.Exception.Message)" | Out-File 'C:\ansible_temp\cluster_result.txt' -Encoding UTF8
-          exit 1
-      }
-    dest: C:\ansible_temp\new_cluster.ps1
-
-- name: "Create failover cluster via scheduled task (bypasses WinRM double-hop)"
+- name: "Create failover cluster (DNS CAP — workgroup mode)"
   ansible.windows.win_shell: |
     $existing = Get-Cluster -Name "{{ wsfc_cluster_name }}" -ErrorAction SilentlyContinue
     if ($existing) {
       Write-Output "OK: Cluster already exists"
       exit 0
     }
-
-    # Clear any previous result file
-    Remove-Item 'C:\ansible_temp\cluster_result.txt' -ErrorAction SilentlyContinue
-
-    # Scheduled tasks run in a full interactive logon session with real credentials.
-    # This bypasses the WinRM NTLM double-hop restriction that blocks New-Cluster.
-    $pass = '{{ ansible_password }}'
-
-    # Create the task (overwrite if exists)
-    $out = schtasks /Create /TN "WSFCCreate" `
-      /TR "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\ansible_temp\new_cluster.ps1" `
-      /SC ONCE /ST "00:00" /RU "Administrator" /RP "$pass" /F 2>&1
-    Write-Verbose "schtasks create: $out"
-
-    # Run it immediately
-    $out2 = schtasks /Run /TN "WSFCCreate" 2>&1
-    Write-Verbose "schtasks run: $out2"
-
-    # Poll for result file (max 10 minutes)
-    $waited = 0
-    do {
-      Start-Sleep -Seconds 10
-      $waited += 10
-      $done = Test-Path 'C:\ansible_temp\cluster_result.txt'
-    } until ($done -or $waited -ge 600)
-
-    # Clean up scheduled task
-    $null = schtasks /Delete /TN "WSFCCreate" /F 2>&1
-
-    if (-not $done) {
-      Write-Output "TIMEOUT: New-Cluster did not complete in 10 minutes"
-    } else {
-      $result = (Get-Content 'C:\ansible_temp\cluster_result.txt' -Raw).Trim()
-      Write-Output $result
-    }
+    Import-Module FailoverClusters
+    $r = New-Cluster `
+      -Name "{{ wsfc_cluster_name }}" `
+      -Node "{{ wsfc_primary_node }}","{{ wsfc_secondary_node }}" `
+      -StaticAddress "{{ wsfc_cluster_ip }}" `
+      -NoStorage `
+      -AdministrativeAccessPoint DNS `
+      -ErrorAction Stop
+    Write-Output "CHANGED: $($r.Name)"
   register: _cluster_create
   changed_when: "'CHANGED:' in _cluster_create.stdout"
-  failed_when: >
-    'ERROR:' in _cluster_create.stdout or
-    'TIMEOUT:' in _cluster_create.stdout
-  # no_log: true  # temporarily disabled for debugging
 
 - name: "Show cluster creation result"
   ansible.builtin.debug:

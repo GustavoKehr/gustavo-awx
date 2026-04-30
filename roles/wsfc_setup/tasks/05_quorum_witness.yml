@@ -12,6 +12,7 @@
       - samba-client
     state: present
   delegate_to: "{{ wsfc_witness_host }}"
+  become: true
 
 - name: "Create witness share directory on repositoryvm"
   ansible.builtin.file:
@@ -21,6 +22,7 @@
     group: nobody
     mode: '0777'
   delegate_to: "{{ wsfc_witness_host }}"
+  become: true
 
 - name: "Configure Samba share for witness on repositoryvm"
   ansible.builtin.blockinfile:
@@ -36,6 +38,7 @@
         directory mask = 0777
     marker: "# {mark} ANSIBLE MANAGED BLOCK sqlwitness"
   delegate_to: "{{ wsfc_witness_host }}"
+  become: true
 
 - name: "Enable and start Samba services on repositoryvm"
   ansible.builtin.systemd:
@@ -46,6 +49,7 @@
     - smb
     - nmb
   delegate_to: "{{ wsfc_witness_host }}"
+  become: true
 
 - name: "Allow guest SMB access from Windows (disable insecure guest auth block)"
   ansible.windows.win_regedit:

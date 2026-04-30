@@ -3,6 +3,26 @@
 # Add host file entries so nodes resolve each other without DNS.
 # Open cluster communication ports in the existing IPsec policy.
 
+# Failover-Clustering feature may be marked Installed from the VM template but
+# have missing DLLs (ClNetCfg.dll etc.) if it was never properly activated.
+# Force a clean reinstall: remove first, then install, to ensure all DLLs deploy.
+- name: "Remove Failover-Clustering features for clean reinstall"
+  ansible.windows.win_feature:
+    name:
+      - Failover-Clustering
+      - RSAT-Clustering
+      - RSAT-Clustering-PowerShell
+      - RSAT-Clustering-Mgmt
+    state: absent
+  register: _wsfc_remove
+  when: not (ansible_check_mode | default(false))
+
+- name: "Reboot after feature removal if required"
+  ansible.windows.win_reboot:
+    reboot_timeout: 600
+    post_reboot_delay: 30
+  when: _wsfc_remove.reboot_required | default(false)
+
 - name: "Install Failover-Clustering Windows features"
   ansible.windows.win_feature:
     name:
@@ -25,6 +45,20 @@
     delay: 15
     timeout: 300
   when: _wsfc_feature.reboot_required
+
+# Enable CredSSP server — required for New-Cluster to authenticate to the
+# secondary node from within a WinRM NTLM session (double-hop bypass).
+- name: "Enable CredSSP server for cluster node communication"
+  ansible.windows.win_shell: |
+    $auth = Get-WSManInstance winrm/config/service/auth
+    if ($auth.CredSSP -ne $true) {
+      Enable-WSManCredSSP -Role Server -Force | Out-Null
+      Write-Output "CHANGED"
+    } else {
+      Write-Output "OK"
+    }
+  register: _credssp
+  changed_when: "'CHANGED' in _credssp.stdout"
 
 - name: "Ensure ansible_temp directory exists"
   ansible.windows.win_file:
