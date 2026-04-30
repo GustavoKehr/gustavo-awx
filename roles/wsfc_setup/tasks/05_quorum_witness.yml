@@ -83,14 +83,25 @@
 
 - name: "Test SMB share write access from primary node"
   ansible.windows.win_shell: |
-    $share = "{{ wsfc_witness_share }}"
-    $testFile = "$share\ansible_test_$(Get-Random).tmp"
+    # Build UNC path from parts to avoid YAML backslash escaping issues
+    $server = "{{ wsfc_witness_host_ip | default('192.168.137.148') }}"
+    $shareName = "sqlwitness"
+    $unc = "\\$server\$shareName"
+    $testFile = "$unc\ansible_test_$(Get-Random).tmp"
     try {
       New-Item -Path $testFile -ItemType File -Force -ErrorAction Stop | Out-Null
       Remove-Item $testFile -Force -ErrorAction SilentlyContinue
-      Write-Output "ACCESSIBLE"
+      Write-Output "ACCESSIBLE: $unc"
     } catch {
-      Write-Output "INACCESSIBLE: $($_.Exception.Message)"
+      # Try net use first in case guest auth needs establishing
+      $null = net use "\\$server\$shareName" /user:"" "" 2>&1
+      try {
+        New-Item -Path $testFile -ItemType File -Force -ErrorAction Stop | Out-Null
+        Remove-Item $testFile -Force -ErrorAction SilentlyContinue
+        Write-Output "ACCESSIBLE: $unc"
+      } catch {
+        Write-Output "INACCESSIBLE: $($_.Exception.Message)"
+      }
     }
   register: _share_test
   changed_when: false
@@ -98,10 +109,11 @@
 
 - name: "Configure cluster quorum to use file share witness"
   ansible.windows.win_shell: |
+    $server = "{{ wsfc_witness_host_ip | default('192.168.137.148') }}"
+    $unc = "\\$server\sqlwitness"
     $quorum = Get-ClusterQuorum -Cluster "{{ wsfc_cluster_name }}"
     if ($quorum.QuorumResource -notlike "*FileShare*") {
-      Set-ClusterQuorum -Cluster "{{ wsfc_cluster_name }}" `
-        -FileShareWitness "{{ wsfc_witness_share }}"
+      Set-ClusterQuorum -Cluster "{{ wsfc_cluster_name }}" -FileShareWitness $unc
       Write-Output "CHANGED"
     } else {
       Write-Output "OK"
