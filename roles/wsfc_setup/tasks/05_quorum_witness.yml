@@ -40,10 +40,33 @@
   delegate_to: "{{ wsfc_witness_host }}"
   become: true
 
+- name: "Set SELinux context on witness share path (samba_share_t)"
+  ansible.builtin.command: >
+    semanage fcontext -a -t samba_share_t "{{ wsfc_witness_path }}(/.*)?"
+  delegate_to: "{{ wsfc_witness_host }}"
+  become: true
+  register: _semanage
+  changed_when: _semanage.rc == 0
+  failed_when: _semanage.rc not in [0, 1]
+
+- name: "Apply SELinux context to witness share"
+  ansible.builtin.command: restorecon -Rv "{{ wsfc_witness_path }}"
+  delegate_to: "{{ wsfc_witness_host }}"
+  become: true
+  changed_when: true
+
+- name: "Enable SELinux Samba export boolean"
+  ansible.posix.seboolean:
+    name: samba_export_all_rw
+    state: true
+    persistent: true
+  delegate_to: "{{ wsfc_witness_host }}"
+  become: true
+
 - name: "Enable and start Samba services on repositoryvm"
   ansible.builtin.systemd:
     name: "{{ item }}"
-    state: started
+    state: restarted
     enabled: true
   loop:
     - smb
@@ -58,10 +81,17 @@
     data: 1
     type: dword
 
-- name: "Test SMB share accessible from primary node"
+- name: "Test SMB share write access from primary node"
   ansible.windows.win_shell: |
-    $result = Test-Path "{{ wsfc_witness_share }}" -ErrorAction SilentlyContinue
-    if ($result) { Write-Output "ACCESSIBLE" } else { Write-Output "INACCESSIBLE" }
+    $share = "{{ wsfc_witness_share }}"
+    $testFile = "$share\ansible_test_$(Get-Random).tmp"
+    try {
+      New-Item -Path $testFile -ItemType File -Force -ErrorAction Stop | Out-Null
+      Remove-Item $testFile -Force -ErrorAction SilentlyContinue
+      Write-Output "ACCESSIBLE"
+    } catch {
+      Write-Output "INACCESSIBLE: $($_.Exception.Message)"
+    }
   register: _share_test
   changed_when: false
   failed_when: "'INACCESSIBLE' in _share_test.stdout"
