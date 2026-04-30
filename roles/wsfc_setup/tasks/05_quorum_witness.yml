@@ -24,10 +24,17 @@
   delegate_to: "{{ wsfc_witness_host }}"
   become: true
 
-- name: "Configure Samba share for witness on repositoryvm"
+- name: "Configure Samba global + witness share"
   ansible.builtin.blockinfile:
     path: /etc/samba/smb.conf
     block: |
+      # Global settings for guest/anonymous access from Windows SMB2
+      [global]
+        map to guest = bad user
+        guest account = nobody
+        server min protocol = SMB2
+        server max protocol = SMB3
+
       [sqlwitness]
         path = {{ wsfc_witness_path }}
         browsable = yes
