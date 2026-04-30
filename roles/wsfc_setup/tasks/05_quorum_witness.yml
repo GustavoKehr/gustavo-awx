@@ -81,27 +81,27 @@
     data: 1
     type: dword
 
-- name: "Test SMB share write access from primary node"
+- name: "Map witness share and test write access from primary node"
   ansible.windows.win_shell: |
-    # Build UNC path from parts to avoid YAML backslash escaping issues
     $server = "{{ wsfc_witness_host_ip | default('192.168.137.148') }}"
     $shareName = "sqlwitness"
-    $unc = "\\$server\$shareName"
-    $testFile = "$unc\ansible_test_$(Get-Random).tmp"
+
+    # Map to drive letter to avoid UNC path quoting issues
+    $null = net use W: /delete /y 2>&1
+    $mapResult = net use W: "\\$server\$shareName" /user:"" "" 2>&1
+    if ($LASTEXITCODE -ne 0) {
+      Write-Output "INACCESSIBLE: net use failed: $mapResult"
+      exit 0
+    }
     try {
+      $testFile = "W:\ansible_test_$(Get-Random).tmp"
       New-Item -Path $testFile -ItemType File -Force -ErrorAction Stop | Out-Null
       Remove-Item $testFile -Force -ErrorAction SilentlyContinue
-      Write-Output "ACCESSIBLE: $unc"
+      Write-Output "ACCESSIBLE: \\$server\$shareName"
     } catch {
-      # Try net use first in case guest auth needs establishing
-      $null = net use "\\$server\$shareName" /user:"" "" 2>&1
-      try {
-        New-Item -Path $testFile -ItemType File -Force -ErrorAction Stop | Out-Null
-        Remove-Item $testFile -Force -ErrorAction SilentlyContinue
-        Write-Output "ACCESSIBLE: $unc"
-      } catch {
-        Write-Output "INACCESSIBLE: $($_.Exception.Message)"
-      }
+      Write-Output "INACCESSIBLE: $($_.Exception.Message)"
+    } finally {
+      $null = net use W: /delete /y 2>&1
     }
   register: _share_test
   changed_when: false
