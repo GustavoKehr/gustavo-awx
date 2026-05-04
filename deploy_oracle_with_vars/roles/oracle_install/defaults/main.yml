@@ -17,22 +17,28 @@ oracle_preinstall_rpm: "oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm"
 # --- OPatch replacement ---
 oracle_opatch_dir: "p6880880"
 
-# --- Release Update + one-off applied inside runInstaller ---
+# --- Release Update + one-off applied during runInstaller (survey-driven) ---
 # Update these every quarter when Oracle releases a new RU.
+# oracle_oneoff_subpath: set to "" to skip -applyOneOffs entirely.
 oracle_ru_patch_dir: "p37641958"
 oracle_ru_subpath: "37641958/37642901"
 oracle_oneoff_subpath: "37641958/37643161"
 
 # --- Post-install opatch patches (applied after runInstaller, in order) ---
-# Each entry: dir = top-level folder name, subdir = patch number folder inside.
-# Update dir/subdir values when newer patches are available.
-oracle_post_patch1_dir: "p38291812"
-oracle_post_patch1_sub: "38291812"
+#
+# Patch 1 — version patch (SURVEY-DRIVEN — update quarterly)
+# oracle_post_patch1_id is set via survey; dir and sub are derived automatically.
+# Do not override oracle_post_patch1_dir / oracle_post_patch1_sub manually.
+oracle_post_patch1_id: "38291812"
+oracle_post_patch1_dir: "p{{ oracle_post_patch1_id }}"
+oracle_post_patch1_sub: "{{ oracle_post_patch1_id }}"
 oracle_post_patch1_enabled: true      # set false if patch not present on oracle_patches_src
 
-oracle_post_patch2_dir: "p38632161"   # Oracle 19.30
-oracle_post_patch2_sub: "38632161"
+# Patch 2 — dba_jobs (FIXED — do not change)
+oracle_post_patch2_dir: "p32249704"
+oracle_post_patch2_sub: "32249704"
 
+# Patch 3 — oradism (FIXED — do not change; requires ownership swap around apply)
 oracle_post_patch3_dir: "p34672698"
 oracle_post_patch3_sub: "34672698"
 
@@ -83,9 +89,11 @@ oracle_nls_territory: "AMERICA"
 oracle_listener_port: 1521
 oracle_listener_name: "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ oracle_listener_port }})))"
 
-# --- Passwords (always set via survey — never hardcode) ---
-oracle_sys_password: "F9toqfd("
-oracle_system_password: "F9toqfd("
+# --- Passwords (ALWAYS set via survey — never hardcode in production) ---
+# Empty string is intentional: forces survey to provide values.
+# If empty at runtime, DB creation will fail with an auth error — by design.
+oracle_sys_password: ""
+oracle_system_password: ""
 
 # --- Tablespace datafile counts (survey-driven, default 1) ---
 # Each tablespace gets N datafiles named TS_<NAME>_01.DBF, _02.DBF, etc.

@@ -68,9 +68,14 @@
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_HOSTNAME=$(hostname)
     cd "{{ oracle_home }}"
+    # Build optional one-off argument (empty oracle_oneoff_subpath = skip -applyOneOffs)
+    ONEOFF_ARG=""
+    if [ -n "{{ oracle_oneoff_subpath }}" ]; then
+      ONEOFF_ARG="-applyOneOffs {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_oneoff_subpath }}"
+    fi
     ./runInstaller \
       -applyRU {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_ru_subpath }} \
-      -applyOneOffs {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_oneoff_subpath }} \
+      $ONEOFF_ARG \
       -silent \
       -responseFile {{ oracle_home }}/install/response/db_install.rsp \
       -ignorePrereq \
