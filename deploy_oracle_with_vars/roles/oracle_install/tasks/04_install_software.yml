@@ -111,3 +111,12 @@
     "{{ oracle_home }}/root.sh"
   changed_when: false
   tags: oracle_install_sw
+
+- name: "INSTALL | Deploy listener.ora with configured port {{ oracle_listener_port }}"
+  ansible.builtin.template:
+    src: listener.ora.j2
+    dest: "{{ oracle_home }}/network/admin/listener.ora"
+    owner: oracle
+    group: oinstall
+    mode: "0640"
+  tags: oracle_install_sw
