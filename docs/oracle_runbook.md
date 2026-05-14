@@ -24,13 +24,14 @@ ls -la /opt/oracle/
 | `p37641958/` | Diretório | Release Update (RU) + one-off |
 | `p38291812/` | Diretório | Patch pós-instalação 1 |
 | `p38632161/` | Diretório | Patch pós-instalação 2 (Oracle 19.30) |
-| `p3467298/` | Diretório | Patch pós-instalação 3 |
+| `p34672698/` | Diretório | Patch pós-instalação 3 (oradism) |
 
-### 2. Target VM (oraclevm — 192.168.137.163)
+### 2. Target VM
 
 - VM ligada e acessível via SSH
 - Usuário `user_aap` com sudo NOPASSWD
-- Mínimo 8 GB RAM, 50 GB disco livre
+- Mínimo **6 GB RAM** (SGA 40% = 1.4 GB; menos causa ORA-27072 AIO EINTR)
+- Mínimo **64 GB disco** em `/dev/sdb` (VG `vg_data`); lv_base recomendado ≥ 40 GB
 
 ### 3. AWX Execution Environment
 
@@ -245,15 +246,42 @@ df -h | grep oracle
 
 ## Troubleshooting
 
+### AWX job marcado como failed com "Task was marked as running at system start up"
+
+**Causa:** AWX task pod (`awx-server-task`) foi morto pelo OOMKiller enquanto job rodava. k3s reinicia o pod e marca o job em execução como zombie.
+
+**Verificar:**
+```bash
+kubectl get pods -n awx
+kubectl describe pod awx-server-task-<id> -n awx | grep -i oom
+```
+
+**Fix:** Aumentar RAM da awxvm no Proxmox:
+```bash
+# No Proxmox host:
+qm set <VM_ID> -memory 8192
+# Reiniciar awxvm para efetivar
+```
+
+---
+
 ### Phase 3 (transfer) é lenta ou trava
 
 **Causa:** Rede lenta ou arquivo sendo transferido pela primeira vez.
 
 **Verificar progresso:**
 ```bash
-# No AWX, acompanhar logs do job em tempo real
-# Ou SSH no oraclevm e verificar tamanho dos arquivos:
-du -sh /home/oracle/software/
+# SSH no target e verificar tamanho dos arquivos em staging:
+sudo du -sh /oracle/<SID>/software/*
+```
+
+**Guard de idempotência do rsync:** A task verifica se o diretório destino existe **e não está vazio**. Se rsync foi interrompido e deixou diretório parcialmente preenchido, a próxima execução **pula o rsync** (vê dir não-vazio). Resultado: conteúdo incompleto → opatch falha com `FileNotFoundException`.
+
+**Fix:**
+```bash
+# Forçar re-rsync deletando o dir no target:
+sudo rm -rf /oracle/<SID>/software/<patch_dir>
+# Relaunch do job — rsync vai re-transferir completo
 ```
 
 ---
@@ -263,14 +291,41 @@ du -sh /home/oracle/software/
 **rc=6 é sucesso.** O runInstaller retorna 6 quando há warnings — isso é normal. Se falhar com outro rc, verificar:
 
 ```bash
-# Logs do instalador em oraclevm (substituir <SID>):
+# Logs do instalador (substituir <SID>):
 ls -la /oracle/<SID>/oraInventory/logs/
 tail -100 /oracle/<SID>/oraInventory/logs/installActions*.log
 ```
 
 ---
 
-### Phase 5 (patches) falha com "patch conflict"
+### Phase 5 (patches) — `CheckSystemSpace` failed
+
+**Causa:** opatch exige espaço livre no ORACLE_HOME LV para descompactar patch.
+
+**Verificar:**
+```bash
+df -h /oracle/<SID>
+sudo du -sh /oracle/<SID>/software/*
+```
+
+**Fix:** Estender lv_base:
+```bash
+# No target (como root):
+lvextend -L +10G /dev/vg_data/lv_<SID>
+xfs_growfs /oracle/<SID>
+```
+
+---
+
+### Phase 5 (patches) — `OPatch failed — FileNotFoundException: perl.zip`
+
+**Causa:** Diretório do patch existe mas está incompleto (rsync interrompido anteriormente).
+
+**Fix:** Ver seção "Phase 3 — guard de idempotência" acima. Deletar dir e relaunch.
+
+---
+
+### Phase 5 (patches) — falha com "patch conflict"
 
 **Causa:** Patch já aplicado anteriormente.
 
@@ -281,10 +336,62 @@ sudo -u oracle /oracle/<SID>/19.0.0/OPatch/opatch lsinventory
 
 ---
 
+### Phase 6 (dbcreate) — banco não fica OPEN — ORA-19502 / ORA-27072
+
+**Sintoma:** `ORA-27072: File I/O error, Additional info: 4 (EINTR), block XXXXXX` ao criar redo logs.
+
+**Causa:** Pressão de memória no target VM. SGA muito grande para RAM disponível → kernel interrompe operações AIO (errno EINTR) durante write do redo log.
+
+**Diagnóstico:**
+```bash
+# Verificar RAM disponível no target:
+free -m
+# Verificar alert log Oracle:
+tail -50 /oracle/<SID>/admin/diag/rdbms/<sid>/<SID>/trace/alert_<SID>.log
+```
+
+**Fix:**
+1. Aumentar RAM do VM target (mínimo 6 GB para SGA 40%)
+2. Reduzir `oracle_sga_pct` no survey (ex: 40 → 25)
+3. Variável `oracle_redo_log_size` em `CreateDB.sql.j2` — default `100M` (era `500M`)
+4. Verificar LVs `lv_origlogA` e `lv_mirrlogA` ≥ 1G (tamanho do redo log + overhead XFS)
+
+---
+
+### Phase 6 (dbcreate) — CREATE DATABASE pulado (task retorna `ok` sem executar)
+
+**Causa:** Guard em `06_create_database.yml`: `test -f mirrlogA/cntrl/control01.ctl && exit 0`. Control file de run com falha anterior ainda existe.
+
+**Verificar:**
+```bash
+sudo ls /oracle/<SID>/mirrlogA/cntrl/
+```
+
+**Fix:**
+```bash
+# Shutdown Oracle primeiro:
+export ORACLE_HOME=/oracle/<SID>/19.0.0 ORACLE_SID=<SID>
+sudo -u oracle $ORACLE_HOME/bin/sqlplus -s / as sysdba <<'EOF'
+shutdown abort;
+exit;
+EOF
+
+# Deletar control files de todas as cópias:
+sudo rm -rf /oracle/<SID>/mirrlogA/cntrl \
+            /oracle/<SID>/origlogA/cntrl \
+            /oracle/<SID>/oradata1/cntrl
+# Relaunch do job
+```
+
+---
+
 ### Banco não fica OPEN após dbcreate
 
 ```bash
-# Tentar subir manualmente (substituir <SID>):
+# Verificar alert log para causa:
+sudo tail -50 /oracle/<SID>/admin/diag/rdbms/<sid>/<SID>/trace/alert_<SID>.log
+
+# Tentar subir manualmente:
 sudo -u oracle /oracle/<SID>/19.0.0/bin/sqlplus / as sysdba <<EOF
 STARTUP;
 SELECT status FROM v\$instance;
