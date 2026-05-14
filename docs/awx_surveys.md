@@ -19,6 +19,11 @@ Referência central: qual playbook, tags e arquivo de survey usar para cada oper
 | `ORACLE \| Deploy` | `deploy_oracle.yml` | *(vazio — all phases)* | `awx_survey_oracle_install.json` |
 | `ORACLE \| Manage Users` | `manage_oracle_users.yml` | `oracle_users` | `awx_survey_oracle_manage_users.json` |
 | `DB \| Patch Discovery` | qualquer engine | `db_patches` | *(vars manuais)* |
+| `SQL Server HA \| VM Provisioning` | `provision_sqlha_vms.yml` | *(vazio)* | `awx_survey_sqlha_provisioning.json` |
+| `SQL Server HA \| iSCSI Shared Storage` | `setup_iscsi_storage.yml` | *(vazio)* | *(sem survey)* |
+| `SQL Server HA \| WSFC Setup` | `setup_wsfc.yml` | *(vazio)* | `awx_survey_wsfc_setup.json` |
+| `SQL Server HA \| FCI Install` | `setup_sql_fci.yml` | *(vazio)* | `awx_survey_sql_fci.json` |
+| `SQL Server HA \| Validation` | `validate_sql_ha.yml` | *(vazio)* | *(sem survey)* |
 
 ---
 
@@ -110,15 +115,44 @@ sql_manage_users_enabled: true
 
 Arquivo: `playbooks/awx_survey_oracle_install.json`
 
+> **Nota:** SGA e PGA são definidos como % da RAM da VM — calculados dinamicamente em `01_prereqs.yml`. Senhas (SYS/SYSTEM) ficam nos defaults do role (`oracle_sys_password`, `oracle_system_password`), não no survey.
+
+### Identidade e Storage
+
 | Campo | Variável | Tipo | Padrão | Obrigatório | Descrição |
 |---|---|---|---|---|---|
-| Oracle SID | `oracle_sid` | text | `TSTOR` | **Sim** | Identificador do banco |
-| SYS password | `oracle_sys_password` | password | — | **Sim** | Senha do superusuário SYS |
-| SYSTEM password | `oracle_system_password` | password | — | **Sim** | Senha do usuário SYSTEM |
-| SGA target | `oracle_sga_target` | text | `2G` | **Sim** | Tamanho da SGA (ex: `2G`, `4G`, `1024M`) |
-| PGA target | `oracle_pga_target` | text | `512m` | **Sim** | Memória por sessão |
-| HugePages count | `oracle_hugepages` | text | `0` | Não | `0` = calcular automaticamente |
-| Create DB | `create_initial_db` | multiplechoice | `true` | **Sim** | `true` = criar banco após instalar software |
+| Oracle SID | `oracle_sid` | text | `AWOR` | **Sim** | SID + nome do banco. Define `/oracle/<SID>` e `lv_<sid>`. Máx 8 chars |
+| Data Disk (PV source) | `oracle_data_disk` | text | `/dev/sdc` | Não | Dispositivo raw para PV/VG. Deixar vazio se VG já existe |
+| VG Name | `oracle_vg_name` | text | `vg_data` | **Sim** | LVM Volume Group para todos os LVs Oracle |
+
+### Tamanho dos LVs
+
+| Campo | Variável | Tipo | Padrão | Obrigatório | Descrição |
+|---|---|---|---|---|---|
+| LV base size | `oracle_lv_base_size` | text | `60G` | **Sim** | `lv_<SID>` — Oracle home + software staging |
+| LV oradata size | `oracle_lv_oradata_size` | text | `10G` | **Sim** | `lv_oradata` — datafiles |
+| LV oraarch size | `oracle_lv_oraarch_size` | text | `5G` | **Sim** | `lv_oraarch` — archive logs |
+| LV undofile size | `oracle_lv_undofile_size` | text | `5G` | **Sim** | `lv_undofile` — undo tablespace |
+| LV tempfile size | `oracle_lv_tempfile_size` | text | `5G` | **Sim** | `lv_tempfile` — temp tablespace |
+| LV mirrlog size | `oracle_lv_mirrlogA_size` | text | `1G` | **Sim** | `lv_mirrlogA` e `lv_mirrlogB` (mesmo tamanho para ambos) |
+| LV origlog size | `oracle_lv_origlogA_size` | text | `1G` | **Sim** | `lv_origlogA` e `lv_origlogB` (mesmo tamanho para ambos) |
+
+### Memória e Banco
+
+| Campo | Variável | Tipo | Padrão | Obrigatório | Range | Descrição |
+|---|---|---|---|---|---|---|
+| SGA % de RAM | `oracle_sga_pct` | integer | `40` | **Sim** | 10–80 | % da RAM da VM para SGA |
+| PGA % de RAM | `oracle_pga_pct` | integer | `20` | **Sim** | 5–50 | % da RAM da VM para PGA |
+| Character Set | `oracle_character_set` | text | `AL32UTF8` | Não | — | Charset do banco. `WE8MSWIN1252` para legado Windows |
+
+### Tablespaces — Datafiles
+
+| Campo | Variável | Tipo | Padrão | Obrigatório | Descrição |
+|---|---|---|---|---|---|
+| TS_AUDIT_DAT01 datafiles | `ts_audit_datafiles` | integer | `1` | Não | Número de datafiles para TS_AUDIT_DAT01 |
+| TS_PERFSTAT_DAT01 datafiles | `ts_perfstat_datafiles` | integer | `1` | Não | Número de datafiles para TS_PERFSTAT_DAT01 |
+| TS_\<SID\>_DAT01 datafiles | `ts_sid_dat_datafiles` | integer | `1` | Não | Número de datafiles para tablespace de dados |
+| TS_\<SID\>_IDX01 datafiles | `ts_sid_idx_datafiles` | integer | `1` | Não | Número de datafiles para tablespace de índices |
 
 ---
 

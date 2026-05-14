@@ -1,0 +1,72 @@
+{
+  "name": "SQL Server HA | FCI Install",
+  "description": "Survey for setup_sql_fci.yml — SQL Server Failover Cluster Instance installation on WSFC cluster",
+  "spec": [
+    {
+      "question_name": "SA Password",
+      "question_description": "SQL Server SA account password. Store securely in vault.",
+      "required": true,
+      "type": "password",
+      "variable": "sql_sa_password",
+      "min": 8,
+      "max": 128,
+      "default": "",
+      "choices": ""
+    },
+    {
+      "question_name": "FCI Virtual Name",
+      "question_description": "SQL Server FCI network name (clients connect using this name). Max 15 chars.",
+      "required": true,
+      "type": "text",
+      "variable": "fci_virtual_name",
+      "min": 1,
+      "max": 15,
+      "default": "SQLHA-SQL",
+      "choices": ""
+    },
+    {
+      "question_name": "FCI Virtual IP",
+      "question_description": "Static IP for SQL Server FCI (clients connect to this IP). Must be free in 192.168.137.0/24.",
+      "required": true,
+      "type": "text",
+      "variable": "fci_virtual_ip",
+      "min": 7,
+      "max": 15,
+      "default": "192.168.137.173",
+      "choices": ""
+    },
+    {
+      "question_name": "Shared Disk Drive Letter",
+      "question_description": "Drive letter assigned to the shared iSCSI disk (without colon). SQL data, log and backup will be stored here.",
+      "required": true,
+      "type": "text",
+      "variable": "fci_shared_disk_letter",
+      "min": 1,
+      "max": 1,
+      "default": "S",
+      "choices": ""
+    },
+    {
+      "question_name": "Primary Node",
+      "question_description": "Hostname of the primary cluster node. FCI is installed here first.",
+      "required": true,
+      "type": "text",
+      "variable": "fci_primary_node",
+      "min": 1,
+      "max": 64,
+      "default": "sqlvm01",
+      "choices": ""
+    },
+    {
+      "question_name": "Secondary Node",
+      "question_description": "Hostname of the secondary cluster node. Added via AddNode after primary install.",
+      "required": true,
+      "type": "text",
+      "variable": "fci_secondary_node",
+      "min": 1,
+      "max": 64,
+      "default": "sqlvm02",
+      "choices": ""
+    }
+  ]
+}

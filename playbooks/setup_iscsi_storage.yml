@@ -1,0 +1,25 @@
+---
+# Phase 2: Configure iSCSI shared storage.
+# Play 1: Create iSCSI target on repositoryvm (Linux).
+# Play 2: Connect iSCSI initiator on both Windows nodes + verify disk visible.
+#
+# Usage: AWX template "SQL Server HA - iSCSI Shared Storage"
+# Prerequisites: Phase 1 (VM provisioning) complete
+
+- name: "iSCSI Play 1: Configure target on repositoryvm"
+  hosts: repositoryvm
+  gather_facts: false
+  become: true
+
+  roles:
+    - role: iscsi_shared_storage
+      tags: [iscsi, iscsi_target]
+
+
+- name: "iSCSI Play 2: Connect initiator on Windows nodes + verify disk"
+  hosts: sql_ha_nodes
+  gather_facts: false
+
+  roles:
+    - role: iscsi_shared_storage
+      tags: [iscsi, iscsi_initiator, iscsi_verify]

@@ -1,6 +1,6 @@
 {
   "name": "Oracle 19c Installation Survey",
-  "description": "SID is required. LV sizes and memory % are pre-filled with defaults - adjust for your environment.",
+  "description": "SID e senhas sao obrigatorios. LV sizes, memoria %, patches e listener tem defaults - ajuste para seu ambiente. Patches fixos (dba_jobs/oradism/opatch) estao hardcoded no role.",
   "spec": [
     {
       "question_name": "Oracle SID",
@@ -11,6 +11,26 @@
       "default": "AWOR",
       "min": 1,
       "max": 8
+    },
+    {
+      "question_name": "SYS Password",
+      "question_description": "Senha do superusuario SYS. Obrigatorio - nunca usar default em producao.",
+      "required": true,
+      "type": "password",
+      "variable": "oracle_sys_password",
+      "default": "",
+      "min": 8,
+      "max": 30
+    },
+    {
+      "question_name": "SYSTEM Password",
+      "question_description": "Senha do usuario SYSTEM. Obrigatorio - nunca usar default em producao.",
+      "required": true,
+      "type": "password",
+      "variable": "oracle_system_password",
+      "default": "",
+      "min": 8,
+      "max": 30
     },
     {
       "question_name": "Data Disk (PV source)",
@@ -123,6 +143,16 @@
       "max": 50
     },
     {
+      "question_name": "Listener Port",
+      "question_description": "TCP port for the Oracle listener. Default 1521 is the industry standard. Change only if the port is already in use on the target VM.",
+      "required": true,
+      "type": "integer",
+      "variable": "oracle_listener_port",
+      "default": 1521,
+      "min": 1024,
+      "max": 65535
+    },
+    {
       "question_name": "Character Set",
       "question_description": "Oracle database character set. AL32UTF8 is recommended for new deployments (supports all Unicode). WE8MSWIN1252 for legacy Windows compatibility.",
       "required": false,
@@ -131,6 +161,46 @@
       "default": "AL32UTF8",
       "min": 5,
       "max": 30
+    },
+    {
+      "question_name": "RU Patch Bundle Directory",
+      "question_description": "Top-level directory of the Release Update bundle in /opt/patches on the AWX VM. Format: p<PatchID> (e.g. p37641958). Update quarterly when Oracle releases a new RU.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_ru_patch_dir",
+      "default": "p37641958",
+      "min": 5,
+      "max": 20
+    },
+    {
+      "question_name": "RU Subpath (within bundle)",
+      "question_description": "Subpath to the Release Update patch inside the bundle directory. Format: <BundleID>/<RU_ID> (e.g. 37641958/37642901). Used as -applyRU argument to runInstaller.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_ru_subpath",
+      "default": "37641958/37642901",
+      "min": 5,
+      "max": 40
+    },
+    {
+      "question_name": "One-off Patch Subpath (optional)",
+      "question_description": "Subpath to the one-off patch inside the bundle directory. Format: <BundleID>/<Oneoff_ID> (e.g. 37641958/37643161). Used as -applyOneOffs to runInstaller. Leave EMPTY to skip -applyOneOffs.",
+      "required": false,
+      "type": "text",
+      "variable": "oracle_oneoff_subpath",
+      "default": "37641958/37643161",
+      "min": 0,
+      "max": 40
+    },
+    {
+      "question_name": "Post-install Patch 1 ID (version patch)",
+      "question_description": "Patch ID for the first post-installation patch (the version/release patch). Applied via opatch after runInstaller. Directory derived as p<ID>/<ID> under /opt/patches. Update quarterly.",
+      "required": true,
+      "type": "text",
+      "variable": "oracle_post_patch1_id",
+      "default": "38291812",
+      "min": 5,
+      "max": 12
     },
     {
       "question_name": "TS_AUDIT_DAT01 datafile count",

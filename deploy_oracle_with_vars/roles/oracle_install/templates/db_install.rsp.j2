@@ -1,0 +1,33 @@
+####################################################################
+## Oracle Database 19c Silent Install Response File
+## Managed by Ansible — do not edit manually
+####################################################################
+
+oracle.install.responseFileVersion=/oracle/install/rspfmt_dbinstall_response_schema_v19.0.0
+
+# Installation option — software only; DB created separately
+oracle.install.option=INSTALL_DB_SWONLY
+
+UNIX_GROUP_NAME=oinstall
+INVENTORY_LOCATION={{ oracle_base }}/oraInventory
+
+ORACLE_HOME={{ oracle_home }}
+ORACLE_BASE={{ oracle_base }}
+ORACLE_HOSTNAME={{ ansible_hostname }}
+
+SELECTED_LANGUAGES=en
+
+oracle.install.db.InstallEdition=EE
+
+# OS Groups (created by preinstall RPM)
+oracle.install.db.OSDBA_GROUP=dba
+oracle.install.db.OSBACKUPDBA_GROUP=dba
+oracle.install.db.OSDGDBA_GROUP=dba
+oracle.install.db.OSKMDBA_GROUP=kmdba
+oracle.install.db.OSRACDBA_GROUP=dba
+oracle.install.db.OSOPER_GROUP=dba
+
+oracle.install.db.rootconfig.executeRootScript=false
+
+SECURITY_UPDATES_VIA_MYORACLESUPPORT=false
+DECLINE_SECURITY_UPDATES=true

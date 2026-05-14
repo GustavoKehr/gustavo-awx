@@ -1,0 +1,19 @@
+---
+- name: "FCI: Prepare shared disk and download ISO"
+  ansible.builtin.include_tasks: 01_prepare.yml
+  tags: [fci, fci_prepare]
+
+- name: "FCI: Install primary node"
+  ansible.builtin.include_tasks: 02_install_primary.yml
+  tags: [fci, fci_primary]
+  when: inventory_hostname == fci_primary_node
+
+- name: "FCI: Add secondary node"
+  ansible.builtin.include_tasks: 03_add_secondary.yml
+  tags: [fci, fci_secondary]
+  when: inventory_hostname == fci_secondary_node
+
+- name: "FCI: Verify installation"
+  ansible.builtin.include_tasks: 04_verify_fci.yml
+  tags: [fci, fci_verify]
+  when: inventory_hostname == fci_primary_node

@@ -1,0 +1,154 @@
+---
+# Install Failover Clustering Windows features on both nodes.
+# Add host file entries so nodes resolve each other without DNS.
+# Open cluster communication ports in the existing IPsec policy.
+
+# Failover-Clustering feature may be marked Installed from the VM template but
+# have missing DLLs (ClNetCfg.dll etc.) if it was never properly activated.
+# Force a clean reinstall: remove first, then install, to ensure all DLLs deploy.
+- name: "Remove Failover-Clustering features for clean reinstall"
+  ansible.windows.win_feature:
+    name:
+      - Failover-Clustering
+      - RSAT-Clustering
+      - RSAT-Clustering-PowerShell
+      - RSAT-Clustering-Mgmt
+    state: absent
+  register: _wsfc_remove
+  when: not (ansible_check_mode | default(false))
+
+- name: "Reboot after feature removal if required"
+  ansible.windows.win_reboot:
+    reboot_timeout: 600
+    post_reboot_delay: 30
+  when: _wsfc_remove.reboot_required | default(false)
+
+- name: "Install Failover-Clustering Windows features"
+  ansible.windows.win_feature:
+    name:
+      - Failover-Clustering
+      - RSAT-Clustering
+      - RSAT-Clustering-PowerShell
+      - RSAT-Clustering-Mgmt
+    state: present
+    include_management_tools: true
+  register: _wsfc_feature
+
+- name: "Reboot after feature install if required"
+  ansible.windows.win_reboot:
+    reboot_timeout: 600
+    post_reboot_delay: 30
+  when: _wsfc_feature.reboot_required
+
+- name: "Wait for WinRM after reboot"
+  ansible.builtin.wait_for_connection:
+    delay: 15
+    timeout: 300
+  when: _wsfc_feature.reboot_required
+
+# Enable CredSSP server — required for New-Cluster to authenticate to the
+# secondary node from within a WinRM NTLM session (double-hop bypass).
+- name: "Enable CredSSP server for cluster node communication"
+  ansible.windows.win_shell: |
+    $auth = Get-WSManInstance winrm/config/service/auth
+    if ($auth.CredSSP -ne $true) {
+      Enable-WSManCredSSP -Role Server -Force | Out-Null
+      Write-Output "CHANGED"
+    } else {
+      Write-Output "OK"
+    }
+  register: _credssp
+  changed_when: "'CHANGED' in _credssp.stdout"
+
+- name: "Ensure ansible_temp directory exists"
+  ansible.windows.win_file:
+    path: C:\ansible_temp
+    state: directory
+
+- name: "Add node IPs and cluster name to Windows hosts file"
+  ansible.windows.win_shell: |
+    $hostsFile = "C:\Windows\System32\drivers\etc\hosts"
+    $entries = @(
+      "{{ wsfc_primary_ip }}  {{ wsfc_primary_node }}",
+      "{{ wsfc_secondary_ip }}  {{ wsfc_secondary_node }}",
+      "{{ wsfc_cluster_ip }}  {{ wsfc_cluster_name }}"
+    )
+    $content = Get-Content $hostsFile -Raw
+    foreach ($entry in $entries) {
+      $name = ($entry -split '\s+')[1]
+      if ($content -notmatch [regex]::Escape($name)) {
+        Add-Content -Path $hostsFile -Value $entry
+        Write-Output "ADDED: $entry"
+      }
+    }
+  changed_when: true
+
+# Permit cluster communication ports from peer node in the existing IPsec policy.
+# Ports required by WSFC: TCP/UDP 3343 (cluster heartbeat), TCP 135 (RPC),
+# TCP 445 (SMB for cluster), TCP 5022 (will be used by AG endpoint).
+- name: "Add peer node IP to IPsec permit list (cluster ports)"
+  ansible.windows.win_shell: |
+    $peerIp = if ("{{ inventory_hostname }}" -eq "{{ wsfc_primary_node }}") {
+      "{{ wsfc_secondary_ip }}"
+    } else {
+      "{{ wsfc_primary_ip }}"
+    }
+
+    $policyName = "IP restriction policy"
+    $filterList = "Cluster Node Communication"
+
+    # Create dedicated filter list for cluster if not exists
+    $existing = netsh ipsec static show filterlist name="$filterList" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+      netsh ipsec static add filterlist name="$filterList"
+    }
+
+    # Permit all traffic from peer node (cluster uses many dynamic ports)
+    netsh ipsec static add filter filterlist="$filterList" `
+      srcaddr=$peerIp dstaddr=Me proto=any mirrored=yes description="WSFC peer node"
+
+    # Create filter action Permit if not present
+    $permitExists = netsh ipsec static show filteraction name="Permit" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+      netsh ipsec static add filteraction name="Permit" action=permit
+    }
+
+    # Create and assign rule
+    netsh ipsec static add rule name="Allow Cluster Peer $peerIp" `
+      policy="$policyName" `
+      filterlist="$filterList" `
+      filteraction="Permit"
+
+    netsh ipsec static set policy name="$policyName" assign=y
+    Write-Output "DONE"
+  changed_when: true
+  ignore_errors: true
+
+# Required for workgroup clusters: allows local admin accounts to authenticate
+# over the network without UAC token filtering blocking cluster node communication.
+- name: "Enable LocalAccountTokenFilterPolicy for workgroup cluster auth"
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+    name: LocalAccountTokenFilterPolicy
+    data: 1
+    type: dword
+
+# Store peer node credentials in Windows Credential Manager.
+# New-Cluster runs in a WinRM session (non-delegatable NTLM) and cannot
+# implicitly pass credentials to the peer node. cmdkey pre-caches them so
+# WMI/RPC connections from this node to the peer node authenticate correctly.
+- name: "Cache peer node credentials for cluster node communication"
+  ansible.windows.win_shell: |
+    $peerIp   = if ("{{ inventory_hostname }}" -eq "{{ wsfc_primary_node }}") { "{{ wsfc_secondary_ip }}" } else { "{{ wsfc_primary_ip }}" }
+    $peerName = if ("{{ inventory_hostname }}" -eq "{{ wsfc_primary_node }}") { "{{ wsfc_secondary_node }}" } else { "{{ wsfc_primary_node }}" }
+    $pass = "{{ ansible_password }}"
+
+    # Add credential by IP and by hostname
+    cmdkey /add:$peerIp   /user:Administrator /pass:$pass | Out-Null
+    cmdkey /add:$peerName /user:Administrator /pass:$pass | Out-Null
+
+    # Also establish a test SMB session to pre-authenticate
+    $net = net use "\\$peerIp\IPC$" /user:Administrator $pass 2>&1
+    Write-Output "DONE: credentials cached for $peerName ($peerIp)"
+  changed_when: true
+  no_log: true

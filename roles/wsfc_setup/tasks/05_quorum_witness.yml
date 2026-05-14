@@ -1,0 +1,141 @@
+---
+# Configure file share quorum witness on repositoryvm (Linux/Samba).
+# Play delegates Samba setup tasks to repositoryvm, then configures
+# cluster quorum from the primary node.
+# Run only on primary node (enforced in playbook).
+
+- name: "Install Samba on repositoryvm"
+  ansible.builtin.dnf:
+    name:
+      - samba
+      - samba-common
+      - samba-client
+    state: present
+  delegate_to: "{{ wsfc_witness_host }}"
+  become: true
+
+- name: "Create witness share directory on repositoryvm"
+  ansible.builtin.file:
+    path: "{{ wsfc_witness_path }}"
+    state: directory
+    owner: nobody
+    group: nobody
+    mode: '0777'
+  delegate_to: "{{ wsfc_witness_host }}"
+  become: true
+
+- name: "Configure Samba global + witness share"
+  ansible.builtin.blockinfile:
+    path: /etc/samba/smb.conf
+    block: |
+      # Global settings for guest/anonymous access from Windows SMB2
+      [global]
+        map to guest = bad user
+        guest account = nobody
+        server min protocol = SMB2
+        server max protocol = SMB3
+
+      [sqlwitness]
+        path = {{ wsfc_witness_path }}
+        browsable = yes
+        writable = yes
+        guest ok = yes
+        force user = nobody
+        create mask = 0777
+        directory mask = 0777
+    marker: "# {mark} ANSIBLE MANAGED BLOCK sqlwitness"
+  delegate_to: "{{ wsfc_witness_host }}"
+  become: true
+
+- name: "Set SELinux context on witness share path (samba_share_t)"
+  ansible.builtin.command: >
+    semanage fcontext -a -t samba_share_t "{{ wsfc_witness_path }}(/.*)?"
+  delegate_to: "{{ wsfc_witness_host }}"
+  become: true
+  register: _semanage
+  changed_when: _semanage.rc == 0
+  failed_when: _semanage.rc not in [0, 1]
+
+- name: "Apply SELinux context to witness share"
+  ansible.builtin.command: restorecon -Rv "{{ wsfc_witness_path }}"
+  delegate_to: "{{ wsfc_witness_host }}"
+  become: true
+  changed_when: true
+
+- name: "Enable SELinux Samba export boolean"
+  ansible.posix.seboolean:
+    name: samba_export_all_rw
+    state: true
+    persistent: true
+  delegate_to: "{{ wsfc_witness_host }}"
+  become: true
+
+- name: "Enable and start Samba services on repositoryvm"
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: restarted
+    enabled: true
+  loop:
+    - smb
+    - nmb
+  delegate_to: "{{ wsfc_witness_host }}"
+  become: true
+
+- name: "Allow guest SMB access from Windows (disable insecure guest auth block)"
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters
+    name: AllowInsecureGuestAuth
+    data: 1
+    type: dword
+
+- name: "Map witness share and test write access from primary node"
+  ansible.windows.win_shell: |
+    $server = "{{ wsfc_witness_host_ip | default('192.168.137.148') }}"
+    $shareName = "sqlwitness"
+
+    # Map to drive letter to avoid UNC path quoting issues
+    $null = net use W: /delete /y 2>&1
+    $mapResult = net use W: "\\$server\$shareName" /user:"" "" 2>&1
+    if ($LASTEXITCODE -ne 0) {
+      Write-Output "INACCESSIBLE: net use failed: $mapResult"
+      exit 0
+    }
+    try {
+      $testFile = "W:\ansible_test_$(Get-Random).tmp"
+      New-Item -Path $testFile -ItemType File -Force -ErrorAction Stop | Out-Null
+      Remove-Item $testFile -Force -ErrorAction SilentlyContinue
+      Write-Output "ACCESSIBLE: \\$server\$shareName"
+    } catch {
+      Write-Output "INACCESSIBLE: $($_.Exception.Message)"
+    } finally {
+      $null = net use W: /delete /y 2>&1
+    }
+  register: _share_test
+  changed_when: false
+  failed_when: "'INACCESSIBLE' in _share_test.stdout"
+
+- name: "Configure cluster quorum to use file share witness"
+  ansible.windows.win_shell: |
+    $server = "{{ wsfc_witness_host_ip | default('192.168.137.148') }}"
+    $unc = "\\$server\sqlwitness"
+    $quorum = Get-ClusterQuorum -Cluster "{{ wsfc_cluster_name }}"
+    if ($quorum.QuorumResource -notlike "*FileShare*") {
+      Set-ClusterQuorum -Cluster "{{ wsfc_cluster_name }}" -FileShareWitness $unc
+      Write-Output "CHANGED"
+    } else {
+      Write-Output "OK"
+    }
+  register: _quorum_result
+  changed_when: "'CHANGED' in _quorum_result.stdout"
+
+- name: "Verify quorum configuration"
+  ansible.windows.win_shell: |
+    $q = Get-ClusterQuorum -Cluster "{{ wsfc_cluster_name }}"
+    Write-Output "QuorumType: $($q.QuorumType)"
+    Write-Output "QuorumResource: $($q.QuorumResource)"
+  register: _quorum_verify
+  changed_when: false
+
+- name: "Show quorum config"
+  ansible.builtin.debug:
+    msg: "{{ _quorum_verify.stdout_lines }}"

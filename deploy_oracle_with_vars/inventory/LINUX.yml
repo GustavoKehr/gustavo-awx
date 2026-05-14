@@ -23,18 +23,3 @@ all:
           postgres_port: 15432
         awxvm:
           ansible_host: 192.168.137.153
-    sql_ha_nodes:
-      vars:
-        ansible_connection: winrm
-        ansible_winrm_transport: ntlm
-        ansible_winrm_port: 5985
-        ansible_winrm_scheme: http
-        ansible_winrm_server_cert_validation: ignore
-        ansible_user: Administrator
-      hosts:
-        sqlvm01:
-          ansible_host: 192.168.137.170
-          win_disk_number: 1
-        sqlvm02:
-          ansible_host: 192.168.137.171
-          win_disk_number: 1

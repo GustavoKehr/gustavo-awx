@@ -1,0 +1,49 @@
+---
+# Add the iSCSI shared disk to the cluster as "Available Storage".
+# FCI install will claim it as "Cluster Disk 1" during setup.
+# Run only on primary node.
+
+- name: "Get disk number for shared iSCSI disk"
+  ansible.windows.win_shell: |
+    Update-HostStorageCache
+    $disk = Get-Disk | Where-Object {
+      $_.FileSystemLabel -eq "{{ wsfc_shared_disk_label | default('SQLShared') }}" -or
+      ($_.BusType -eq 'iSCSI' -and $_.PartitionStyle -ne 'RAW')
+    } | Select-Object -First 1
+    if ($disk) {
+      Write-Output $disk.Number
+    } else {
+      Write-Output "NOT_FOUND"
+    }
+  register: _shared_disk_number
+  changed_when: false
+  failed_when: "'NOT_FOUND' in _shared_disk_number.stdout"
+
+- name: "Add shared disk to cluster as Available Storage"
+  ansible.windows.win_shell: |
+    $diskNum = {{ _shared_disk_number.stdout | trim }}
+    $existing = Get-ClusterResource | Where-Object { $_.ResourceType -eq "Physical Disk" }
+    if ($existing) {
+      Write-Output "OK: Cluster disk already present"
+    } else {
+      Get-Disk -Number $diskNum | Add-ClusterDisk
+      Write-Output "CHANGED"
+    }
+  register: _cluster_disk
+  changed_when: "'CHANGED' in _cluster_disk.stdout"
+
+- name: "Verify cluster disk resource exists"
+  ansible.windows.win_shell: |
+    $disk = Get-ClusterResource | Where-Object { $_.ResourceType -eq "Physical Disk" }
+    if ($disk) {
+      Write-Output "PRESENT: $($disk.Name) | State=$($disk.State)"
+    } else {
+      Write-Output "MISSING"
+    }
+  register: _disk_verify
+  changed_when: false
+  failed_when: "'MISSING' in _disk_verify.stdout"
+
+- name: "Show cluster disk resource"
+  ansible.builtin.debug:
+    msg: "{{ _disk_verify.stdout_lines }}"

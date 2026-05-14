@@ -1,0 +1,39 @@
+---
+# Pass 1 of cert exchange: generate cert on this node and fetch to AWX controller.
+# Run with serial:1 (or any order) — each node only touches its own cert.
+
+- name: "Generate self-signed certificate for cluster node authentication"
+  ansible.windows.win_shell: |
+    $subject = "CN={{ inventory_hostname }}"
+    $existing = Get-ChildItem Cert:\LocalMachine\My |
+      Where-Object { $_.Subject -eq $subject }
+    if (-not $existing) {
+      $cert = New-SelfSignedCertificate `
+        -DnsName "{{ inventory_hostname }}" `
+        -CertStoreLocation "Cert:\LocalMachine\My" `
+        -KeyUsage KeyEncipherment,DataEncipherment,CertSign `
+        -NotAfter (Get-Date).AddYears(5)
+      Write-Output "CHANGED:$($cert.Thumbprint)"
+    } else {
+      Write-Output "OK:$($existing.Thumbprint)"
+    }
+  register: _cert_gen
+  changed_when: "'CHANGED' in _cert_gen.stdout"
+
+- name: "Export node certificate to file"
+  ansible.windows.win_shell: |
+    $subject = "CN={{ inventory_hostname }}"
+    $cert = Get-ChildItem Cert:\LocalMachine\My |
+      Where-Object { $_.Subject -eq $subject } | Select-Object -First 1
+    Export-Certificate `
+      -Cert "Cert:\LocalMachine\My\$($cert.Thumbprint)" `
+      -FilePath "C:\ansible_temp\{{ inventory_hostname }}_cluster.cer" `
+      -Type CERT -Force
+    Write-Output "Exported: $($cert.Thumbprint)"
+  changed_when: false
+
+- name: "Fetch node certificate to AWX controller"
+  ansible.builtin.fetch:
+    src: "C:\\ansible_temp\\{{ inventory_hostname }}_cluster.cer"
+    dest: "/tmp/{{ inventory_hostname }}_cluster.cer"
+    flat: yes

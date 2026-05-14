@@ -1,0 +1,182 @@
+---
+# Transfers Oracle software from AWX VM (/opt/oracle, /opt/patches) to oracle_software_dst on target.
+# Uses rsync delegated to awxvm (not the EE container) for speed on large files.
+# --rsync-path="sudo rsync" writes directly to oracle-owned dirs without a temp stage.
+# Each block checks destination existence first — skips rsync if already present.
+# Ownership fix always runs (idempotent chown) regardless of whether rsync ran.
+
+- name: "TRANSFER | Check installer zip on target"
+  ansible.builtin.shell: >-
+    test -f "{{ oracle_software_dst }}/{{ oracle_installer_zip }}" && echo present || echo absent
+  register: _zip_stat
+  changed_when: false
+  tags: oracle_transfer
+
+- name: "TRANSFER | Rsync Oracle installer zip"
+  ansible.builtin.shell: |
+    rsync -az \
+      -e "ssh -i ~/.ssh/id_user_aap -o StrictHostKeyChecking=no" \
+      --rsync-path="sudo rsync" \
+      {{ oracle_software_src }}/{{ oracle_installer_zip }} \
+      user_aap@{{ ansible_host }}:{{ oracle_software_dst }}/{{ oracle_installer_zip }}
+  delegate_to: awxvm
+  become: false
+  when: _zip_stat.stdout == "absent"
+  tags: oracle_transfer
+
+- name: "TRANSFER | Fix installer zip ownership"
+  ansible.builtin.shell: |
+    chown oracle:oinstall "{{ oracle_software_dst }}/{{ oracle_installer_zip }}"
+    chmod 0640 "{{ oracle_software_dst }}/{{ oracle_installer_zip }}"
+  changed_when: false
+  tags: oracle_transfer
+
+- name: "TRANSFER | Check OPatch directory on target"
+  ansible.builtin.shell: >-
+    test -d "{{ oracle_software_dst }}/{{ oracle_opatch_dir }}" &&
+    [ -n "$(ls -A {{ oracle_software_dst }}/{{ oracle_opatch_dir }} 2>/dev/null)" ] &&
+    echo present || echo absent
+  register: _opatch_stat
+  changed_when: false
+  tags: oracle_transfer
+
+- name: "TRANSFER | Rsync OPatch replacement directory"
+  ansible.builtin.shell: |
+    rsync -az \
+      -e "ssh -i ~/.ssh/id_user_aap -o StrictHostKeyChecking=no" \
+      --rsync-path="sudo rsync" \
+      {{ oracle_patches_src }}/{{ oracle_opatch_dir }}/ \
+      user_aap@{{ ansible_host }}:{{ oracle_software_dst }}/{{ oracle_opatch_dir }}/
+  delegate_to: awxvm
+  become: false
+  when: _opatch_stat.stdout == "absent"
+  tags: oracle_transfer
+
+- name: "TRANSFER | Fix OPatch directory ownership"
+  ansible.builtin.shell: |
+    chown -R oracle:oinstall "{{ oracle_software_dst }}/{{ oracle_opatch_dir }}"
+  changed_when: false
+  tags: oracle_transfer
+
+- name: "TRANSFER | Check RU patch directory on target"
+  ansible.builtin.shell: >-
+    test -d "{{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_ru_subpath }}" &&
+    [ -n "$(ls -A {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_ru_subpath }} 2>/dev/null)" ] &&
+    echo present || echo absent
+  register: _ru_stat
+  changed_when: false
+  tags: oracle_transfer
+
+- name: "TRANSFER | Rsync RU + one-off patch directory ({{ oracle_ru_patch_dir }})"
+  ansible.builtin.shell: |
+    rsync -az \
+      -e "ssh -i ~/.ssh/id_user_aap -o StrictHostKeyChecking=no" \
+      --rsync-path="sudo rsync" \
+      {{ oracle_patches_src }}/{{ oracle_ru_patch_dir }}/ \
+      user_aap@{{ ansible_host }}:{{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/
+  delegate_to: awxvm
+  become: false
+  when: _ru_stat.stdout == "absent"
+  tags: oracle_transfer
+
+- name: "TRANSFER | Fix RU patch directory ownership"
+  ansible.builtin.shell: |
+    chown -R oracle:oinstall "{{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}"
+  changed_when: false
+  tags: oracle_transfer
+
+- name: "TRANSFER | Check post_patch1 directory on target"
+  ansible.builtin.shell: >-
+    test -d "{{ oracle_software_dst }}/{{ oracle_post_patch1_dir }}" &&
+    [ -n "$(ls -A {{ oracle_software_dst }}/{{ oracle_post_patch1_dir }} 2>/dev/null)" ] &&
+    echo present || echo absent
+  register: _patch1_stat
+  changed_when: false
+  when: oracle_post_patch1_enabled | bool
+  tags: oracle_transfer
+
+- name: "TRANSFER | Check post_patch1 source on controller"
+  ansible.builtin.shell: >-
+    test -d "{{ oracle_patches_src }}/{{ oracle_post_patch1_dir }}" && echo present || echo absent
+  delegate_to: awxvm
+  become: false
+  register: _patch1_src
+  changed_when: false
+  when: oracle_post_patch1_enabled | bool
+  tags: oracle_transfer
+
+- name: "TRANSFER | Rsync post_patch1 directory ({{ oracle_post_patch1_dir }})"
+  ansible.builtin.shell: |
+    rsync -az \
+      -e "ssh -i ~/.ssh/id_user_aap -o StrictHostKeyChecking=no" \
+      --rsync-path="sudo rsync" \
+      {{ oracle_patches_src }}/{{ oracle_post_patch1_dir }}/ \
+      user_aap@{{ ansible_host }}:{{ oracle_software_dst }}/{{ oracle_post_patch1_dir }}/
+  delegate_to: awxvm
+  become: false
+  when:
+    - oracle_post_patch1_enabled | bool
+    - _patch1_stat.stdout == "absent"
+    - _patch1_src.stdout == "present"
+  tags: oracle_transfer
+
+- name: "TRANSFER | Fix post_patch1 directory ownership"
+  ansible.builtin.shell: |
+    chown -R oracle:oinstall "{{ oracle_software_dst }}/{{ oracle_post_patch1_dir }}"
+  changed_when: false
+  when:
+    - oracle_post_patch1_enabled | bool
+    - _patch1_src.stdout == "present"
+  tags: oracle_transfer
+
+- name: "TRANSFER | Check post-install patch directories on target (patch2, patch3)"
+  ansible.builtin.shell: >-
+    test -d "{{ oracle_software_dst }}/{{ item }}" &&
+    [ -n "$(ls -A {{ oracle_software_dst }}/{{ item }} 2>/dev/null)" ] &&
+    echo present || echo absent
+  register: _patch23_stat
+  changed_when: false
+  loop:
+    - "{{ oracle_post_patch2_dir }}"
+    - "{{ oracle_post_patch3_dir }}"
+  tags: oracle_transfer
+
+- name: "TRANSFER | Check post-install patch sources on controller (patch2, patch3)"
+  ansible.builtin.shell: >-
+    test -d "{{ oracle_patches_src }}/{{ item }}" && echo present || echo absent
+  delegate_to: awxvm
+  become: false
+  register: _patch23_src
+  changed_when: false
+  loop:
+    - "{{ oracle_post_patch2_dir }}"
+    - "{{ oracle_post_patch3_dir }}"
+  tags: oracle_transfer
+
+- name: "TRANSFER | Rsync post-install patch directories (patch2, patch3)"
+  ansible.builtin.shell: |
+    rsync -az \
+      -e "ssh -i ~/.ssh/id_user_aap -o StrictHostKeyChecking=no" \
+      --rsync-path="sudo rsync" \
+      {{ oracle_patches_src }}/{{ item.0.item }}/ \
+      user_aap@{{ ansible_host }}:{{ oracle_software_dst }}/{{ item.0.item }}/
+  delegate_to: awxvm
+  become: false
+  loop: "{{ _patch23_stat.results | zip(_patch23_src.results) | list }}"
+  loop_control:
+    label: "{{ item.0.item }}"
+  when:
+    - item.0.stdout == "absent"
+    - item.1.stdout == "present"
+  tags: oracle_transfer
+
+- name: "TRANSFER | Fix post-install patch directories ownership (patch2, patch3)"
+  ansible.builtin.shell: |
+    chown -R oracle:oinstall "{{ oracle_software_dst }}/{{ item.0.item }}"
+  loop: "{{ _patch23_stat.results | zip(_patch23_src.results) | list }}"
+  loop_control:
+    label: "{{ item.0.item }}"
+  changed_when: false
+  when:
+    - item.1.stdout == "present"
+  tags: oracle_transfer

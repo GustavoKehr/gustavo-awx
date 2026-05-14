@@ -1,0 +1,61 @@
+---
+# Add secondary node to the SQL Server Failover Cluster Instance.
+# Primary install must be complete before running this.
+# The ISO must be mounted on the secondary as well.
+
+- name: "Disable Windows Firewall on secondary"
+  ansible.windows.win_firewall:
+    state: disabled
+    profiles:
+      - Domain
+      - Private
+      - Public
+
+- name: "Ensure ansible_temp directory exists on secondary"
+  ansible.windows.win_file:
+    path: "{{ fci_temp_dir }}"
+    state: directory
+
+- name: "Run AddNode to join secondary to FCI"
+  ansible.windows.win_package:
+    path: "{{ _iso_drive }}setup.exe"
+    product_id: ""
+    arguments: >-
+      /ConfigurationFile={{ fci_temp_dir }}\AddNodeConfigurationFile.ini
+      /SQLSVCPASSWORD=""
+      /AGTSVCPASSWORD=""
+      /IAcceptSQLServerLicenseTerms
+    state: present
+    expected_return_code: [0, 3010]
+  register: _addnode_install
+
+- name: "Reboot if AddNode returned 3010"
+  ansible.windows.win_reboot:
+    reboot_timeout: 600
+    post_reboot_delay: 30
+  when: _addnode_install.rc == 3010
+
+- name: "Wait for WinRM after reboot"
+  ansible.builtin.wait_for_connection:
+    delay: 15
+    timeout: 300
+  when: _addnode_install.rc == 3010
+
+- name: "Verify secondary node visible in cluster"
+  ansible.windows.win_shell: |
+    $node = Get-ClusterNode -Name "{{ fci_secondary_node }}" -ErrorAction SilentlyContinue
+    if ($node -and $node.State -eq "Up") {
+      Write-Output "UP: $($node.Name)"
+    } else {
+      Write-Output "NOT_UP: $($node | Select-Object Name,State | Out-String)"
+    }
+  register: _secondary_check
+  changed_when: false
+  retries: 6
+  delay: 10
+  until: "'UP' in _secondary_check.stdout"
+
+- name: "Unmount ISO on secondary"
+  community.windows.win_disk_image:
+    image_path: "{{ fci_temp_dir }}\\SQLServer.iso"
+    state: absent
