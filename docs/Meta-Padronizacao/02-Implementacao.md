@@ -2,6 +2,9 @@
 
 ## Database Lifecycle Management (DLM)
 
+> **Por que usar DLM?**
+> Bancos de dados gerenciados de forma ad-hoc acumulam divida tecnica rapidamente: schemas sem historico, configuracoes inconsistentes entre ambientes, backups nao testados e ausencia de processo de rollback. O DLM aplica disciplina de engenharia de software ao ciclo de vida do banco — cada mudanca e rastreavel, reversivel e validada antes de chegar em producao. Organizacoes com DLM maduro reduzem incidentes causados por mudanca de schema em ate 80% (referencia: DORA State of DevOps Report).
+
 Todo banco de dados passa pelas seguintes fases. Cada fase exige documentacao e aprovacao:
 
 ```
@@ -73,6 +76,9 @@ Design → Develop → Test → Build → Deploy → Maintain → Monitor → Ba
 
 ## Convencoes de Nomenclatura
 
+> **Por que padronizar nomenclatura?**
+> Sem convencao, cada desenvolvedor usa seu proprio estilo: `tbl_Orders`, `ORDER`, `orders_tbl`, `orders`. Isso quebra automacoes (gerador de ORM nao reconhece a chave primaria), dificulta onboarding de novos membros, e cria bugs sutis quando o banco destino tem case sensitivity diferente (MySQL no Windows e case-insensitive; no Linux e case-sensitive). Uma convencao unica elimina essa classe inteira de problemas.
+
 Adotar convencoes consistentes elimina ambiguidades e facilita automacao.
 
 ### Nomenclatura de Objetos
@@ -116,6 +122,14 @@ Exemplos:
 ---
 
 ## Versionamento de Schema (Schema Migration)
+
+> **Por que usar ferramentas de migration em vez de scripts SQL manuais?**
+> Scripts SQL executados manualmente sao a principal causa de divergencia entre ambientes (dev tem colunas que prod nao tem, ou vice-versa). Ferramentas como Flyway e Liquibase resolvem tres problemas criticos:
+> 1. **Rastreabilidade**: cada mudanca tem autor, data e numero de versao no proprio banco (tabela `flyway_schema_history`)
+> 2. **Idempotencia**: o mesmo pipeline pode rodar em qualquer ambiente e aplicar exatamente as migrations pendentes — sem risco de re-executar o que ja foi feito
+> 3. **Auditoria**: o Git registra quem alterou o que e quando; o banco registra quando foi aplicado
+>
+> Sem essas ferramentas, restaurar um banco de 6 meses atras e re-aplicar migrations seletivamente e um processo manual e propenso a erros.
 
 ### Ferramentas por Banco
 
@@ -179,6 +193,12 @@ systemctl enable --now postgresql-16
 ```
 
 **Data checksums** (`--data-checksums`): obrigatorio em producao — detecta corrupcao silenciosa de dados.
+
+> **Por que estes parametros de kernel para PostgreSQL?**
+> - `vm.overcommit_memory=2`: o PostgreSQL pre-aloca memoria via `shared_buffers`. Com o padrao do Linux (`overcommit_memory=0`), o kernel pode permitir que o processo aloque mais do que tem disponivel e matar o PostgreSQL via OOM Killer sem aviso — potencialmente corrompendo dados. Valor `2` significa "nao overcommit alem de (RAM + swap) * overcommit_ratio", protegendo contra o OOM Killer.
+> - `vm.swappiness=1`: valor alto forca o Linux a mover paginas de PostgreSQL para swap mesmo com RAM disponivel, causando latencia imprevisivel nas queries. Valor `1` mantém swap quase desabilitado mas preserva o mecanismo de emergencia.
+> - `kernel.shmmax/shmall`: o PostgreSQL usa shared memory para o `shared_buffers`. Sem esses limites aumentados, o `initdb` falha ou o banco nao consegue alocar o buffer configurado.
+> - `nofile=65536`: o PostgreSQL abre um file descriptor por conexao, por WAL segment e por datafile. Limite padrao de 1024 e insuficiente para bancos com muitas conexoes ou tablespaces.
 
 **Configuracao de SO obrigatoria**:
 ```bash
@@ -512,6 +532,19 @@ db2 ACTIVATE DATABASE mydb
 
 ### Vertica — Implementacao
 
+> **Por que Vertica para analytics em vez de PostgreSQL ou MySQL?**
+> Vertica e um banco de dados colunar (armazena dados por coluna, nao por linha). Para queries de analytics que leem apenas 3–5 colunas de uma tabela com 200 colunas e bilhoes de linhas, o Vertica le apenas os blocos das colunas necessarias — tipicamente 10–50x menos I/O que um banco relacional linha a linha. Alem disso:
+> - Compressao por coluna e 5–10x mais eficiente (dados do mesmo tipo comprimem melhor juntos)
+> - Execucao vetorizada processa blocos de dados em operacoes SIMD do CPU
+> - Projecoes (materialized sort orders) eliminam sorts caros em queries frequentes
+> - Escala horizontal linear: adicionar nos aumenta throughput proporcionalmente
+>
+> **Por que os requisitos de hardware sao tao especificos?**
+> - 32–48 cores fisicos: hyperthreading (SMT) causa contenção de CPU durante queries columnares paralelas; desabilitar SMT aumenta throughput em 15–30%
+> - 256GB RAM minimo: Vertica carrega projections na memoria para execucao vetorizada
+> - NVMe SSD: I/O sequencial de alta vazao e critico para leitura de blocos colunares grandes
+> - 10Gbps+ entre nos: redistribuicao de dados entre nos durante hash joins pode saturar links lentos
+
 **Prerequisitos de Hardware**:
 - CPU: 32–48 cores fisicos por no (nao usar hyperthreading para Vertica)
 - RAM: minimo 256GB por no; ratio 8–12GB RAM por core fisico
@@ -592,6 +625,13 @@ CREATE RESOURCE POOL etl MEMORYSIZE '20%' MAXMEMORYSIZE '40%';
 
 ### Redis — Implementacao
 
+> **Por que Redis para cache/session em vez de Memcached ou banco relacional?**
+> - vs. Memcached: Redis tem tipos de dados ricos (listas, sets, sorted sets, hashes, streams), persistencia (RDB/AOF), pub/sub, scripting Lua, e Cluster nativo. Memcached e apenas cache key-value sem estrutura.
+> - vs. banco relacional: latencia de microsegundos vs. milissegundos. Redis opera inteiramente em memoria com I/O minimo. Para session store ou cache de API com milhares de requests/segundo, o banco relacional nao acompanha sem hardware desproporcional.
+>
+> **Por que compilar da fonte com TLS em producao?**
+> Os pacotes dos repositorios do SO (epel, amazon-linux-extras) nem sempre incluem TLS compilado ou ficam defasados em versoes. Para producao com requisitos de seguranca (PCI DSS, HIPAA), compilar com `BUILD_TLS=yes` garante criptografia em transito sem depender do estado do repositorio da distro.
+
 **Prerequisitos de SO**:
 ```bash
 # RHEL/Rocky
@@ -667,6 +707,22 @@ useradd --system --shell /bin/false --home /var/lib/redis redis
 ---
 
 ## Connection Pooling
+
+> **Por que connection pooling e obrigatorio em producao?**
+> Cada conexao ao PostgreSQL, MySQL ou Oracle cria um processo/thread no servidor com overhead de 5–15MB de RAM e latencia de handshake de ~5ms. Uma aplicacao web com 100 instancias fazendo pool de 10 conexoes cada = 1000 conexoes no banco — facilmente excedendo o `max_connections` e causando falhas em cascata.
+>
+> O pooler resolve isso: 1000 conexoes da aplicacao conversam com o pooler, que mantem apenas 25–50 conexoes reais no banco. Beneficios:
+> - **Menor uso de RAM no banco**: cada conexao fisica consome memoria; pooling reduz de centenas para dezenas
+> - **Menor latencia**: conexoes do pool sao pre-estabelecidas; aplicacao nao paga o custo de handshake TCP + autenticacao em cada request
+> - **Protecao contra connection storms**: evita que falha de servico externo abra milhares de conexoes simultaneas
+>
+> **Por que PgBouncer e nao pgpool-II para PostgreSQL?**
+> - PgBouncer e ultraligeiro (~2MB RSS), focado exclusivamente em pooling. Throughput de centenas de milhares de transacoes por segundo com CPU minimo.
+> - pgpool-II adiciona HA, load balancing e query cache — mas com overhead significativo e complexidade de configuracao. Use pgpool-II apenas se precisar de load balancing nativo sem Patroni/HAProxy.
+>
+> **Por que ProxySQL e nao MySQL Router?**
+> - ProxySQL oferece roteamento de queries baseado em regex (SELECT → replica, escrita → primario), query mirroring, firewall de queries, e observabilidade granular.
+> - MySQL Router e mais simples e suficiente para InnoDB Cluster, mas sem as features avancadas do ProxySQL.
 
 Obrigatorio em todo ambiente com multiplos clientes conectados.
 

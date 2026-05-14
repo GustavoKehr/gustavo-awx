@@ -2,6 +2,15 @@
 
 ## Principios Fundamentais
 
+> **Por que ter uma estrategia formal de backup e nao confiar na replicacao?**
+> Replicacao HA (Patroni, HADR, Data Guard) protege contra **falhas de hardware** — se o servidor primario morrer, o standby assume. Mas nao protege contra:
+> - `DROP TABLE orders` — o comando e replicado para o standby em milissegundos
+> - Corrupcao logica (bug de aplicacao insere dados errados por horas)
+> - Ransomware que criptografa dados no primario — o standby recebe os dados criptografados
+> - Erro humano em producao
+>
+> Backup e a unica solucao para esses cenarios. Replicacao + backup = cobertura completa. Replicacao sem backup = falsa sensacao de seguranca.
+
 ### Regra 3-2-1
 - **3** copias de dados (1 original + 2 backups)
 - **2** tipos de midia diferentes (ex: disco local + object storage)
@@ -49,6 +58,16 @@ Antes de definir estrategia de backup, estabelecer com o negocio:
 ---
 
 ## PostgreSQL
+
+> **Por que pgBackRest em vez de apenas `pg_basebackup` + scripts manuais?**
+> `pg_basebackup` e excelente para criar o backup inicial mas nao gerencia:
+> - Retencao: precisa de scripts externos para limpar backups antigos
+> - Catalogacao: nao rastreia quais backups existem e quando foram feitos
+> - Criptografia: nao tem suporte nativo a criptografia
+> - Backup incremental: sempre faz full (exceto com `--incremental` no PG 17+)
+> - Verificacao: sem checksums automaticos dos arquivos de backup
+>
+> pgBackRest resolve todos esses pontos com um unico binario que gerencia o ciclo de vida completo de backups. Para bancos pequenos (<50GB) `pg_basebackup` e suficiente. Para producao com volumes maiores, pgBackRest e o padrao da industria (usado por Amazon RDS internamente).
 
 ### pg_basebackup — Backup Fisico Nativo
 
@@ -176,6 +195,21 @@ pgbackrest --stanza=mydb restore \
 ---
 
 ## MySQL
+
+> **Por que XtraBackup em vez de apenas `mysqldump` para producao?**
+> `mysqldump` e uma ferramenta logica — le cada linha e gera SQL. Para um banco de 500GB:
+> - Backup demora 4–8 horas com carga adicional no servidor
+> - Restore re-executa todos os INSERTs — pode demorar 10–20h
+> - `--single-transaction` nao bloqueia InnoDB mas nao captura DDL ocorrendo durante o backup
+> - Sem suporte a incremental nativo
+>
+> Percona XtraBackup faz backup fisico (copia binaria dos arquivos InnoDB enquanto o MySQL roda):
+> - Backup de 500GB em 20–40 minutos
+> - Restore em 20–40 minutos (copia de arquivos, nao re-execucao de SQL)
+> - Suporte real a incremental via Log Sequence Number (LSN)
+> - Zero lock de tabelas InnoDB
+>
+> **Regra pratica**: `mysqldump` para bancos < 10GB ou exports logicos pontuais; XtraBackup para tudo maior em producao.
 
 ### mysqldump — Backup Logico
 
@@ -441,6 +475,16 @@ EXECUTE dbo.DatabaseBackup
 ---
 
 ## Oracle — RMAN (Recovery Manager)
+
+> **Por que RMAN e a unica opcao aceita para backup em Oracle producao?**
+> RMAN e o unico backup que entende a estrutura interna do Oracle:
+> - **Backup consistente online**: usa os archive logs para garantir consistencia sem parar o banco
+> - **Detecta corrupcao de bloco**: ao fazer backup, o RMAN valida cada bloco Oracle. Um backup com blocos corrompidos e detectado imediatamente — scripts de SO copiando arquivos nao detectam isso ate o restore falhar
+> - **Incremental a nivel de bloco**: copia apenas blocos modificados desde o ultimo backup (nao arquivo inteiro)
+> - **Gestao automatica de retencao**: sabe quais backups sao necessarios para cumprir a politica de retencao
+> - **Integracao com Data Guard**: backups podem ser feitos no standby, sem impacto no primario
+>
+> Fazer backup copiando os datafiles diretamente no filesystem enquanto o Oracle esta rodando resulta em arquivos inconsistentes — o restore pode parecer funcionar mas os dados serao corrompidos.
 
 ### Configuracao Inicial do RMAN
 

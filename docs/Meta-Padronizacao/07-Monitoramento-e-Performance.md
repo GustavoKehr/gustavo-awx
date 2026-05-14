@@ -1,5 +1,8 @@
 # 07 — Monitoramento e Performance
 
+> **Por que monitoramento de banco de dados nao pode ser reativo (so alertar quando ja falhou)?**
+> Bancos de dados degradam progressivamente antes de falhar: espaco em disco enche lentamente, replication lag aumenta gradualmente, cache hit rate cai com crescimento de dados, queries ficam lentas antes de timeoutar. Monitoramento proativo detecta esses sinais dias ou semanas antes da falha. Incidentes de producao custam em media USD 5.600/minuto (Gartner) — um alerta de disco a 70% custa segundos de atencao; substituir o servidor de emergencia a 100% pode custar horas de downtime. MTTR (Mean Time To Repair) cai drasticamente quando o time ja conhece o estado do sistema antes do incidente.
+
 ## Stack de Monitoramento Recomendada
 
 ```
@@ -26,6 +29,9 @@ Logs     →  Filebeat/Fluentd  →  Logstash  →  Elasticsearch  →  Kibana
 
 ## Estabelecimento de Baseline
 
+> **Por que 2–4 semanas de baseline antes de configurar alertas, em vez de usar thresholds genericos?**
+> Thresholds genericos (ex: "alertar se CPU > 80%") geram alert fatigue: um banco de DW que normalmente usa 85% CPU durante ETL noturno vai disparar alertas toda noite, treinando o time a ignorar alertas. Apos 4 semanas coletando dados de pico, media e padroes sazonais, e possivel definir alertas baseados em desvio do padrao do proprio banco: "alertar se CPU ficar > 2 desvios padrao acima da media horaria dos ultimos 30 dias". Isso reduz falsos positivos em 70-90% (SRE Book, Google) e torna cada alerta significativo.
+
 Antes de configurar alertas, coletar baseline por **2–4 semanas** em producao:
 
 1. Coletar metricas em horarios de pico e fora de pico
@@ -44,6 +50,9 @@ Antes de configurar alertas, coletar baseline por **2–4 semanas** em producao:
 | Uptime | < 99.5% | < 99% |
 | Connection availability | Timeout > 5s | Falha de conexao |
 | Replication lag | > 60s | > 300s |
+
+> **Por que monitorar p95 e p99 em vez de media de latencia?**
+> A media esconde outliers criticos: se 99% das queries respondem em 5ms e 1% demora 10 segundos, a media fica em ~100ms — aparentemente normal. Mas esse 1% representa usuarios reais recebendo timeout. p95 = "95% das requisicoes completam em X ms" e p99 = "99% completam em Y ms". Em SLAs modernos (SRE/SLO), o objetivo e definido em percentis: "p99 < 500ms" e um compromisso mensuravel. Ferramentas como Prometheus com histogram_quantile() calculam percentis de forma eficiente sem armazenar cada query individualmente.
 
 ### Performance de Queries
 | KPI | Warning | Critico |
@@ -106,6 +115,10 @@ ORDER BY duration DESC;
 
 -- Top 20 queries por tempo total (usando pg_stat_statements)
 -- Habilitar: shared_preload_libraries = 'pg_stat_statements'
+-- Por que pg_stat_statements e indispensavel: PostgreSQL por padrao nao registra
+-- quais queries consomem mais CPU/I/O. pg_stat_statements agrega estatisticas
+-- normalizadas (mesmo query com valores diferentes = mesmo registro), permitindo
+-- identificar o TOP 5 de queries que consomem 80% dos recursos em segundos.
 SELECT
     LEFT(query, 100) AS query_preview,
     calls,
@@ -206,6 +219,12 @@ LIMIT 20;
 -- AUTOVACUUM
 -- ====================
 
+-- Por que monitorar autovacuum e critico no PostgreSQL:
+-- PostgreSQL usa MVCC (Multi-Version Concurrency Control): versoes antigas de linhas
+-- acumulam como "dead tuples". Sem VACUUM regular, o disco expande indefinidamente
+-- e o "transaction ID wraparound" pode forcar o banco a parar completamente
+-- (PANIC: database needs VACUUM) para evitar corrupcao de dados. Este e um dos
+-- poucos cenarios onde PostgreSQL para por conta propria — altamente disruptivo.
 -- Tabelas precisando de VACUUM urgente (bloat ou age)
 SELECT
     schemaname,
@@ -922,6 +941,9 @@ EOF
 - https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/
 
 ---
+
+> **Por que o ciclo Monitor→Analyze→Tune→Validate→Document e obrigatorio (nao pular etapas)?**
+> "Tune first, measure later" e o erro mais comum em otimizacao de banco de dados. Adicionar indices sem medir pode fragmentar o buffer pool e piorar performance de escritas. Aumentar `shared_buffers` sem validar pode causar OOM no SO. O ciclo estruturado garante: (1) voce sabe o estado antes; (2) a mudanca foi a causa real da melhora (nao coincidencia); (3) o resultado fica documentado para o proximo DBA. Cada mudanca sem baseline e uma hipotese nao testada em producao.
 
 ## Ciclo de Performance Tuning
 

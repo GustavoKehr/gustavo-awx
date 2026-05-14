@@ -2,6 +2,9 @@
 
 ## Visao Geral
 
+> **Por que compliance e responsabilidade do DBA, nao apenas do juridico?**
+> As regulamentacoes de compliance (GDPR, HIPAA, SOX, PCI DSS) definem REQUISITOS funcionais que precisam ser implementados no banco de dados — criptografia de colunas, audit logging, imutabilidade de registros, mascaramento de dados sensiveis. O juridico define o que precisa ser feito; o DBA implementa o como. Violacoes causadas por ausencia de controles tecnicos (banco sem criptografia, sem audit log, com usuarios compartilhados) sao de responsabilidade tecnica — as penalidades sao aplicadas a empresa, nao ao juridico.
+
 | Regulamentacao | Jurisdicao / Setor | Foco Principal | Penalidade Maxima |
 |----------------|-------------------|----------------|-------------------|
 | **GDPR** | Uniao Europeia (dados de cidadaos EU, global) | Privacidade de dados pessoais | 4% do faturamento global ou EUR 20M |
@@ -13,6 +16,14 @@
 ---
 
 ## GDPR — General Data Protection Regulation
+
+> **Por que o GDPR tem impacto tao profundo no design de bancos de dados?**
+> O GDPR nao e apenas uma lei de privacidade — e um requisito de engenharia de dados. O "Direito ao Esquecimento" (Art. 17) significa que o banco precisa ser capaz de deletar ou anonimizar todos os dados de um usuario especifico em todos os sistemas em ate 30 dias. Isso exige:
+> - Mapeamento completo de onde dados pessoais sao armazenados (ROPA)
+> - Chaves estrangeiras rastreando `user_id` em todas as tabelas relacionadas
+> - Procedimentos de erasure testados e documentados
+>
+> Bancos de dados projetados sem pensar em GDPR desde o inicio precisam de refatoracao cara para atender esses requisitos depois.
 
 ### Impacto em Bancos de Dados
 
@@ -423,6 +434,15 @@ Cronograma de notificacao:
 ---
 
 ## SOX — Sarbanes-Oxley Act
+
+> **Por que SOX exige audit trail imutavel no banco, nao apenas logs de aplicacao?**
+> Logs de aplicacao podem ser alterados por qualquer desenvolvedor com acesso ao servidor. Um audit trail na tabela do banco com regra `NO UPDATE/DELETE` e mais difcil de adulterar — requer acesso direto de DBA E bypassar as triggers/rules. Para maxima imutabilidade, combinar:
+> 1. Trigger/rule no banco (primeira linha de defesa)
+> 2. Logs enviados para SIEM externo em tempo real (segunda linha — mesmo que o banco seja comprometido, os logs ja saíram)
+> 3. Storage WORM para logs arquivados (terceira linha — imutabilidade fisica)
+>
+> **Por que segregacao de funcoes e critica para SOX?**
+> O SOX Section 404 exige que nenhuma pessoa tenha controle total sobre um processo financeiro. Se o mesmo DBA pode alterar dados E aprovar mudancas E auditar o acesso, e possivel cobrir um fraude. A segregacao garante que fraude exija conluio de multiplas pessoas — drasticamente mais dificil.
 
 ### Secao 404 — Controles Internos sobre Relatorios Financeiros
 

@@ -43,6 +43,9 @@
 - [ ] Documentar e testar procedimento de rollback
 - [ ] **Criar backup completo do banco origem** e verificar integridade
 
+> **Por que o backup do banco origem e obrigatorio antes de qualquer migracao?**
+> A migracao pode corromper dados de formas nao obvias: erros de mapeamento de tipo, truncamento silencioso de strings, perda de precisao em decimais, ou falhas no processo de ETL. Sem um backup verificado do banco origem, qualquer falha na migracao pode resultar em perda permanente de dados. O backup deve ser testado (restore parcial validado) — um backup nao testado e apenas um arquivo cujo conteudo e desconhecido.
+
 ### Fase 4: Execucao
 
 **Modos**:
@@ -52,6 +55,9 @@
 | **Big Bang** | Alto | Alto | Bancos < 100GB, janela longa disponivel |
 | **Phased** | Medio | Medio | Bancos medios, aplicacoes modulares |
 | **Trickle (CDC)** | Minimo | Baixo | Grandes bancos, SLAs rigidos |
+
+> **Por que escolher Trickle/CDC e nao Big Bang para bancos grandes?**
+> Big Bang exige janela de manutencao proporcional ao tamanho do banco — um banco de 10TB pode demandar 20+ horas offline. CDC (Change Data Capture) replica continuamente as mudancas enquanto o sistema permanece em producao, permitindo cutover de minutos em vez de horas. O risco de rollback tambem e menor: se algo der errado, o banco antigo ainda esta ativo. Ferramentas como AWS DMS, Debezium e GoldenGate implementam CDC sobre binlog (MySQL), WAL (PostgreSQL) ou Archive Log (Oracle).
 
 **Ordem de migracao recomendada**:
 1. DDL (schema, tabelas, sequences, types)
@@ -136,6 +142,9 @@ pg_restore \
 # Listar conteudo do dump antes de restaurar
 pg_restore --list /backup/pg/mydb_20240115.dump | head -50
 ```
+
+> **Por que pgcopydb e superior ao pg_dump/pg_restore para migracao entre instancias PostgreSQL?**
+> `pg_dump` e serial por design: cria o dump sequencialmente e o restore tambem. `pgcopydb` usa COPY protocolo binario direto entre as instancias com jobs paralelos por tabela e indice (`--jobs 8`), eliminando o arquivo intermediario. Em bancos de 500GB+, pgcopydb pode ser 5–10x mais rapido. A desvantagem: requer conectividade direta entre origem e destino (nao funciona via arquivo). Use `pg_dump` quando precisar de arquivo intermediario para transporte fisico ou quando as versoes PostgreSQL sao incompativeis.
 
 **pgcopydb** (copia entre instancias, muito mais rapido):
 ```bash
@@ -381,6 +390,9 @@ RESTORE LOG MeuBanco
 RESTORE DATABASE MeuBanco WITH RECOVERY;
 ```
 
+> **Por que usar RESTORE com NORECOVERY em vez de restaurar direto?**
+> O modo `WITH NORECOVERY` deixa o banco em estado "restoring", permitindo aplicar backups diferenciais e de log em cadeia antes de finalizar. Se voce usar `WITH RECOVERY` no backup full, o banco fica online imediatamente mas nao e possivel aplicar logs subsequentes — qualquer PITR mais granular requer comecar o restore do zero. A cadeia correta e: FULL (NORECOVERY) → DIFF (NORECOVERY) → LOG1 (NORECOVERY) → LOG2 (RECOVERY). O ultimo passo com RECOVERY e o que torna o banco acessivel.
+
 **Migracao de SQL Server para SQL Server**:
 ```bash
 # Detach/Attach (offline — mais rapido para bancos grandes)
@@ -481,6 +493,9 @@ impdp system/SysSenha@NEWORCL \
     DUMPFILE=schema_export_%U.dmp \
     DIRECTORY=IMPORT_DIR
 ```
+
+> **Por que ora2pg e a ferramenta padrao para migracoes Oracle → PostgreSQL?**
+> ora2pg conecta diretamente ao Oracle, extrai todos os objetos (tabelas, views, procedures, sequences, packages, triggers), converte automaticamente tipos Oracle para equivalentes PostgreSQL (NUMBER → NUMERIC, VARCHAR2 → TEXT, DATE → TIMESTAMP), e gera um relatorio de compatibilidade com custo estimado de migracao. Alternativas como AWS SCT + DMS exigem infraestrutura AWS e custam por hora. ora2pg e open source, battle-tested em migracao de bancos Oracle Enterprise de centenas de gigabytes, e suporta migracao de PL/SQL para PL/pgSQL com conversao parcial automatica.
 
 **ora2pg** — migracao Oracle → PostgreSQL:
 ```bash

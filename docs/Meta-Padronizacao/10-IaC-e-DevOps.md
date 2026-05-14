@@ -2,6 +2,14 @@
 
 ## Principios Gerais
 
+> **Por que IaC (Infrastructure as Code) para bancos de dados?**
+> Sem IaC, cada servidor de banco e unico — configurado manualmente por diferentes DBAs em momentos diferentes, resultando em snowflake servers onde ninguem sabe exatamente o que esta configurado. Problemas:
+> - **Reproducibilidade zero**: nao e possivel criar um ambiente identico ao de producao para testes
+> - **Deriva de configuracao**: producao e staging divergem silenciosamente ate que um bug aparece so em producao
+> - **Recuperacao lenta de desastre**: reconstruir um servidor manualmente apos falha leva horas ou dias
+>
+> Com IaC: qualquer ambiente pode ser recriado em minutos a partir do codigo. O historico Git mostra exatamente quando e por que qualquer configuracao mudou.
+
 | Principio | Descricao |
 |-----------|-----------|
 | **Tudo como codigo** | Infraestrutura, configuracao e schema em repositorio Git |
@@ -15,6 +23,16 @@
 ---
 
 ## Terraform — Provisionamento de Infraestrutura
+
+> **Por que Terraform e nao CloudFormation (AWS) ou ARM Templates (Azure)?**
+> CloudFormation e ARM sao especificos do provedor cloud. Se a empresa usa AWS hoje e migra para Azure ou hybrid amanha, CloudFormation e descartado. Terraform usa HCL (HashiCorp Configuration Language) com providers para AWS, Azure, GCP, VMware, e centenas de outros — o mesmo skill e as mesmas ferramentas funcionam em qualquer nuvem ou on-premises.
+>
+> **Por que separar Terraform (infraestrutura) de Ansible (configuracao)?**
+> Esta e a divisao de responsabilidades mais adotada na industria:
+> - **Terraform** e imperativo para recursos imutaveis: criar/destruir um RDS e uma operacao de minutos que nao se repete. Terraform gerencia o estado e sabe que nao precisa recriar o que ja existe.
+> - **Ansible** e ideal para configuracao mutavel e idempotente: ajustar `shared_buffers`, criar usuarios, aplicar patches — operacoes que precisam rodar periodicamente no servidor existente sem destrui-lo.
+>
+> Usar apenas Terraform para configuracao e fragil (nao e idempotente para SO); usar apenas Ansible para infraestrutura e verboso e nao mantem estado. A combinacao da melhor das duas ferramentas.
 
 ### Responsabilidade do Terraform
 
@@ -709,6 +727,13 @@ elif '--host' in sys.argv:
 
 ## GitOps para Bancos de Dados
 
+> **Por que GitOps para schema de banco de dados?**
+> O principal risco de mudanca de schema em producao e a mudanca nao testada e nao revisada. GitOps adiciona:
+> 1. **Pull Request obrigatorio**: nenhuma mudanca chega em producao sem revisao — um segundo par de olhos ja previne a maioria dos erros (DROP TABLE sem WHERE, ADD COLUMN NOT NULL sem default em tabela com dados, etc.)
+> 2. **Historico completo**: `git blame` mostra quem adicionou aquela coluna, quando e por qual motivo (commit message). Sem Git, a resposta e "nao sei, ja estava assim"
+> 3. **Rollback via Git**: reverter para o estado anterior e criar um `git revert` e fazer deploy da migration de rollback
+> 4. **Auditoria para compliance**: SOX, PCI DSS e HIPAA exigem rastreabilidade de mudancas em dados financeiros/sensiveis. O historico Git e a evidencia de controle de mudancas.
+
 ### Fluxo GitOps
 
 ```
@@ -750,6 +775,15 @@ flyway migrate -target=2.1.0
 ---
 
 ## CI/CD Pipeline para Bancos de Dados
+
+> **Por que CI/CD para schema e nao apenas o DBA executar manualmente em producao?**
+> O modelo "DBA executa migration manualmente" tem varios pontos de falha:
+> - **Erro humano**: `flyway migrate` no servidor errado (dev vs. prod)
+> - **Ambiente divergente**: migration testada localmente com PostgreSQL 14; producao usa 16 — comportamentos diferentes
+> - **Sem teste de performance**: migration que adiciona indice em tabela de 10M linhas trava a tabela por 30 min se nao usar `CONCURRENTLY`
+> - **Sem validacao previa**: erro de sintaxe descoberto apenas ao executar em producao
+>
+> Pipeline CI/CD resolve isso: cada migration passa por validacao de sintaxe, execucao em banco efemero identico ao producao, scan de seguranca e teste de performance — antes de chegar em producao. O DBA aprova o resultado do pipeline, nao executa o script.
 
 ### Pipeline GitHub Actions Completo
 
@@ -926,6 +960,18 @@ jobs:
 
 ## Flyway — Gerenciamento de Schema
 
+> **Por que Flyway em vez de scripts .sql numerados manualmente?**
+> Scripts SQL manuais parecem mais simples mas nao sao. Problemas comuns:
+> - Alguem executa o script na ordem errada: `V3__add_fk.sql` antes de `V2__create_table.sql`
+> - Script executado duas vezes (sem idempotencia) causa erro ou duplicata de dados
+> - Nao ha como saber se o banco esta na versao "correta" sem verificar manualmente
+> - Dev tem `V5`, producao tem `V3` — reconstruir a sequencia de migrations perdidas e trabalho manual
+>
+> Flyway resolve: a tabela `flyway_schema_history` no banco registra exatamente quais migrations foram aplicadas, com checksum para detectar se alguem editou um script ja executado. `flyway info` mostra em 1 segundo o delta entre o codigo e qualquer ambiente.
+>
+> **Por que `cleanDisabled=true` e obrigatorio?**
+> `flyway clean` deleta TODOS os objetos do schema de um banco. Em desenvolvimento e util para resetar o estado. Em producao seria catastrofico. `cleanDisabled=true` garante que mesmo que alguem execute `flyway clean` acidentalmente contra o banco de producao, o comando e rejeitado imediatamente.
+
 ```bash
 # Estrutura de diretorios
 migrations/
@@ -1073,6 +1119,17 @@ liquibase diff            # comparar dois bancos
 ---
 
 ## Secrets Management
+
+> **Por que nunca colocar senhas de banco em variaveis de ambiente ou arquivos de configuracao no repositorio?**
+> Repositories Git sao frequentemente mais acessiveis do que parecem: developers com acesso ao repo, pipelines CI/CD com permissoes amplas, ferramentas de code review que indexam o historico. Senhas commitadas no Git:
+> - **Nao podem ser "apagadas"**: `git revert` nao remove do historico — a senha esta em cada clone que alguem fez antes
+> - **Ferramentas de scan detectam**: GitHub Secret Scanning, GitGuardian e similares ja varreram repositorios publicos e encontraram milhoes de credenciais
+> - Caso real: uma senha de banco de dados commitada em 2019 foi usada por atacantes em 2024 — o repositorio foi tornado privado, mas um clone publico existia
+>
+> **Por que HashiCorp Vault em vez de apenas Ansible Vault ou AWS Secrets Manager?**
+> - **Ansible Vault**: criptografa arquivos, mas a senha do vault precisa estar em algum lugar — e frequentemente acaba em `~/.vault_pass` ou em CI/CD secrets
+> - **AWS/Azure Secrets Manager**: excelente para cloud nativa, mas vendor lock-in — nao funciona on-premises ou multicloud
+> - **HashiCorp Vault**: independente de plataforma, com Dynamic Secrets (gera credenciais temporarias com TTL — o banco nunca tem senhas "permanentes"), Audit Log de todo acesso a segredos, e integracao com Kubernetes, AWS IAM, LDAP para autenticacao
 
 ### Hierarquia de Gerenciamento de Segredos
 

@@ -13,6 +13,9 @@
 
 ---
 
+> **Por que a seguranca de banco de dados e responsabilidade do DBA, nao apenas do time de seguranca?**
+> O DBA e o unico com acesso ao nivel de configuracao onde a maioria dos controles efetivos existem: autenticacao, auditoria, criptografia em repouso, controle granular de permissoes, e mascaramento de dados. O time de seguranca pode definir politicas, mas a implementacao tecnica vive no banco. Segundo o Verizon DBIR, 80%+ das violacoes de dados envolvem credenciais comprometidas ou acesso privilegiado indevido — ambos sao controles de DBA. Tratar seguranca de banco como responsabilidade exclusiva de outro time e um gap operacional documentado em auditorias PCI DSS e ISO 27001.
+
 ## Checklist Universal (todos os bancos)
 
 ### Controle de Acesso
@@ -53,6 +56,9 @@
 - [ ] Assinar alertas de seguranca do vendor
 
 ---
+
+> **Por que desabilitar contas default e remover bancos de teste imediatamente apos instalacao?**
+> Instalacoes default de MySQL, PostgreSQL, Oracle e Redis incluem contas sem senha, bancos de teste acessiveis por qualquer usuario, e features habilitadas para facilitar primeiros passos — nao para producao. A conta `anonymous` do MySQL permite conexao sem senha. O banco `test` do MySQL da GRANT implicito para qualquer usuario. O `sa` do SQL Server com senha vazia foi vetor de worms como SQL Slammer (2003), que infectou 75.000 servidores em 10 minutos. CIS Benchmarks e DISA STIGs listam remocao de contas default como controle Nivel 1 (basico, obrigatorio).
 
 ## PostgreSQL — Hardening Completo
 
@@ -744,6 +750,9 @@ user admin on >SenhaAdmin999! ~* &* +@all
 
 ## OWASP — Prevencao de SQL Injection
 
+> **Por que SQL Injection ainda e o ataque mais comum contra bancos de dados em 2024?**
+> SQL Injection figura no OWASP Top 10 desde 2003 e continua relevante porque: (1) e trivial de explorar — uma unica query mal construida expoe o banco inteiro; (2) muitos frameworks ORM ainda permitem queries dinamicas sem parameterizacao; (3) legado: sistemas de 10-15 anos raramente foram refatorados para prepared statements. Em 2023, o breach da MOVEit (50M+ registros) e o ataque ao Progress Software foram via SQL Injection. A mitigacao e tecnicamente simples — prepared statements — mas requer disciplina consistente em todo o codigo.
+
 **A unica prevencao efetiva**: sempre usar prepared statements / parameterized queries.
 
 ```python
@@ -780,12 +789,18 @@ var user = conn.QueryFirstOrDefault<User>(
 
 ## Gestao de Credenciais
 
+> **Por que TLS 1.2+ e obrigatorio e TLS 1.0/1.1 devem ser desabilitados?**
+> TLS 1.0 e 1.1 tem vulnerabilidades conhecidas e documentadas: POODLE (2014), BEAST (2011), CRIME, BREACH — todos exploram fraquezas do protocolo que nao podem ser corrigidas por patches. PCI DSS 3.2+ proibiu TLS 1.0 em 2018. NIST SP 800-52 Rev 2 proibe TLS 1.1. TLS 1.2 com cipher suites AEAD (AES-GCM) e considerado seguro; TLS 1.3 remove cipher suites inseguros completamente. Em bancos de dados, conexoes sem criptografia exponem credenciais e dados em qualquer ponto da rede interna — assumir que rede interna e segura e um premissa obsoleta (Zero Trust).
+
 ### O que NUNCA fazer
 - Senhas em texto plano em arquivos, scripts, ou Git
 - Compartilhar credenciais entre aplicacoes ou usuarios
 - Usar usuario administrativo em strings de conexao de aplicacao
 - Hardcode de senha no codigo fonte
 - Senhas no mesmo arquivo que backups
+
+> **Por que secrets nunca devem estar em arquivos de configuracao, scripts ou repositorios Git?**
+> Git e um sistema de versionamento imutavel — uma senha comittada permanece no historico mesmo apos ser "removida" com um commit posterior. Qualquer pessoa com acesso ao repositorio (incluindo forks e clones) pode recuperar a senha com `git log -p` ou `git show`. O GitGuardian reporta que em 2023 foram detectados 10 milhoes+ de secrets expostos em repositorios publicos. Rotacao de credenciais tambem e impossivel com hardcode. A solucao correta e gerenciadores de secrets que injetam credenciais em runtime: HashiCorp Vault, AWS Secrets Manager, Azure Key Vault, ou variaveis de ambiente injetadas pelo CI/CD.
 
 ### Ferramentas de Gestao de Secrets
 

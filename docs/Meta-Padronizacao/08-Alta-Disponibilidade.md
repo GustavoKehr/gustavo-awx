@@ -28,6 +28,16 @@
 
 ## PostgreSQL
 
+> **Por que Patroni em vez de replicacao nativa do PostgreSQL sozinha?**
+> A replicacao streaming do PostgreSQL e robusta mas nao tem failover automatico nativo. Se o primario morrer as 3h da manha:
+> - Replicacao nativa: alguem precisa acordar, checar o estado, executar manualmente `pg_ctl promote` no standby e atualizar o DNS/load balancer
+> - Patroni: detecta a falha em `loop_wait` segundos (configuravel; padrao 10s), elege o standby mais atualizado via consenso etcd/Consul, promove automaticamente, e atualiza o endpoint
+>
+> O downtime cai de "tempo de resposta do DBA de plantao" (tipicamente 15–60min) para 15–30 segundos. Para aplicacoes com SLA de 99.99% (52min downtime/ano), isso e a diferenca entre cumprir ou violar o SLA.
+>
+> **Por que etcd como DCS (Distributed Configuration Store)?**
+> Patroni usa etcd/Consul/ZooKeeper como arbirto para evitar split-brain: dois nos acreditando ser o primario simultaneamente resultaria em divergencia de dados irrecuperavel. O DCS garante que apenas um no seja eleito primario via quorum — sem DCS externo, o Patroni nao pode tomar decisoes seguras de failover.
+
 ### Arquitetura de HA Recomendada
 
 ```
@@ -224,6 +234,17 @@ repmgr -f /etc/repmgr.conf cluster show
 
 ## MySQL
 
+> **Por que GTID e obrigatorio para HA moderno no MySQL?**
+> Replicacao tradicional (sem GTID) usa `binlog_file + position` para rastrear onde a replica parou. Apos um failover, o novo primario tem um arquivo de binlog diferente do antigo — as replicas precisam ser reconfiguradas manualmente para apontar para a posicao correta no novo primario. Esse processo e propenso a erros e exige downtime de manutencao.
+>
+> Com GTID, cada transacao recebe um ID global unico (UUID:numero). Apos um failover, as replicas simplesmente conectam ao novo primario e ele fornece automaticamente as transacoes que a replica ainda nao tem — sem reconfigurar posicoes de binlog. O failover passa de "procedimento manual de 30 minutos" para "automatico em segundos".
+>
+> **Por que InnoDB Cluster em vez de replicacao tradicional?**
+> InnoDB Cluster (Group Replication + MySQL Router) adiciona:
+> - **Quorum automatico**: sem quorum (menos de `n/2 + 1` nos respondendo), o cluster recusa escritas em vez de provocar split-brain
+> - **MySQL Router**: as aplicacoes conectam ao Router que redireciona automaticamente para o primario atual — sem precisar atualizar DNS
+> - **Monitoramento nativo**: `cluster.status()` mostra o estado de todos os nos
+
 ### Topologias de HA
 
 **1. InnoDB Cluster (MySQL Group Replication + MySQL Router)**
@@ -374,6 +395,14 @@ orchestrator-client -c graceful-master-takeover-auto -i 10.0.0.10:3306
 
 ## SQL Server — Always On Availability Groups
 
+> **Por que Always On AG em vez de Database Mirroring ou Log Shipping?**
+> - **Database Mirroring**: descontinuado desde SQL Server 2012. Limitado a 1 mirror, sem leitura no secondary, sem suporte a backup no secondary.
+> - **Log Shipping**: backup/restore manual de transaction logs. RPO depende da frequencia do job (tipicamente 15–60 min). Sem failover automatico — requer intervencao manual.
+> - **Always On AG**: suporta ate 8 replicas (SQL Server 2022), todas com failover automatico ou manual configuravel. Replicas secundarias podem receber leitura (read scale), backups e DBCC — descarregando o primario. Listener garante que a aplicacao sempre conecta ao primario atual sem reconfigurar strings de conexao.
+>
+> **Por que WSFC (Windows Server Failover Cluster) e obrigatorio para AOAG?**
+> O WSFC fornece o mecanismo de quorum e o health monitoring do cluster Windows. O SQL Server usa o WSFC para decidir qual no e o primario e quando fazer failover automatico — sem WSFC, o SQL Server nao tem como coordenar a eleicao de forma segura.
+
 ### Requisitos
 
 - Windows Server Failover Cluster (WSFC) — obrigatorio para AOAG
@@ -510,6 +539,16 @@ ALTER AVAILABILITY GROUP [AG_Producao] FORCE_FAILOVER_ALLOW_DATA_LOSS;
 ---
 
 ## Oracle — Data Guard
+
+> **Por que Data Guard e nao apenas RMAN com streaming para um standby manual?**
+> Data Guard e a arquitetura de HA certificada e suportada pela Oracle para zero data loss e failover automatico. Diferencas criticas:
+> - **Gerenciamento de redo streams**: Data Guard gerencia automaticamente gaps de archive log, re-sincronizacao apos queda do standby e validacao de consistencia
+> - **Data Guard Broker (DGMGRL)**: interface unificada para monitorar, switchover e failover — operacoes que seriam procedimentos manuais complexos tornam-se um comando
+> - **Active Data Guard**: permite leitura no standby enquanto recebe redo — offload de queries de relatorio sem custo adicional de hardware
+> - **Fast-Start Failover (FSFO)**: com um observer externo, o Data Guard pode fazer failover automatico sem intervencao humana em <30 segundos
+>
+> **Por que FORCE LOGGING e obrigatorio?**
+> Sem FORCE LOGGING, operacoes com NOLOGGING (bulk loads, DDL com `NOLOGGING` hint) nao geram redo e nao sao replicadas para o standby. Apos um failover, o standby abre com blocos inconsistentes nesses segmentos — o banco "funciona" mas os dados estao corrompidos. FORCE LOGGING garante que todo dado seja incluido no redo e chegue ao standby, sem excecoes.
 
 ### Prerequisitos
 
@@ -839,6 +878,17 @@ vsql -U dbadmin -c "SELECT NODE_NAME, NODE_STATE FROM NODES WHERE NODE_STATE != 
 ---
 
 ## Redis — Sentinel e Cluster
+
+> **Por que Sentinel precisa de 3 nos em hosts SEPARADOS?**
+> Sentinel usa quorum para decidir se o master caiu e se deve promover uma replica. Com 2 sentinels: se a rede entre os 2 cair, cada um pensa que o outro morreu — quorum de 1/2 = impossivel de decidir sem split-brain. Com 3 sentinels em hosts separados: mesmo se a rede entre 2 deles cair, 2 de 3 ainda se enxergam e tomam a decisao de failover corretamente. Este e o numero minimo para quorum seguro.
+>
+> Se os 3 sentinels estiverem no mesmo servidor do master, uma falha do servidor derruba o master E todos os sentinels simultaneamente — sem quorum para failover.
+>
+> **Por que Redis Cluster tem minimo de 6 nos (3 master + 3 replica)?**
+> No Redis Cluster, cada master precisa de pelo menos 1 replica para HA. Com 3 masters e 0 replicas: a perda de 1 master torna 1/3 dos slots indisponiveis e o cluster para de aceitar escritas. Com 3 replicas, a perda de qualquer master resulta na promocao automatica da sua replica — cluster permanece operacional.
+>
+> **Por que usar `cluster-require-full-coverage no`?**
+> Com o valor padrao `yes`, se qualquer faixa de slots perder tanto o master quanto a replica, o cluster inteiro para de responder — para proteger consistencia. Para a maioria dos casos de uso, `no` e preferivel: o cluster continua servindo os slots que tem cobertura, degradando parcialmente em vez de parar completamente.
 
 ### Redis Sentinel (HA para instancias standalone)
 

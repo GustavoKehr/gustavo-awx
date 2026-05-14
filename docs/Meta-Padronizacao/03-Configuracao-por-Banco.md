@@ -2,6 +2,9 @@
 
 ## PostgreSQL
 
+> **Por que configurar estes parametros em vez de usar os defaults?**
+> Os defaults do PostgreSQL sao conservadores para rodar em qualquer hardware — inclusive maquinas com 512MB de RAM. Em producao com 64–256GB de RAM, deixar `shared_buffers=128MB` (default) e desperdicar 99% do cache potencial. Os parametros abaixo movem o PostgreSQL de "instala e funciona" para "otimizado para o hardware especifico".
+
 ### Parametros Criticos (postgresql.conf)
 
 | Parametro | Valor Recomendado | Justificativa |
@@ -87,6 +90,9 @@ Parametros de entrada:
 ---
 
 ## MySQL
+
+> **Por que o InnoDB e o unico storage engine aceitavel em producao?**
+> MyISAM (o engine legado) nao tem transacoes, nao tem row-level locking (lock de tabela inteira em cada escrita) e nao tem suporte a chaves estrangeiras. Em producao com concorrencia, MyISAM causa bloqueios que destroem o throughput. O InnoDB resolve todos esses problemas com MVCC, row-level locking e suporte ACID completo. Desde MySQL 5.5+ o InnoDB e o default — nao use MyISAM em nenhum banco novo.
 
 ### Parametros Criticos (my.cnf)
 
@@ -181,6 +187,9 @@ Parametros de entrada:
 ---
 
 ## SQL Server
+
+> **Por que configurar `max server memory` e nao deixar o SQL Server gerenciar sozinho?**
+> Por padrao o SQL Server aloca memoria dinamicamente e pode consumir toda a RAM do servidor, deixando o SO sem memoria para processos essenciais (disco cache, antivirus, agentes de monitoramento). Isso causa lentidao no SO, troca de paginas e instabilidade. Definir `max server memory` a 80–85% da RAM garante que o SO tenha sempre memoria suficiente. O `min server memory` evita que o SQL Server devolva memoria ao SO e tenha que realoca-la depois — evitando latencia de cold start.
 
 ### Configuracoes de Instancia (sp_configure)
 
@@ -279,6 +288,12 @@ ALTER DATABASE [MeuBanco] SET QUERY_STORE (
 
 ## Oracle Database
 
+> **Por que usar SPFILE em vez de PFILE (init.ora) em producao?**
+> O PFILE e um arquivo texto editado manualmente — mudancas exigem restart do banco e qualquer erro tipografico impede o Oracle de inicializar. O SPFILE e um arquivo binario gerenciado pelo proprio Oracle via `ALTER SYSTEM SET ... SCOPE=BOTH`. Mudancas persistem sem restart (quando possivel) e o Oracle valida os valores antes de aceitar. Alem disso, o RMAN faz backup automatico do SPFILE junto com o banco — se o servidor morrer, o SPFILE e restaurado automaticamente.
+>
+> **Por que ARCHIVELOG mode e obrigatorio?**
+> Sem ARCHIVELOG, o Oracle so suporta backup offline (banco parado) e nao tem PITR (Point-in-Time Recovery). Se o banco corromper as 14h e o ultimo backup foi as 2h, perdem-se 12h de transacoes. Com ARCHIVELOG + RMAN, e possivel recuperar para qualquer momento no tempo desde o ultimo backup, aplicando archive logs sequencialmente — RPO de minutos em vez de horas.
+
 ### Parametros de Inicializacao (SPFILE) Criticos
 
 | Parametro | Valor / Recomendacao | Justificativa |
@@ -374,6 +389,9 @@ ALTER USER appuser PROFILE prod_profile;
 
 ## IBM Db2
 
+> **Por que usar `AUTOMATIC` para maioria dos parametros de memoria no Db2?**
+> O Db2 tem Self-Tuning Memory Manager (STMM) que redistribui memoria dinamicamente entre buffer pools, sort heap, lock list e outros consumidores baseado na carga atual. Forcar valores fixos em todos os parametros significa que o tuning valido as 10h (carga OLTP) e subotimo as 23h (batch/ETL). O `AUTOMATIC` deixa o STMM adaptar conforme a carga — resultado: melhor utilizacao media da memoria sem intervenção manual. Fixar valores e recomendado apenas para componentes com requisitos bem conhecidos e estaveis.
+
 ### Parametros de Gerenciador de Banco (DBM CFG)
 
 | Parametro | Valor Recomendado | Justificativa |
@@ -460,6 +478,9 @@ CREATE LARGE TABLESPACE OLTPDATA
 ---
 
 ## Vertica
+
+> **Por que usar Resource Pools no Vertica?**
+> Sem resource pools, uma query de analytics que demora 30 minutos pode consumir 90% da RAM e CPU do cluster — bloqueando queries de dashboard de 2 segundos para todos os usuarios. Resource pools aplicam QoS (Quality of Service) ao nivel do banco: analytics batch recebe memoria ampla mas concorrencia limitada; usuarios interativos recebem concorrencia alta mas com teto de memoria. Isso garante SLAs diferentes para workloads diferentes no mesmo cluster fisico — evitando o custo de clusters separados.
 
 ### Parametros de Configuracao do Banco
 
@@ -567,6 +588,15 @@ FROM PROJECTION_STORAGE ORDER BY ros_row_count DESC;
 ---
 
 ## Redis
+
+> **Por que configurar `maxmemory` e `maxmemory-policy` e nao deixar o Redis crescer indefinidamente?**
+> Redis e um banco em memoria — sem limite, ele consome toda a RAM disponivel ate o SO matar o processo via OOM Killer, corrompendo dados e derrubando todas as conexoes abruptamente. `maxmemory` define o teto; `maxmemory-policy` define o comportamento quando o teto e atingido:
+> - `allkeys-lru`: remover a key menos recentemente usada de qualquer key — ideal para cache puro onde todas as keys sao igualmente sacrificaveis
+> - `volatile-lru`: remover apenas keys com TTL — ideal para cache misto com dados sensiveis sem TTL que nao devem ser evictados
+> - `noeviction`: rejeitar escritas quando cheio — ideal para persistencia (nao perder dados, preferir falhar a evictar)
+>
+> **Por que usar RDB e AOF simultaneamente?**
+> RDB (snapshot periodico) oferece recovery rapido mas pode perder ate os ultimos minutos de dados (RPO = intervalo entre snapshots). AOF (log de operacoes) oferece RPO de ~1 segundo mas e mais lento para restaurar. Usar ambos: RDB para recovery rapido (carrega em segundos), AOF para durabilidade (aplica operacoes pendentes apos carregar o RDB). O parametro `aof-use-rdb-preamble=yes` combina os dois no mesmo arquivo.
 
 ### Parametros Criticos (redis.conf)
 
