@@ -48,7 +48,7 @@
   ansible.builtin.fetch:
     src: "/tmp/{{ _report_filename }}"
     dest: "{{ playbook_dir }}/../reports/{{ inventory_hostname }}/"
-    flat: false
+    flat: true
     fail_on_missing: false
   when: oracle_generate_report | default(true) | bool
   tags: [oracle_configuration_check]
