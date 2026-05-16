@@ -118,11 +118,4 @@
     "{{ oracle_home }}/root.sh"
   changed_when: false
   tags: oracle_install_sw
-
-- name: "INSTALL | Restore hugepages after installation"
-  ansible.builtin.shell: |
-    saved=$(cat /tmp/oracle_hugepages_saved_install 2>/dev/null || echo 0)
-    echo "$saved" > /proc/sys/vm/nr_hugepages
-    rm -f /tmp/oracle_hugepages_saved_install
-  changed_when: false
-  tags: oracle_install_sw
+# Note: hugepages remain at 0 here — 05_apply_patches.yml restores them after all patches complete

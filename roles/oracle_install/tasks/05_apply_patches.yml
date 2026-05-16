@@ -27,6 +27,7 @@
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export PATH=$PATH:{{ oracle_home }}/OPatch
+    export JAVA_TOOL_OPTIONS="-Xmx512m"
     opatch lsinventory | grep -q "Patch  {{ oracle_post_patch1_sub }} " && exit 0
     test -d "{{ oracle_software_dst }}/{{ oracle_post_patch1_dir }}/{{ oracle_post_patch1_sub }}" || exit 0
     cd {{ oracle_software_dst }}/{{ oracle_post_patch1_dir }}/{{ oracle_post_patch1_sub }}
@@ -42,6 +43,7 @@
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export PATH=$PATH:{{ oracle_home }}/OPatch
+    export JAVA_TOOL_OPTIONS="-Xmx512m"
     opatch lsinventory | grep -q "Patch  {{ oracle_post_patch2_sub }} " && exit 0
     test -d "{{ oracle_software_dst }}/{{ oracle_post_patch2_dir }}/{{ oracle_post_patch2_sub }}" || exit 0
     cd {{ oracle_software_dst }}/{{ oracle_post_patch2_dir }}/{{ oracle_post_patch2_sub }}
@@ -65,6 +67,7 @@
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export PATH=$PATH:{{ oracle_home }}/OPatch
+    export JAVA_TOOL_OPTIONS="-Xmx512m"
     opatch lsinventory | grep -q "Patch  {{ oracle_post_patch3_sub }} " && exit 0
     test -d "{{ oracle_software_dst }}/{{ oracle_post_patch3_dir }}/{{ oracle_post_patch3_sub }}" || exit 0
     cd {{ oracle_software_dst }}/{{ oracle_post_patch3_dir }}/{{ oracle_post_patch3_sub }}
@@ -93,6 +96,7 @@
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export PATH=$PATH:{{ oracle_home }}/OPatch
+    export JAVA_TOOL_OPTIONS="-Xmx512m"
     opatch lsinventory
   become: true
   become_user: oracle
