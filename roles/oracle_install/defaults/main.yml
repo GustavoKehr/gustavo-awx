@@ -10,7 +10,7 @@ oracle_scripts_dir: "{{ oracle_base }}/scripts/db_creation/{{ oracle_sid }}"
 # oracle_patches_src:  OPatch / RU / post-install patches (/opt/patches)
 oracle_software_src: "/opt/oracle"
 oracle_patches_src: "/opt/patches"
-oracle_software_dst: "/oracle/{{ oracle_sid }}/software"
+oracle_software_dst: "/home/oracle/software"
 oracle_installer_zip: "LINUX.X64_193000_db_home.zip"
 oracle_preinstall_rpm: "oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm"
 
@@ -39,17 +39,18 @@ oracle_post_patch3_sub: "34672698"
 # --- LVM storage layout (used to create LVs on fresh VMs) ---
 # oracle_data_disk: raw disk to initialize as PV and VG (created if VG absent).
 # Set to "" to skip PV/VG creation (VG must already exist).
-oracle_data_disk: "/dev/sdc"
+oracle_data_disk: "/dev/sdb"      # REQUIRED via AWX survey — override per environment
 oracle_vg_name: "vg_data"
-oracle_lv_base_size: "60G"        # Main LV (lv_<SID>): Oracle base + software staging
-oracle_lv_oradata_size: "10G"    # Datafiles
-oracle_lv_mirrlogA_size: "1G"    # Mirrored redo log A
-oracle_lv_mirrlogB_size: "1G"    # Mirrored redo log B
-oracle_lv_origlogA_size: "1G"    # Original redo log A
-oracle_lv_origlogB_size: "1G"    # Original redo log B
-oracle_lv_oraarch_size: "5G"     # Archive logs
-oracle_lv_undofile_size: "5G"    # Undo tablespace
-oracle_lv_tempfile_size: "5G"    # Temp tablespace
+# LV sizes — minimum viable dev/lab (~35G total). Override via AWX survey for production.
+oracle_lv_base_size: "20G"        # ORACLE_HOME only (binary ~10G + headroom)
+oracle_lv_oradata_size: "5G"      # Datafiles
+oracle_lv_mirrlogA_size: "1G"     # Mirrored redo log A
+oracle_lv_mirrlogB_size: "1G"     # Mirrored redo log B
+oracle_lv_origlogA_size: "1G"     # Original redo log A
+oracle_lv_origlogB_size: "1G"     # Original redo log B
+oracle_lv_oraarch_size: "2G"      # Archive logs
+oracle_lv_undofile_size: "2G"     # Undo tablespace
+oracle_lv_tempfile_size: "2G"     # Temp tablespace
 
 # --- Kernel: HugePages ---
 # Set to 0 to auto-calculate from oracle_sga_target and target VM memory.
