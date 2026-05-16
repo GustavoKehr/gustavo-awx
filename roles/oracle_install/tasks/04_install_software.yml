@@ -27,6 +27,14 @@
   changed_when: false
   tags: oracle_install_sw
 
+- name: "INSTALL | Free hugepages before unzip + runInstaller (prevents OOM on 4GB VM)"
+  ansible.builtin.shell: |
+    test -s "{{ oracle_home }}/bin/oracle" && exit 0
+    cat /proc/sys/vm/nr_hugepages > /tmp/oracle_hugepages_saved_install
+    echo 0 > /proc/sys/vm/nr_hugepages
+  changed_when: false
+  tags: oracle_install_sw
+
 - name: "INSTALL | Unzip Oracle installer into ORACLE_HOME"
   ansible.builtin.shell: |
     test -s "{{ oracle_home }}/bin/oracle" && exit 0
@@ -108,5 +116,13 @@
   ansible.builtin.shell: |
     grep -q "{{ oracle_home }}" /etc/oratab 2>/dev/null && exit 0
     "{{ oracle_home }}/root.sh"
+  changed_when: false
+  tags: oracle_install_sw
+
+- name: "INSTALL | Restore hugepages after installation"
+  ansible.builtin.shell: |
+    saved=$(cat /tmp/oracle_hugepages_saved_install 2>/dev/null || echo 0)
+    echo "$saved" > /proc/sys/vm/nr_hugepages
+    rm -f /tmp/oracle_hugepages_saved_install
   changed_when: false
   tags: oracle_install_sw

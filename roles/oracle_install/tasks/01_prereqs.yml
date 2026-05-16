@@ -136,6 +136,19 @@
   when: _libnsl_stat.stdout == "absent"
   tags: oracle_prereqs
 
+- name: "PREREQS | Create 4GB swapfile if no swap present (prevents OOM during install)"
+  ansible.builtin.shell: |
+    swapon --show | grep -q . && echo swap_exists && exit 0
+    test -f /swapfile && swapon /swapfile && echo activated && exit 0
+    dd if=/dev/zero of=/swapfile bs=1M count=4096
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+    echo created
+  register: _swap_result
+  changed_when: "'created' in _swap_result.stdout or 'activated' in _swap_result.stdout"
+  tags: oracle_prereqs
+
 - name: "PREREQS | Ensure software staging directory exists on target"
   ansible.builtin.shell: |
     mkdir -p "{{ oracle_software_dst }}"
