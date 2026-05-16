@@ -10,8 +10,11 @@ Guia prático para instalar Oracle 19c e gerenciar usuários via AWX Job Templat
 
 **Antes de qualquer job, verificar:**
 
-### 1. Arquivos em `/opt/oracle` no AWX VM
+### 1. Arquivos no AWX VM (awxvm — 192.168.137.153)
 
+O playbook usa **dois diretórios** no AWX VM como source do rsync:
+
+**`/opt/oracle/`** — installer zip, RPM, libnsl:
 ```bash
 ls -la /opt/oracle/
 ```
@@ -19,23 +22,34 @@ ls -la /opt/oracle/
 | Item | Tipo | Descrição |
 |---|---|---|
 | `LINUX.X64_193000_db_home.zip` | Arquivo | Binários Oracle 19c (~3 GB) |
-| `oracle-database-preinstall-19c-1.0.2.el9.x86_64.rpm` | Arquivo | RPM de pré-requisitos RHEL |
-| `p6880880/` | Diretório | Substituição do OPatch |
-| `p37641958/` | Diretório | Release Update (RU) + one-off |
-| `p38291812/` | Diretório | Patch pós-instalação 1 |
-| `p38632161/` | Diretório | Patch pós-instalação 2 (Oracle 19.30) |
-| `p34672698/` | Diretório | Patch pós-instalação 3 (oradism) |
+| `oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm` | Arquivo | RPM de pré-requisitos RHEL 9 |
+| `libnsl_libs/` | Diretório | `libnsl.so.1` e `libnsl.so.2` — copiados para `/usr/lib64/` no target se ausentes |
+
+**`/opt/patches/`** — OPatch e todos os patches:
+```bash
+ls -la /opt/patches/
+```
+
+| Item | Tipo | Descrição |
+|---|---|---|
+| `p6880880/` | Diretório | OPatch substituto (versão mais nova que a do ZIP) |
+| `p37641958/` | Diretório | Release Update (RU) + one-off — aplicados **dentro do runInstaller** (`-applyRU`) |
+| `p38291812/` | Diretório | Patch pós-instalação 1 (post_patch1) |
+| `p38632161/` | Diretório | Patch pós-instalação 2 — Oracle 19.30 (post_patch2) |
+| `p34672698/` | Diretório | Patch pós-instalação 3 — oradism-related (post_patch3) |
+
+> **Atenção:** O AWX EE acessa estes diretórios diretamente — o rsync é delegado para `awxvm` (não roda dentro do container EE). Os arquivos devem estar no host `awxvm`, não dentro do EE.
 
 ### 2. Target VM
 
 - VM ligada e acessível via SSH
 - Usuário `user_aap` com sudo NOPASSWD
-- Mínimo **6 GB RAM** (SGA 40% = 1.4 GB; menos causa ORA-27072 AIO EINTR)
-- Mínimo **64 GB disco** em `/dev/sdb` (VG `vg_data`); lv_base recomendado ≥ 40 GB
+- Mínimo **6 GB RAM** (SGA 40% = ~2.4 GB em VM 6 GB; menos causa ORA-27072 AIO EINTR)
+- Disco adicional em `/dev/sdc` (≥ 85 GB para defaults: 60+10+5+5+5+1+1+1+1 GB)
 
 ### 3. AWX Execution Environment
 
-O EE deve ter `/opt/oracle` montado (configurado via operador patch no AWX). Verificar nos logs do job que o path existe.
+EE precisa montar `/opt/oracle` e `/opt/patches` do host awxvm (configurado via operador patch no k3s). Verificar nos logs do job que ambos os paths existem.
 
 ---
 
@@ -82,12 +96,13 @@ O EE deve ter `/opt/oracle` montado (configurado via operador patch no AWX). Ver
 | Tag | Fase | O que executa | Duração aprox. |
 |---|---|---|---|
 | `oracle_storage` | 0 | PV/VG/LV creation, mkfs.xfs, mount de todos os LVs | 1-2 min |
-| `oracle_prereqs` | 1 | RPM preinstall, sysctl, workaround RHEL 9, hugepages, calc SGA/PGA | 5-10 min |
-| `oracle_dirs` | 2 | Estrutura de diretórios, bash_profile, sysctl Oracle | 2-3 min |
-| `oracle_transfer` | 3 | Rsync ~8 GB do AWX para `/oracle/<SID>/software` | 15-30 min |
-| `oracle_install_sw` | 4 | Descompactar + runInstaller silencioso + root.sh | 10-20 min |
-| `oracle_patches` | 5 | opatch: RU → one-off → post1 → post2 → oradism → post3 | 15-30 min |
-| `oracle_dbcreate` | 6 | Criação do banco, catalog/catproc, datapatch, SPFILE | 10-20 min |
+| `oracle_validate` | — | Assert: oracle_sid, oracle_sys_password e oracle_system_password não-vazios | < 1 min |
+| `oracle_prereqs` | 1 | RPM preinstall, libnsl copy, sysctl, hugepages calc, SGA/PGA calc, workaround RHEL 9 | 5-10 min |
+| `oracle_dirs` | 2 | Estrutura de diretórios, bash_profile, init.ora, SQL scripts de criação | 1-2 min |
+| `oracle_transfer` | 3 | Rsync installer + OPatch + RU + post-patches para `/oracle/<SID>/software` (~8 GB) | 5-20 min |
+| `oracle_install_sw` | 4 | unzip + troca OPatch + runInstaller **com `-applyRU` e `-applyOneOffs`** + root.sh | 15-30 min |
+| `oracle_patches` | 5 | opatch: post1 → post2 → oradism chown → post3 → oradism restore | 5-15 min |
+| `oracle_dbcreate` | 6 | orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → Users_and_Objects.sql | 10-20 min |
 
 **Tempo total medido:** ~47 min (Job AWX 271, fresh VM, 2026-04-28)
 
@@ -121,25 +136,33 @@ Não especificar tags — roda todas as 7 fases (storage → prereqs → dirs �
 
 ### Cenário 2: Re-executar só a criação do banco
 
-**Quando usar:** Software já instalado, banco não criado (dbca falhou).
+**Quando usar:** Software já instalado, banco não criado (CreateDB.sql falhou, sqlplus travou, etc.).
 
 ```bash
 ansible-playbook playbooks/deploy_oracle.yml --tags oracle_dbcreate -l oraclevm
 ```
 
+> **Atenção:** Guard em `06_create_database.yml` verifica `control01.ctl`. Se arquivo existir de run parcial, a task pula. Deletar control files antes de re-executar — ver troubleshooting abaixo.
+
 ---
 
 ### Cenário 3: Atualizar patches (novo RU trimestral)
 
-1. Colocar novo patch em `/opt/oracle/p<NOVO>/`
-2. Atualizar `oracle_ru_patch_dir` e `oracle_ru_subpath` nos defaults ou via survey
-3. Executar só a fase de patches:
+1. Colocar novo RU em `/opt/patches/p<NOVO>/` no awxvm
+2. Colocar novos post-patches em `/opt/patches/p<NOVO_POST>/` no awxvm
+3. Atualizar vars no AWX Job Template (Extra Variables ou defaults):
+   ```yaml
+   oracle_ru_patch_dir: "p<NOVO>"
+   oracle_ru_subpath: "<NOVO>/<RU_SUB>"
+   oracle_oneoff_subpath: "<NOVO>/<ONEOFF_SUB>"
+   ```
+4. Executar apenas Phase 3 (transfer) + Phase 4 (install) para RU:
+   ```bash
+   ansible-playbook playbooks/deploy_oracle.yml \
+     --tags oracle_transfer,oracle_install_sw -l oraclevm
+   ```
 
-```bash
-ansible-playbook playbooks/deploy_oracle.yml --tags oracle_patches -l oraclevm
-```
-
-> **Atenção:** Aplicar patches requer banco parado. O playbook para e reinicia automaticamente.
+> **Nota:** RU é aplicado dentro do `runInstaller` com `-applyRU`. Para re-aplicar RU o instalador precisa ser re-executado. Phase 5 (`oracle_patches`) aplica apenas post-install patches (p38291812, p38632161, p34672698).
 
 ---
 
@@ -396,6 +419,133 @@ sudo -u oracle /oracle/<SID>/19.0.0/bin/sqlplus / as sysdba <<EOF
 STARTUP;
 SELECT status FROM v\$instance;
 EOF
+```
+
+---
+
+## Configuração Manual do Job Template no AWX (sem API)
+
+> Esta seção cobre o setup completo pela UI do AWX — campo a campo — para quem não tem acesso à API.
+
+### Passo 1 — Criar o Job Template
+
+AWX → **Templates** → **Add** → **Add job template**
+
+| Campo | Valor |
+|---|---|
+| **Name** | `ORACLE \| Deploy` |
+| **Job Type** | Run |
+| **Inventory** | `LINUX` |
+| **Project** | (projeto apontando para `deploy_oracle_with_vars`) |
+| **Execution Environment** | `oracle-ee` (EE com `/opt/oracle` e `/opt/patches` montados) |
+| **Playbook** | `playbooks/deploy_oracle.yml` |
+| **Credentials** | `Machine: user_aap` |
+| **Limit** | `oraclevm-fresh` *(ou marcar "Prompt on launch")* |
+| **Verbosity** | Normal (0) |
+| **Enable Privilege Escalation** | ✅ (become: true no playbook) |
+
+---
+
+### Passo 2 — Extra Variables
+
+Na aba **Variables** do Job Template, setar:
+
+```yaml
+# Senhas obrigatórias — os defaults do role têm valor hardcoded F9toqfd(
+# Em ambiente de lab pode deixar vazio (usa o default); em produção SEMPRE override aqui.
+oracle_sys_password: "SuaSenhaSegura123!"
+oracle_system_password: "SuaSenhaSegura123!"
+```
+
+Variáveis opcionais (só setar se precisar mudar o default):
+
+```yaml
+# Controle de patches — omitir usa os defaults de defaults/main.yml
+oracle_post_patch1_enabled: true   # false se p38291812 não estiver em /opt/patches
+
+# Controle de fases
+create_initial_db: true            # false = instala só software (standby prep)
+
+# Tuning avançado (raramente necessário)
+oracle_hugepages: 0                # 0 = cálculo automático a partir de oracle_sga_pct
+oracle_listener_port: 1521
+oracle_processes: 1000
+oracle_open_cursors: 3000
+```
+
+---
+
+### Passo 3 — Importar o Survey
+
+1. Na aba **Survey** do Job Template → **Enable Survey** (toggle ON)
+2. Ao invés de criar campo por campo, usar a API de import:
+   - Ir em **Templates** → selecionar o JT → **...** (kebab menu) → **Survey** não tem import direto na UI
+   - **Alternativa via UI:** criar cada campo manualmente conforme tabela abaixo
+
+| # | Question Name | Variable | Type | Default | Required | Min | Max |
+|---|---|---|---|---|---|---|---|
+| 1 | Oracle SID | `oracle_sid` | Text | `AWOR` | Sim | 1 | 8 |
+| 2 | Data Disk (PV source) | `oracle_data_disk` | Text | `/dev/sdc` | Não | 0 | 20 |
+| 3 | VG Name | `oracle_vg_name` | Text | `vg_data` | Sim | 1 | 32 |
+| 4 | LV: lv_\<SID\> size (base) | `oracle_lv_base_size` | Text | `60G` | Sim | 2 | 10 |
+| 5 | LV: lv_oradata size | `oracle_lv_oradata_size` | Text | `10G` | Sim | 2 | 10 |
+| 6 | LV: lv_oraarch size | `oracle_lv_oraarch_size` | Text | `5G` | Sim | 2 | 10 |
+| 7 | LV: lv_undofile size | `oracle_lv_undofile_size` | Text | `5G` | Sim | 2 | 10 |
+| 8 | LV: lv_tempfile size | `oracle_lv_tempfile_size` | Text | `5G` | Sim | 2 | 10 |
+| 9 | LV: lv_mirrlogA/B size | `oracle_lv_mirrlogA_size` | Text | `1G` | Sim | 2 | 10 |
+| 10 | LV: lv_origlogA/B size | `oracle_lv_origlogA_size` | Text | `1G` | Sim | 2 | 10 |
+| 11 | SGA % of VM RAM | `oracle_sga_pct` | Integer | `40` | Sim | 10 | 80 |
+| 12 | PGA % of VM RAM | `oracle_pga_pct` | Integer | `20` | Sim | 5 | 50 |
+| 13 | Character Set | `oracle_character_set` | Text | `AL32UTF8` | Não | 5 | 30 |
+| 14 | TS_AUDIT_DAT01 datafiles | `ts_audit_datafiles` | Integer | `1` | Não | 1 | 10 |
+| 15 | TS_PERFSTAT_DAT01 datafiles | `ts_perfstat_datafiles` | Integer | `1` | Não | 1 | 10 |
+| 16 | TS_\<SID\>_DAT01 datafiles | `ts_sid_dat_datafiles` | Integer | `1` | Não | 1 | 10 |
+| 17 | TS_\<SID\>_IDX01 datafiles | `ts_sid_idx_datafiles` | Integer | `1` | Não | 1 | 10 |
+
+> **Alternativa:** importar o JSON completo via curl (uma linha, sem API browser):
+> ```bash
+> # Na awxvm — substitua <JT_ID> pelo ID do Job Template criado
+> curl -sk -u admin:suasenha \
+>   -X POST https://localhost/api/v2/job_templates/<JT_ID>/survey_spec/ \
+>   -H "Content-Type: application/json" \
+>   -d @/home/user_aap/deploy_oracle_with_vars/playbooks/awx_survey_oracle_install.json
+> ```
+
+---
+
+### Passo 4 — Variáveis que o Role Compute Automaticamente
+
+> Estas variáveis **nunca devem ser setadas** pelo operador — são calculadas internamente:
+
+| Variável | Calculada em | Fórmula |
+|---|---|---|
+| `oracle_base` | defaults/main.yml | `/oracle/{{ oracle_sid }}` |
+| `oracle_home` | defaults/main.yml | `{{ oracle_base }}/19.0.0` |
+| `oracle_scripts_dir` | defaults/main.yml | `{{ oracle_base }}/scripts/db_creation/{{ oracle_sid }}` |
+| `oracle_sga_target` | 01_prereqs.yml | `ansible_memtotal_mb × oracle_sga_pct / 100` (em MB) |
+| `oracle_pga_target` | 01_prereqs.yml | `ansible_memtotal_mb × oracle_pga_pct / 100` (em MB) |
+| `_oracle_hugepages_final` | 01_prereqs.yml | `ceil(SGA_MB / 2MB) × 1.10` (quando oracle_hugepages=0) |
+
+---
+
+### Passo 5 — Verificar antes de lançar
+
+```bash
+# Na awxvm — confirmar que source dirs existem e têm conteúdo:
+ls -la /opt/oracle/LINUX.X64_193000_db_home.zip
+ls -la /opt/oracle/oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm
+ls -la /opt/oracle/libnsl_libs/
+ls -la /opt/patches/p6880880/OPatch/
+ls -la /opt/patches/p37641958/
+ls -la /opt/patches/p38291812/
+ls -la /opt/patches/p38632161/
+ls -la /opt/patches/p34672698/
+
+# SSH no target (ex: oraclevm-fresh 192.168.137.165):
+ssh user_aap@192.168.137.165
+df -h           # confirmar disco livre
+free -m         # confirmar RAM
+lsblk           # confirmar /dev/sdc disponível
 ```
 
 ---

@@ -46,22 +46,32 @@ O playbook calcula automaticamente: `hugepages = ceil(SGA_MB / 2) × 1.1`
 
 ## Pré-requisitos de Instalação
 
-**ANTES de executar qualquer fase, os arquivos abaixo devem estar em `/opt/oracle` no AWX VM:**
+**ANTES de executar qualquer fase, os arquivos abaixo devem estar no AWX VM.**
 
-| Arquivo | Descrição | Tamanho aprox. |
+O role usa **dois diretórios source** no host `awxvm`:
+
+**`/opt/oracle/`** — installer e dependências:
+
+| Item | Descrição | Tamanho aprox. |
 |---|---|---|
 | `LINUX.X64_193000_db_home.zip` | Binários Oracle 19c | ~3 GB |
-| `oracle-database-preinstall-19c-1.0.2.el9.x86_64.rpm` | RPM de pré-requisitos RHEL | ~25 KB |
-| `p6880880/` | Substituição do OPatch (versão mais nova) | ~200 MB |
-| `p37641958/` | Release Update (RU) atual | ~3 GB |
+| `oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm` | RPM de pré-requisitos RHEL 9 | ~25 KB |
+| `libnsl_libs/` | `libnsl.so.1` + `libnsl.so.2` (ausentes em RHEL 9 minimal) | ~200 KB |
+
+**`/opt/patches/`** — OPatch e patches:
+
+| Item | Descrição | Tamanho aprox. |
+|---|---|---|
+| `p6880880/` | Substituto do OPatch (versão mais nova que a do ZIP) | ~200 MB |
+| `p37641958/` | Release Update (RU) + one-off — aplicados no runInstaller | ~3 GB |
 | `p38291812/` | Patch pós-instalação 1 | varia |
 | `p38632161/` | Patch pós-instalação 2 (Oracle 19.30) | varia |
-| `p3467298/` | Patch pós-instalação 3 | varia |
+| `p34672698/` | Patch pós-instalação 3 | varia |
 
 **Verificar antes de iniciar:**
 ```bash
 ls -la /opt/oracle/
-# Confirmar que todos os arquivos/diretórios estão presentes
+ls -la /opt/patches/
 ```
 
 **Hardware mínimo recomendado para Oracle 19c:**
@@ -76,13 +86,13 @@ ls -la /opt/oracle/
 7 fases sequenciais. Cada fase depende da anterior.
 
 ```
-Phase 0: oracle_storage    → tags: oracle_storage    → PV/VG/LV creation, mkfs.xfs, mount
-Phase 1: oracle_prereqs    → tags: oracle_prereqs    → RPM, hugepages, workaround RHEL 9, calc SGA/PGA
-Phase 2: oracle_dirs       → tags: oracle_dirs       → estrutura de diretórios, bash_profile
-Phase 3: oracle_transfer   → tags: oracle_transfer   → rsync ~8 GB do AWX para /oracle/<SID>/software
-Phase 4: oracle_install_sw → tags: oracle_install_sw → descompactar + runInstaller + root.sh
-Phase 5: oracle_patches    → tags: oracle_patches    → opatch em sequência (RU → one-off → post)
-Phase 6: oracle_dbcreate   → tags: oracle_dbcreate   → criação do banco, catalog/catproc, datapatch, SPFILE
+Phase 0: oracle_storage    → oracle_storage    → PV/VG/LV creation, mkfs.xfs, mount
+Phase 1: oracle_prereqs    → oracle_prereqs    → RPM, libnsl, hugepages, calc SGA/PGA, sysctl, RHEL9 workaround
+Phase 2: oracle_dirs       → oracle_dirs       → diretórios, bash_profile, init.ora, SQL scripts de criação
+Phase 3: oracle_transfer   → oracle_transfer   → rsync installer + OPatch + RU + post-patches (~8 GB) para /oracle/<SID>/software
+Phase 4: oracle_install_sw → oracle_install_sw → unzip + swap OPatch + runInstaller -applyRU -applyOneOffs + root.sh
+Phase 5: oracle_patches    → oracle_patches    → opatch: post1 → post2 → oradism chown → post3 → oradism restore
+Phase 6: oracle_dbcreate   → oracle_dbcreate   → orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → Users_and_Objects.sql
 ```
 
 ### Comandos de execução
@@ -136,9 +146,9 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_users -l oraclevm
 
 | Variável | Padrão | Descrição |
 |---|---|---|
-| `oracle_software_src` | `/opt/oracle` | Source do rsync no AWX VM (installer zip + RPM). |
-| `oracle_patches_src` | `/opt/patches` | Source dos patches no AWX VM (OPatch, RU, post-install). |
-| `oracle_software_dst` | `/oracle/{{ oracle_sid }}/software` | Destino do rsync no target (dentro do LV base). |
+| `oracle_software_src` | `/opt/oracle` | Source do rsync no awxvm — installer zip, RPM, libnsl_libs. |
+| `oracle_patches_src` | `/opt/patches` | Source do rsync no awxvm — OPatch, RU, one-off, post-patches. |
+| `oracle_software_dst` | `/oracle/{{ oracle_sid }}/software` | Destino no target — dentro do lv_base. Todos os patches chegam aqui. |
 | `oracle_installer_zip` | `LINUX.X64_193000_db_home.zip` | ZIP com binários do Oracle 19c. |
 | `oracle_preinstall_rpm` | `oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm` | RPM de pré-requisitos. Configura grupos, limites, kernel params. |
 | `oracle_opatch_dir` | `p6880880` | Diretório do OPatch substituto (versão mais nova que a do ZIP). |
@@ -357,23 +367,27 @@ DROP USER OLDUSER CASCADE;
 
 ### Por que `CV_ASSUME_DISTID=RHEL8`?
 
-Oracle 19c não foi certificado para RHEL 9. Sem essa variável de ambiente, o instalador detecta RHEL 9 e rejeita a instalação. A variável faz o instalador acreditar que está em RHEL 8, contornando a verificação de plataforma. Oracle 19c funciona perfeitamente em RHEL 9 na prática.
+Oracle 19c não foi certificado para RHEL 9. Sem essa variável, o instalador detecta RHEL 9 e rejeita a instalação. A variável faz o instalador acreditar que está em RHEL 8, contornando a verificação de plataforma. Oracle 19c funciona perfeitamente em RHEL 9 na prática.
 
 ### Por que `rc not in [0, 6]` no runInstaller?
 
 O `runInstaller` retorna `rc=6` quando conclui com avisos (warnings) — isso é **normal** em instalações silenciosas. Tratar `rc=6` como falha bloquearia toda a automação. O playbook aceita rc=0 e rc=6 como sucesso.
 
-### Por que `echo -e "y\ny" | opatch apply`?
+### Por que `opatch apply -silent`?
 
-O `opatch` em modo não-silencioso faz perguntas interativas durante a aplicação. Em automação não há terminal para responder. O pipe com `echo` injeta as respostas `y` automaticamente para cada pergunta.
+`opatch apply -silent` elimina as perguntas interativas do opatch. Sem o flag, o processo fica travado aguardando input do terminal — inviável em automação.
 
-### Por que rsync para os binários?
+### Por que rsync delegado ao awxvm, não ao EE container?
 
-Oracle software + patches somam ~8 GB. O módulo `copy` do Ansible carrega o arquivo inteiro na memória do control node. O `synchronize` (rsync) transfere em streaming, suporta retomada de transferência interrompida, e só retransfer o que mudou se rodar novamente.
+Oracle software + patches somam ~8 GB. O rsync roda delegado ao `awxvm` (o host, não o container EE) via `delegate_to: awxvm`. O EE não tem acesso direto ao filesystem do host. O rsync usa `--rsync-path="sudo rsync"` para escrever diretamente nos diretórios do usuário oracle sem staging intermediário.
+
+### Por que não usa dbca para criar o banco?
+
+O banco é criado via sequência de scripts SQL (`CreateDB.sql`, `CreateDBFiles.sql`, `CreateDBCatalog.sql`, `lockAccount.sql`, `postDBCreation.sql`) executados pelo `sqlplus /nolog`, dentro do shell script `{{ oracle_sid }}.sh`. Esse método replica exatamente o processo manual documentado no `oracle_install_guide.txt` e dá controle granular sobre cada passo. `postDBCreation.sql` executa: `datapatch`, `CREATE SPFILE`, `utlrp.sql` (compilação de inválidos), shutdown e startup.
 
 ### Por que `-applyRU` durante o runInstaller?
 
-Aplicar o Release Update (RU) durante a instalação faz o banco já nascer no patch level correto. A alternativa — aplicar após instalar — exige: parar o banco → opatch → reiniciar → verificar. Mais passos e mais risco de erro.
+Aplicar o Release Update (RU) durante a instalação faz o Oracle home já nascer no patch level correto. A alternativa — opatch apply após instalar — exige descompactar o RU separadamente, parar todos os processos Oracle, aplicar, e verificar. Mais complexo e mais propenso a erros. O one-off é aplicado junto via `-applyOneOffs`.
 
 ---
 
