@@ -2,13 +2,23 @@
 # Transfers Oracle software from AWX VM (/opt/oracle, /opt/patches) to oracle_software_dst on target.
 # Uses rsync delegated to awxvm (not the EE container) for speed on large files.
 # --rsync-path="sudo rsync" writes directly to oracle-owned dirs without a temp stage.
-# Each block checks destination existence first — skips rsync if already present.
-# Ownership fix always runs (idempotent chown) regardless of whether rsync ran.
+#
+# Idempotency: each block compares source vs destination size before rsyncing.
+#   - Zip file: stat -c %s source == stat -c %s dest → skip
+#   - Directories: du -sb source == du -sb dest → skip
+# This catches both missing files AND corrupted/incomplete transfers.
 
-- name: "TRANSFER | Check installer zip on target"
-  ansible.builtin.shell: >-
-    test -f "{{ oracle_software_dst }}/{{ oracle_installer_zip }}" && echo present || echo absent
-  register: _zip_stat
+# ---------------------------------------------------------------------------
+# 1. Oracle installer zip
+# ---------------------------------------------------------------------------
+- name: "TRANSFER | Check installer zip integrity (size source vs dest)"
+  ansible.builtin.shell: |
+    src_size=$(stat -c %s "{{ oracle_software_src }}/{{ oracle_installer_zip }}" 2>/dev/null || echo 0)
+    dst_size=$(stat -c %s "{{ oracle_software_dst }}/{{ oracle_installer_zip }}" 2>/dev/null || echo -1)
+    [ "$src_size" -gt 0 ] && [ "$src_size" = "$dst_size" ] && echo ok || echo needs_sync
+  delegate_to: awxvm
+  become: false
+  register: _zip_check
   changed_when: false
   tags: oracle_transfer
 
@@ -21,7 +31,8 @@
       user_aap@{{ ansible_host }}:{{ oracle_software_dst }}/{{ oracle_installer_zip }}
   delegate_to: awxvm
   become: false
-  when: _zip_stat.stdout == "absent"
+  when: _zip_check.stdout == "needs_sync"
+  changed_when: true
   tags: oracle_transfer
 
 - name: "TRANSFER | Fix installer zip ownership"
@@ -31,12 +42,17 @@
   changed_when: false
   tags: oracle_transfer
 
-- name: "TRANSFER | Check OPatch directory on target"
-  ansible.builtin.shell: >-
-    test -d "{{ oracle_software_dst }}/{{ oracle_opatch_dir }}" &&
-    [ -n "$(ls -A {{ oracle_software_dst }}/{{ oracle_opatch_dir }} 2>/dev/null)" ] &&
-    echo present || echo absent
-  register: _opatch_stat
+# ---------------------------------------------------------------------------
+# 2. OPatch replacement
+# ---------------------------------------------------------------------------
+- name: "TRANSFER | Check OPatch directory integrity (size source vs dest)"
+  ansible.builtin.shell: |
+    src_size=$(du -sb "{{ oracle_patches_src }}/{{ oracle_opatch_dir }}" 2>/dev/null | awk '{print $1}' || echo 0)
+    dst_size=$(du -sb "{{ oracle_software_dst }}/{{ oracle_opatch_dir }}" 2>/dev/null | awk '{print $1}' || echo -1)
+    [ "$src_size" -gt 0 ] && [ "$src_size" = "$dst_size" ] && echo ok || echo needs_sync
+  delegate_to: awxvm
+  become: false
+  register: _opatch_check
   changed_when: false
   tags: oracle_transfer
 
@@ -49,7 +65,8 @@
       user_aap@{{ ansible_host }}:{{ oracle_software_dst }}/{{ oracle_opatch_dir }}/
   delegate_to: awxvm
   become: false
-  when: _opatch_stat.stdout == "absent"
+  when: _opatch_check.stdout == "needs_sync"
+  changed_when: true
   tags: oracle_transfer
 
 - name: "TRANSFER | Fix OPatch directory ownership"
@@ -58,12 +75,17 @@
   changed_when: false
   tags: oracle_transfer
 
-- name: "TRANSFER | Check RU patch directory on target"
-  ansible.builtin.shell: >-
-    test -d "{{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_ru_subpath }}" &&
-    [ -n "$(ls -A {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_ru_subpath }} 2>/dev/null)" ] &&
-    echo present || echo absent
-  register: _ru_stat
+# ---------------------------------------------------------------------------
+# 3. RU + one-off patch bundle
+# ---------------------------------------------------------------------------
+- name: "TRANSFER | Check RU patch directory integrity (size source vs dest)"
+  ansible.builtin.shell: |
+    src_size=$(du -sb "{{ oracle_patches_src }}/{{ oracle_ru_patch_dir }}" 2>/dev/null | awk '{print $1}' || echo 0)
+    dst_size=$(du -sb "{{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}" 2>/dev/null | awk '{print $1}' || echo -1)
+    [ "$src_size" -gt 0 ] && [ "$src_size" = "$dst_size" ] && echo ok || echo needs_sync
+  delegate_to: awxvm
+  become: false
+  register: _ru_check
   changed_when: false
   tags: oracle_transfer
 
@@ -76,7 +98,8 @@
       user_aap@{{ ansible_host }}:{{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/
   delegate_to: awxvm
   become: false
-  when: _ru_stat.stdout == "absent"
+  when: _ru_check.stdout == "needs_sync"
+  changed_when: true
   tags: oracle_transfer
 
 - name: "TRANSFER | Fix RU patch directory ownership"
@@ -85,16 +108,9 @@
   changed_when: false
   tags: oracle_transfer
 
-- name: "TRANSFER | Check post_patch1 directory on target"
-  ansible.builtin.shell: >-
-    test -d "{{ oracle_software_dst }}/{{ oracle_post_patch1_dir }}" &&
-    [ -n "$(ls -A {{ oracle_software_dst }}/{{ oracle_post_patch1_dir }} 2>/dev/null)" ] &&
-    echo present || echo absent
-  register: _patch1_stat
-  changed_when: false
-  when: oracle_post_patch1_enabled | bool
-  tags: oracle_transfer
-
+# ---------------------------------------------------------------------------
+# 4. Post-install patch 1 (survey-driven, optional)
+# ---------------------------------------------------------------------------
 - name: "TRANSFER | Check post_patch1 source on controller"
   ansible.builtin.shell: >-
     test -d "{{ oracle_patches_src }}/{{ oracle_post_patch1_dir }}" && echo present || echo absent
@@ -103,6 +119,20 @@
   register: _patch1_src
   changed_when: false
   when: oracle_post_patch1_enabled | bool
+  tags: oracle_transfer
+
+- name: "TRANSFER | Check post_patch1 directory integrity (size source vs dest)"
+  ansible.builtin.shell: |
+    src_size=$(du -sb "{{ oracle_patches_src }}/{{ oracle_post_patch1_dir }}" 2>/dev/null | awk '{print $1}' || echo 0)
+    dst_size=$(du -sb "{{ oracle_software_dst }}/{{ oracle_post_patch1_dir }}" 2>/dev/null | awk '{print $1}' || echo -1)
+    [ "$src_size" -gt 0 ] && [ "$src_size" = "$dst_size" ] && echo ok || echo needs_sync
+  delegate_to: awxvm
+  become: false
+  register: _patch1_check
+  changed_when: false
+  when:
+    - oracle_post_patch1_enabled | bool
+    - _patch1_src.stdout == "present"
   tags: oracle_transfer
 
 - name: "TRANSFER | Rsync post_patch1 directory ({{ oracle_post_patch1_dir }})"
@@ -116,8 +146,9 @@
   become: false
   when:
     - oracle_post_patch1_enabled | bool
-    - _patch1_stat.stdout == "absent"
     - _patch1_src.stdout == "present"
+    - _patch1_check.stdout == "needs_sync"
+  changed_when: true
   tags: oracle_transfer
 
 - name: "TRANSFER | Fix post_patch1 directory ownership"
@@ -129,18 +160,9 @@
     - _patch1_src.stdout == "present"
   tags: oracle_transfer
 
-- name: "TRANSFER | Check post-install patch directories on target (patch2, patch3)"
-  ansible.builtin.shell: >-
-    test -d "{{ oracle_software_dst }}/{{ item }}" &&
-    [ -n "$(ls -A {{ oracle_software_dst }}/{{ item }} 2>/dev/null)" ] &&
-    echo present || echo absent
-  register: _patch23_stat
-  changed_when: false
-  loop:
-    - "{{ oracle_post_patch2_dir }}"
-    - "{{ oracle_post_patch3_dir }}"
-  tags: oracle_transfer
-
+# ---------------------------------------------------------------------------
+# 5. Post-install patches 2 + 3 (fixed patches)
+# ---------------------------------------------------------------------------
 - name: "TRANSFER | Check post-install patch sources on controller (patch2, patch3)"
   ansible.builtin.shell: >-
     test -d "{{ oracle_patches_src }}/{{ item }}" && echo present || echo absent
@@ -153,30 +175,46 @@
     - "{{ oracle_post_patch3_dir }}"
   tags: oracle_transfer
 
+- name: "TRANSFER | Check post-install patch directories integrity (patch2, patch3)"
+  ansible.builtin.shell: |
+    src_size=$(du -sb "{{ oracle_patches_src }}/{{ item.item }}" 2>/dev/null | awk '{print $1}' || echo 0)
+    dst_size=$(du -sb "{{ oracle_software_dst }}/{{ item.item }}" 2>/dev/null | awk '{print $1}' || echo -1)
+    [ "$src_size" -gt 0 ] && [ "$src_size" = "$dst_size" ] && echo ok || echo needs_sync
+  delegate_to: awxvm
+  become: false
+  register: _patch23_check
+  changed_when: false
+  loop: "{{ _patch23_src.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stdout == "present"
+  tags: oracle_transfer
+
 - name: "TRANSFER | Rsync post-install patch directories (patch2, patch3)"
   ansible.builtin.shell: |
     rsync -az \
       -e "ssh -i ~/.ssh/id_user_aap -o StrictHostKeyChecking=no" \
       --rsync-path="sudo rsync" \
-      {{ oracle_patches_src }}/{{ item.0.item }}/ \
-      user_aap@{{ ansible_host }}:{{ oracle_software_dst }}/{{ item.0.item }}/
+      {{ oracle_patches_src }}/{{ item.item.item }}/ \
+      user_aap@{{ ansible_host }}:{{ oracle_software_dst }}/{{ item.item.item }}/
   delegate_to: awxvm
   become: false
-  loop: "{{ _patch23_stat.results | zip(_patch23_src.results) | list }}"
+  loop: "{{ _patch23_check.results }}"
   loop_control:
-    label: "{{ item.0.item }}"
+    label: "{{ item.item.item }}"
   when:
-    - item.0.stdout == "absent"
-    - item.1.stdout == "present"
+    - not item.skipped | default(false)
+    - item.stdout == "needs_sync"
+  changed_when: true
   tags: oracle_transfer
 
 - name: "TRANSFER | Fix post-install patch directories ownership (patch2, patch3)"
   ansible.builtin.shell: |
-    chown -R oracle:oinstall "{{ oracle_software_dst }}/{{ item.0.item }}"
-  loop: "{{ _patch23_stat.results | zip(_patch23_src.results) | list }}"
+    chown -R oracle:oinstall "{{ oracle_software_dst }}/{{ item.item.item }}"
+  loop: "{{ _patch23_check.results }}"
   loop_control:
-    label: "{{ item.0.item }}"
+    label: "{{ item.item.item }}"
   changed_when: false
   when:
-    - item.1.stdout == "present"
+    - not item.skipped | default(false)
   tags: oracle_transfer
