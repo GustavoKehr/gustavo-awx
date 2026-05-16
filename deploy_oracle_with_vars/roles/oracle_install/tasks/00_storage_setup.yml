@@ -30,7 +30,7 @@
 - name: "STORAGE | Create PV and VG {{ oracle_vg_name }} on {{ oracle_data_disk }} if not present"
   ansible.builtin.shell: |
     vgs {{ oracle_vg_name }} > /dev/null 2>&1 && exit 0
-    pvcreate {{ oracle_data_disk }}
+    pvcreate -y {{ oracle_data_disk }}
     vgcreate {{ oracle_vg_name }} {{ oracle_data_disk }}
   when: oracle_data_disk | length > 0
   changed_when: true
@@ -39,7 +39,7 @@
 - name: "STORAGE | Create Oracle LVs in {{ oracle_vg_name }} if missing"
   ansible.builtin.shell: |
     lvs {{ oracle_vg_name }}/{{ item.lv }} > /dev/null 2>&1 && exit 0
-    lvcreate -L {{ item.size }} -n {{ item.lv }} {{ oracle_vg_name }}
+    lvcreate -y -L {{ item.size }} -n {{ item.lv }} {{ oracle_vg_name }}
   loop: "{{ _oracle_lv_layout }}"
   loop_control:
     label: "{{ item.lv }} ({{ item.size }})"
