@@ -70,9 +70,12 @@
     export ORACLE_SID={{ oracle_sid }}
     export PATH={{ oracle_home }}/bin:$PATH
     export LD_LIBRARY_PATH={{ oracle_home }}/lib:/lib:/usr/lib
-    test -f "{{ oracle_home }}/dbs/spfile{{ oracle_sid }}.ora" && exit 0
+    # Idempotency: skip only if Oracle is ALREADY running with SPFILE (not just if file exists)
+    SPFILE_VAL=$(echo "SELECT VALUE FROM v\$parameter WHERE name='spfile';" | sqlplus -s / as sysdba 2>/dev/null)
+    echo "$SPFILE_VAL" | grep -qi "spfile" && exit 0
+    # Create or replace SPFILE, then restart so Oracle loads it
     sqlplus -s / as sysdba <<EOF
-    CREATE SPFILE='{{ oracle_home }}/dbs/spfile{{ oracle_sid }}.ora' FROM PFILE='{{ oracle_scripts_dir }}/init.ora';
+    CREATE OR REPLACE SPFILE='{{ oracle_home }}/dbs/spfile{{ oracle_sid }}.ora' FROM PFILE='{{ oracle_scripts_dir }}/init.ora';
     SHUTDOWN IMMEDIATE;
     STARTUP;
     EXIT;

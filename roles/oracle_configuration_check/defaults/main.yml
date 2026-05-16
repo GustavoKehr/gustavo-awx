@@ -8,6 +8,7 @@ oracle_os_group: "oinstall"
 oracle_db_version: "19"
 
 oracle_security_remediate: true
+oracle_configuration_check_remediate: true   # alias used by all FIX tasks; override via AWX survey
 oracle_security_allow_restart: false
 oracle_generate_report: true  # set false to skip report output; remove report.yml import to remove completely
 
@@ -29,7 +30,7 @@ oracle_listener_error_threshold: 10
 #oracle_archive_dest_2: ""
 
 # 4.2 PGA Limit
-oracle_pga_max_size_gb: "{{ pga_max_size_gb }}"
+oracle_pga_max_size_gb: 2   # minimum _pga_max_size in GB; override via AWX survey
 
 # 5.1 User Account Lock
 oracle_app_profiles: []

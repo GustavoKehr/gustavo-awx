@@ -17,11 +17,8 @@
         - create_initial_db | default(true) | bool
         - oracle_configuration_check_enabled | default(true) | bool
       vars:
-        oracle_configuration_check_remediate: "{{ oracle_configuration_check_remediate | default(true) }}"
-        oracle_security_remediate: "{{ oracle_configuration_check_remediate | default(true) }}"
-        oracle_security_allow_restart: "{{ oracle_security_allow_restart | default(true) }}"
         oracle_generate_report: true
-      tags: [oracle, oracle_config_check, post_install]
+      tags: [oracle, oracle_config_check, oracle_configuration_check, post_install]
 
     - name: "Phase 8: Optional user management"
       ansible.builtin.include_role:
