@@ -241,27 +241,34 @@ O rsync só retransfer o que mudou — se os arquivos estiverem intactos, a task
 
 ## Checklist de Verificação Pós-Instalação
 
-```bash
-# SSH no target (ex: oraclevm 192.168.137.163)
-# Substituir <SID> pelo SID usado no survey (ex: AWOR)
-ssh user_aap@192.168.137.163
+> **A maioria dos checks já roda automaticamente no job.** Ao final do Phase 6 (`oracle_dbcreate`), o playbook executa:
+>
+> - `lsnrctl start` + verify listener (falha o job se TNS-12541)
+> - `SELECT status FROM v$instance` → assert `OPEN`
+> - `SELECT VALUE FROM v$parameter WHERE name='spfile'` → assert SPFILE ativo
+> - Summary block com DB_NAME, DB_VERSION, CHARSET, SGA_TARGET, PGA_TARGET, SPFILE, OPEN_MODE, oratab, listener status, LVs montados
+>
+> Patches verificados ao final do Phase 5 (`oracle_patches`) via `opatch lsinventory`.
 
-# Verificar banco OPEN:
-sudo -u oracle /oracle/<SID>/19.0.0/bin/sqlplus / as sysdba <<EOF
+Se precisar verificar manualmente após o job:
+
+```bash
+# SSH no target (substituir IP e <SID>)
+ssh user_aap@192.168.137.165
+
+# DB status
+sudo -u oracle /oracle/<SID>/19.0.0/bin/sqlplus -s / as sysdba <<EOF
 SELECT status FROM v\$instance;
-SELECT name, db_unique_name FROM v\$database;
+EXIT;
 EOF
 
-# Verificar oratab registrado:
-grep <SID> /etc/oratab
-
-# Verificar listener:
+# Listener
 sudo -u oracle /oracle/<SID>/19.0.0/bin/lsnrctl status
 
-# Verificar patches aplicados:
-sudo -u oracle /oracle/<SID>/19.0.0/OPatch/opatch lsinventory | grep "Patch description"
+# Patches
+sudo -u oracle /oracle/<SID>/19.0.0/OPatch/opatch lsinventory | grep "Patch "
 
-# Verificar LVs montados:
+# LVs
 df -h | grep oracle
 ```
 
