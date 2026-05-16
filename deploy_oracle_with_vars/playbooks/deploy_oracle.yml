@@ -10,7 +10,20 @@
         name: oracle_install
       tags: [oracle, oracle_install]
 
-    - name: "Phase 7: Optional user management"
+    - name: "Phase 7: Configuration check and remediation (oracle_configuration_check)"
+      ansible.builtin.include_role:
+        name: oracle_configuration_check
+      when:
+        - create_initial_db | default(true) | bool
+        - oracle_configuration_check_enabled | default(true) | bool
+      vars:
+        oracle_configuration_check_remediate: "{{ oracle_configuration_check_remediate | default(true) }}"
+        oracle_security_remediate: "{{ oracle_configuration_check_remediate | default(true) }}"
+        oracle_security_allow_restart: "{{ oracle_security_allow_restart | default(true) }}"
+        oracle_generate_report: true
+      tags: [oracle, oracle_config_check, post_install]
+
+    - name: "Phase 8: Optional user management"
       ansible.builtin.include_role:
         name: oracle_manage_users
       when:
@@ -18,7 +31,7 @@
           or ('oracle_users' in (ansible_run_tags | default([])))
       tags: [oracle, oracle_users, post_install]
 
-    - name: "Phase 8: Discover patches (no apply)"
+    - name: "Phase 9: Discover patches (no apply)"
       ansible.builtin.include_role:
         name: db_patches
       when:

@@ -106,3 +106,12 @@ ts_sid_idx_datafiles: 1
 # Gate Phase 6 (database creation). Default true — Oracle always creates a DB.
 # Set to false to install software only (useful for standby node prep).
 create_initial_db: true
+
+# --- Configuration check (Phase 7) ---
+# oracle_configuration_check_enabled: run oracle_configuration_check role after DB creation.
+# oracle_configuration_check_remediate: apply fixes for non-compliant items (ALTER SYSTEM, etc.).
+# oracle_security_allow_restart: allow DB restart to activate SPFILE changes made by fixes.
+#   Set true for fresh deploys (restart expected). Set false on running production DBs.
+oracle_configuration_check_enabled: true
+oracle_configuration_check_remediate: true
+oracle_security_allow_restart: true
