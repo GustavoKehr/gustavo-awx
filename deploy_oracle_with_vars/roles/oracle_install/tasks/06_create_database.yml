@@ -34,6 +34,7 @@
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH={{ oracle_home }}/bin:$PATH
+    export LD_LIBRARY_PATH={{ oracle_home }}/lib:/lib:/usr/lib
     pgrep -f "ora_pmon_{{ oracle_sid }}" > /dev/null && exit 0
     echo "STARTUP PFILE={{ oracle_scripts_dir }}/init.ora;" | sqlplus -s / as sysdba
   become: true
@@ -46,6 +47,7 @@
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH={{ oracle_home }}/bin:$PATH
+    export LD_LIBRARY_PATH={{ oracle_home }}/lib:/lib:/usr/lib
     sqlplus -s / as sysdba <<EOF
     SELECT status FROM v\$instance;
     EXIT;
@@ -67,6 +69,7 @@
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH={{ oracle_home }}/bin:$PATH
+    export LD_LIBRARY_PATH={{ oracle_home }}/lib:/lib:/usr/lib
     test -f "{{ oracle_home }}/dbs/spfile{{ oracle_sid }}.ora" && exit 0
     sqlplus -s / as sysdba <<EOF
     CREATE SPFILE='{{ oracle_home }}/dbs/spfile{{ oracle_sid }}.ora' FROM PFILE='{{ oracle_scripts_dir }}/init.ora';
@@ -84,6 +87,7 @@
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH={{ oracle_home }}/bin:$PATH
+    export LD_LIBRARY_PATH={{ oracle_home }}/lib:/lib:/usr/lib
     sqlplus -s / as sysdba <<EOF
     SELECT VALUE FROM v\$parameter WHERE name = 'spfile';
     EXIT;
@@ -105,6 +109,7 @@
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH={{ oracle_home }}/bin:$PATH
+    export LD_LIBRARY_PATH={{ oracle_home }}/lib:/lib:/usr/lib
     sqlplus -s "/ as sysdba" @{{ oracle_scripts_dir }}/Users_and_Objects.sql < /dev/null
   become: true
   become_user: oracle
@@ -144,6 +149,7 @@
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH={{ oracle_home }}/bin:$PATH
+    export LD_LIBRARY_PATH={{ oracle_home }}/lib:/lib:/usr/lib
     sqlplus -s / as sysdba <<'EOF'
     SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF
     SELECT 'DB_NAME='      || name             FROM v$database;

@@ -1,11 +1,54 @@
 ---
 # REPORT: remove this entire file and its import in main.yml to disable reporting.
-# To disable via variable instead: set oracle_generate_report=false
+# To disable via variable: set oracle_generate_report=false
 
-- name: "[REPORT] Oracle Configuration Check — Summary"
+- name: "[REPORT] Oracle Configuration Check — Console Summary"
   ansible.builtin.debug:
     msg: >-
       {{ item.id }} {{ item.name }}: {{ item.status }}{{ ' → FIXED' if item.fixed else '' }}
   loop: "{{ _sec_report | default([]) }}"
+  when: oracle_generate_report | default(true) | bool
+  tags: [oracle_configuration_check]
+
+- name: "[REPORT] Compute summary counters"
+  ansible.builtin.set_fact:
+    _report_total: "{{ _sec_report | default([]) | length }}"
+    _report_pass:  "{{ _sec_report | default([]) | selectattr('status', 'equalto', 'PASS') | list | length }}"
+    _report_fixed: "{{ _sec_report | default([]) | selectattr('fixed', 'equalto', true) | list | length }}"
+    _report_fail:  "{{ _sec_report | default([]) | selectattr('status', 'equalto', 'FAIL') | selectattr('fixed', 'equalto', false) | list | length }}"
+    _report_filename: "oracle_config_check_{{ oracle_sid }}_{{ ansible_date_time.date }}.html"
+  when: oracle_generate_report | default(true) | bool
+  tags: [oracle_configuration_check]
+
+- name: "[REPORT] Console summary totals"
+  ansible.builtin.debug:
+    msg: |
+      ════════════════════════════════════════════════════════
+       ORACLE CONFIGURATION CHECK — {{ oracle_sid }} — {{ ansible_date_time.date }}
+      ════════════════════════════════════════════════════════
+       Total : {{ _report_total }}
+       Pass  : {{ _report_pass }}
+       Fixed : {{ _report_fixed }}
+       Fail  : {{ _report_fail }} (manual action required)
+      ════════════════════════════════════════════════════════
+       HTML report : /tmp/{{ _report_filename }}
+      ════════════════════════════════════════════════════════
+  when: oracle_generate_report | default(true) | bool
+  tags: [oracle_configuration_check]
+
+- name: "[REPORT] Generate HTML report"
+  ansible.builtin.template:
+    src: oracle_config_check_report.html.j2
+    dest: "/tmp/{{ _report_filename }}"
+    mode: "0644"
+  when: oracle_generate_report | default(true) | bool
+  tags: [oracle_configuration_check]
+
+- name: "[REPORT] Fetch HTML report to AWX controller"
+  ansible.builtin.fetch:
+    src: "/tmp/{{ _report_filename }}"
+    dest: "{{ playbook_dir }}/../reports/{{ inventory_hostname }}/"
+    flat: false
+    fail_on_missing: false
   when: oracle_generate_report | default(true) | bool
   tags: [oracle_configuration_check]
