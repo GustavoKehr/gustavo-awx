@@ -49,7 +49,7 @@ oracle_data_disk: "/dev/sdb"      # REQUIRED via AWX survey — raw disk for PV/
 oracle_vg_name: "vg_data"
 # LV sizes — minimum viable for dev/lab Oracle 19c (total ~35G on data disk).
 # Override via AWX survey for production sizing.
-oracle_lv_base_size: "25G"        # ORACLE_HOME: binary ~12G + OPatch workspace ~9.5G + headroom
+oracle_lv_base_size: "50G"        # ORACLE_HOME: binary ~12G + OPatch workspace ~9.5G + DB creation + headroom
 oracle_lv_oradata_size: "5G"      # Datafiles
 oracle_lv_mirrlogA_size: "1G"     # Mirrored redo log A
 oracle_lv_mirrlogB_size: "1G"     # Mirrored redo log B
