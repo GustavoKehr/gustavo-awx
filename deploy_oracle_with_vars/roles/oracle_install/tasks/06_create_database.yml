@@ -110,3 +110,91 @@
   become_user: oracle
   changed_when: true
   tags: oracle_dbcreate
+
+# ---------------------------------------------------------------------------
+# Post-install verification — listener + summary
+# Runs at end of Phase 6 so a single job gives full confirmation of success.
+# ---------------------------------------------------------------------------
+
+- name: "DBCREATE | Start listener (lsnrctl start)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH={{ oracle_home }}/bin:$PATH
+    lsnrctl status LISTENER > /dev/null 2>&1 && exit 0
+    lsnrctl start LISTENER
+  become: true
+  become_user: oracle
+  changed_when: true
+  tags: oracle_dbcreate
+
+- name: "DBCREATE | Verify listener is running"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH={{ oracle_home }}/bin:$PATH
+    lsnrctl status LISTENER
+  become: true
+  become_user: oracle
+  register: listener_status
+  changed_when: false
+  failed_when: "'TNS-12541' in listener_status.stdout or listener_status.rc not in [0]"
+  tags: oracle_dbcreate
+
+- name: "DBCREATE | Collect final DB facts for summary"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH={{ oracle_home }}/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF
+    SELECT 'DB_NAME='      || name             FROM v$database;
+    SELECT 'DB_STATUS='    || status           FROM v$instance;
+    SELECT 'DB_VERSION='   || version          FROM v$instance;
+    SELECT 'CHARSET='      || value            FROM nls_database_parameters WHERE parameter='NLS_CHARACTERSET';
+    SELECT 'SGA_TARGET='   || value            FROM v$parameter WHERE name='sga_target';
+    SELECT 'PGA_TARGET='   || value            FROM v$parameter WHERE name='pga_aggregate_target';
+    SELECT 'SPFILE='       || value            FROM v$parameter WHERE name='spfile';
+    SELECT 'OPEN_MODE='    || open_mode        FROM v$database;
+    EXIT;
+    EOF
+  become: true
+  become_user: oracle
+  register: db_facts
+  changed_when: false
+  tags: oracle_dbcreate
+
+- name: "DBCREATE | Collect mounted LVs"
+  ansible.builtin.shell: df -h | grep "oracle"
+  register: oracle_mounts
+  changed_when: false
+  tags: oracle_dbcreate
+
+- name: "DBCREATE | Collect oratab entry"
+  ansible.builtin.shell: grep "^{{ oracle_sid }}:" /etc/oratab
+  register: oratab_entry
+  changed_when: false
+  tags: oracle_dbcreate
+
+- name: "DBCREATE | === INSTALLATION COMPLETE — SUMMARY ==="
+  ansible.builtin.debug:
+    msg: |
+      ════════════════════════════════════════════════════════
+       ORACLE 19c INSTALLATION COMPLETE
+      ════════════════════════════════════════════════════════
+       TARGET HOST  : {{ inventory_hostname }} ({{ ansible_host }})
+       ORACLE_HOME  : {{ oracle_home }}
+      ────────────────────────────────────────────────────────
+       DATABASE FACTS:
+      {% for line in db_facts.stdout_lines %}
+      {% if line | trim | length > 0 %}
+         {{ line | trim }}
+      {% endif %}
+      {% endfor %}
+      ────────────────────────────────────────────────────────
+       ORATAB       : {{ oratab_entry.stdout | trim }}
+      ────────────────────────────────────────────────────────
+       LISTENER     : {{ 'OK (rc=0)' if listener_status.rc == 0 else 'ERROR — rc=' + listener_status.rc | string }}
+      ────────────────────────────────────────────────────────
+       MOUNTED LVs:
+      {{ oracle_mounts.stdout }}
+      ════════════════════════════════════════════════════════
+  tags: oracle_dbcreate
