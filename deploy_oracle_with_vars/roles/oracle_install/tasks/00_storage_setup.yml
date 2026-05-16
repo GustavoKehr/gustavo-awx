@@ -29,11 +29,13 @@
 
 - name: "STORAGE | Create PV and VG {{ oracle_vg_name }} on {{ oracle_data_disk }} if not present"
   ansible.builtin.shell: |
-    vgs {{ oracle_vg_name }} > /dev/null 2>&1 && exit 0
+    vgs {{ oracle_vg_name }} > /dev/null 2>&1 && echo already_exists && exit 0
     pvcreate -y {{ oracle_data_disk }}
     vgcreate {{ oracle_vg_name }} {{ oracle_data_disk }}
+    echo created
+  register: _vg_result
   when: oracle_data_disk | length > 0
-  changed_when: true
+  changed_when: "'created' in _vg_result.stdout"
   tags: oracle_storage
 
 - name: "STORAGE | Create Oracle LVs in {{ oracle_vg_name }} if missing"

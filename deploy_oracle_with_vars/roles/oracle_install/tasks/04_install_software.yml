@@ -40,24 +40,28 @@
 
 - name: "INSTALL | Back up bundled OPatch"
   ansible.builtin.shell: |
-    test -s "{{ oracle_home }}/bin/oracle" && exit 0
-    test -d "{{ oracle_home }}/OPatchOLD" && exit 0
+    test -s "{{ oracle_home }}/bin/oracle" && echo skip_installed && exit 0
+    test -d "{{ oracle_home }}/OPatchOLD" && echo skip_already_backed && exit 0
     cd "{{ oracle_home }}"
     mv OPatch OPatchOLD
+    echo backed_up
   become: true
   become_user: oracle
-  changed_when: true
+  register: _opatch_backup
+  changed_when: "'backed_up' in _opatch_backup.stdout"
   tags: oracle_install_sw
 
 - name: "INSTALL | Install new OPatch"
   ansible.builtin.shell: |
-    test -s "{{ oracle_home }}/bin/oracle" && exit 0
-    test -d "{{ oracle_home }}/OPatchOLD" && test -d "{{ oracle_home }}/OPatch" && exit 0
+    test -s "{{ oracle_home }}/bin/oracle" && echo skip_installed && exit 0
+    test -d "{{ oracle_home }}/OPatchOLD" && test -d "{{ oracle_home }}/OPatch" && echo skip_already_installed && exit 0
     cd "{{ oracle_home }}"
     cp -r "{{ oracle_software_dst }}/{{ oracle_opatch_dir }}/OPatch" .
+    echo installed
   become: true
   become_user: oracle
-  changed_when: true
+  register: _opatch_install
+  changed_when: "'installed' in _opatch_install.stdout"
   tags: oracle_install_sw
 
 - name: "INSTALL | Run silent Oracle software installation"
@@ -68,14 +72,9 @@
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_HOSTNAME=$(hostname)
     cd "{{ oracle_home }}"
-    # Build optional one-off argument (empty oracle_oneoff_subpath = skip -applyOneOffs)
-    ONEOFF_ARG=""
-    if [ -n "{{ oracle_oneoff_subpath }}" ]; then
-      ONEOFF_ARG="-applyOneOffs {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_oneoff_subpath }}"
-    fi
     ./runInstaller \
       -applyRU {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_ru_subpath }} \
-      $ONEOFF_ARG \
+      -applyOneOffs {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_oneoff_subpath }} \
       -silent \
       -responseFile {{ oracle_home }}/install/response/db_install.rsp \
       -ignorePrereq \
@@ -110,13 +109,4 @@
     grep -q "{{ oracle_home }}" /etc/oratab 2>/dev/null && exit 0
     "{{ oracle_home }}/root.sh"
   changed_when: false
-  tags: oracle_install_sw
-
-- name: "INSTALL | Deploy listener.ora with configured port {{ oracle_listener_port }}"
-  ansible.builtin.template:
-    src: listener.ora.j2
-    dest: "{{ oracle_home }}/network/admin/listener.ora"
-    owner: oracle
-    group: oinstall
-    mode: "0640"
   tags: oracle_install_sw

@@ -40,24 +40,28 @@
 
 - name: "INSTALL | Back up bundled OPatch"
   ansible.builtin.shell: |
-    test -s "{{ oracle_home }}/bin/oracle" && exit 0
-    test -d "{{ oracle_home }}/OPatchOLD" && exit 0
+    test -s "{{ oracle_home }}/bin/oracle" && echo skip_installed && exit 0
+    test -d "{{ oracle_home }}/OPatchOLD" && echo skip_already_backed && exit 0
     cd "{{ oracle_home }}"
     mv OPatch OPatchOLD
+    echo backed_up
   become: true
   become_user: oracle
-  changed_when: true
+  register: _opatch_backup
+  changed_when: "'backed_up' in _opatch_backup.stdout"
   tags: oracle_install_sw
 
 - name: "INSTALL | Install new OPatch"
   ansible.builtin.shell: |
-    test -s "{{ oracle_home }}/bin/oracle" && exit 0
-    test -d "{{ oracle_home }}/OPatchOLD" && test -d "{{ oracle_home }}/OPatch" && exit 0
+    test -s "{{ oracle_home }}/bin/oracle" && echo skip_installed && exit 0
+    test -d "{{ oracle_home }}/OPatchOLD" && test -d "{{ oracle_home }}/OPatch" && echo skip_already_installed && exit 0
     cd "{{ oracle_home }}"
     cp -r "{{ oracle_software_dst }}/{{ oracle_opatch_dir }}/OPatch" .
+    echo installed
   become: true
   become_user: oracle
-  changed_when: true
+  register: _opatch_install
+  changed_when: "'installed' in _opatch_install.stdout"
   tags: oracle_install_sw
 
 - name: "INSTALL | Run silent Oracle software installation"

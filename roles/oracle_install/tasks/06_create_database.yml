@@ -34,11 +34,13 @@
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH={{ oracle_home }}/bin:$PATH
-    pgrep -f "ora_pmon_{{ oracle_sid }}" > /dev/null && exit 0
+    pgrep -f "ora_pmon_{{ oracle_sid }}" > /dev/null && echo already_running && exit 0
     echo "STARTUP PFILE={{ oracle_scripts_dir }}/init.ora;" | sqlplus -s / as sysdba
+    echo started
   become: true
   become_user: oracle
-  changed_when: true
+  register: _db_start
+  changed_when: "'started' in _db_start.stdout"
   tags: oracle_dbcreate
 
 - name: "DBCREATE | Verify database is open"
@@ -100,6 +102,24 @@
   when: spfile_check.stdout is not search('spfile', ignorecase=True)
   tags: oracle_dbcreate
 
+- name: "DBCREATE | Check if Users_and_Objects profile already applied"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH={{ oracle_home }}/bin:$PATH
+    result=$(sqlplus -s "/ as sysdba" <<EOF
+    SET PAGESIZE 0 FEEDBACK OFF
+    SELECT COUNT(*) FROM dba_profiles WHERE profile='ORACLE_PROFILE' AND resource_name='PASSWORD_LIFE_TIME';
+    EXIT;
+EOF
+    )
+    echo "$result" | grep -q "^[1-9]" && echo already_applied || echo not_applied
+  become: true
+  become_user: oracle
+  register: _users_objects_check
+  changed_when: false
+  tags: oracle_dbcreate
+
 - name: "DBCREATE | Apply Users_and_Objects profile settings"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
@@ -108,5 +128,6 @@
     sqlplus -s "/ as sysdba" @{{ oracle_scripts_dir }}/Users_and_Objects.sql < /dev/null
   become: true
   become_user: oracle
+  when: "'not_applied' in _users_objects_check.stdout"
   changed_when: true
   tags: oracle_dbcreate

@@ -54,8 +54,11 @@
 
 - name: "PATCHES | Set oradism to oracle ownership before post_patch3 (as root)"
   ansible.builtin.shell: |
+    owner=$(stat -c '%U' "{{ oracle_home }}/bin/oradism" 2>/dev/null)
+    [ "$owner" = "oracle" ] && exit 0
     chown oracle "{{ oracle_home }}/bin/oradism"
     chmod 0750 "{{ oracle_home }}/bin/oradism"
+  changed_when: false
   tags: oracle_patches
 
 - name: "PATCHES | Apply post_patch3 ({{ oracle_post_patch3_dir }})"
