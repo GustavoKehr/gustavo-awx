@@ -28,9 +28,9 @@ oracle_oneoff_subpath: "37641958/37643161"
 # Update dir/subdir values when newer patches are available.
 oracle_post_patch1_dir: "p38291812"
 oracle_post_patch1_sub: "38291812"
-oracle_post_patch1_enabled: true      # set false if patch not present on oracle_patches_src
+oracle_post_patch1_enabled: false     # p38291812 not on AWX /opt/patches — enable when patch uploaded
 
-oracle_post_patch2_dir: "p38632161"   # Oracle 19.30
+oracle_post_patch2_dir: "p38632161"   # Oracle 19.30 RU (available on AWX /opt/patches)
 oracle_post_patch2_sub: "38632161"
 
 oracle_post_patch3_dir: "p34672698"
@@ -85,8 +85,8 @@ oracle_listener_port: 1521
 oracle_listener_name: "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ oracle_listener_port }})))"
 
 # --- Passwords (always set via survey — never hardcode) ---
-oracle_sys_password: "F9toqfd("
-oracle_system_password: "F9toqfd("
+oracle_sys_password: ""
+oracle_system_password: ""
 
 # --- Tablespace datafile counts (survey-driven, default 1) ---
 # Each tablespace gets N datafiles named TS_<NAME>_01.DBF, _02.DBF, etc.

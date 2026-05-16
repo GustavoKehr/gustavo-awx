@@ -1,0 +1,39 @@
+---
+- name: "Test iSCSI write after LUN remap"
+  hosts: sql_ha_nodes
+  gather_facts: false
+  serial: 1
+
+  tasks:
+    - name: "Rescan and check disk write access"
+      ansible.windows.win_shell: |
+        # Restart iSCSI to force reconnect with fresh mode pages
+        Restart-Service -Name MSiSCSI -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 10
+        Update-HostStorageCache
+        Start-Sleep -Seconds 5
+
+        $d = Get-Disk | Where-Object { $_.BusType -eq "iSCSI" -and $_.Size -gt 30GB } | Select-Object -First 1
+        if (-not $d) {
+          Write-Output "NO_DISK"
+          exit 1
+        }
+        Write-Output "Disk $($d.Number): Offline=$($d.IsOffline) ReadOnly=$($d.IsReadOnly) Part=$($d.PartitionStyle)"
+
+        # Test raw write
+        $path = $d.Path
+        try {
+          $fs = [System.IO.File]::Open($path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::ReadWrite)
+          $buf = New-Object byte[] 512
+          $fs.Write($buf, 0, 512)
+          $fs.Close()
+          Write-Output "WRITE_OK: disk is writable"
+        } catch {
+          Write-Output "WRITE_FAIL: $($_.Exception.Message)"
+        }
+      register: _test
+      changed_when: true
+
+    - name: "Write test result"
+      ansible.builtin.debug:
+        msg: "{{ _test.stdout_lines }}"

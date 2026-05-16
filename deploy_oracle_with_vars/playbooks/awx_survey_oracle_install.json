@@ -38,7 +38,7 @@
       "required": false,
       "type": "text",
       "variable": "oracle_data_disk",
-      "default": "/dev/sdc",
+      "default": "/dev/sdb",
       "min": 0,
       "max": 20
     },
@@ -58,7 +58,7 @@
       "required": true,
       "type": "text",
       "variable": "oracle_lv_base_size",
-      "default": "60G",
+      "default": "50G",
       "min": 2,
       "max": 10
     },
@@ -68,7 +68,7 @@
       "required": true,
       "type": "text",
       "variable": "oracle_lv_oradata_size",
-      "default": "10G",
+      "default": "5G",
       "min": 2,
       "max": 10
     },
@@ -78,7 +78,7 @@
       "required": true,
       "type": "text",
       "variable": "oracle_lv_oraarch_size",
-      "default": "5G",
+      "default": "2G",
       "min": 2,
       "max": 10
     },
@@ -88,7 +88,7 @@
       "required": true,
       "type": "text",
       "variable": "oracle_lv_undofile_size",
-      "default": "5G",
+      "default": "2G",
       "min": 2,
       "max": 10
     },
@@ -98,7 +98,7 @@
       "required": true,
       "type": "text",
       "variable": "oracle_lv_tempfile_size",
-      "default": "5G",
+      "default": "2G",
       "min": 2,
       "max": 10
     },

@@ -32,11 +32,11 @@ oracle_oneoff_subpath: "37641958/37643161"
 oracle_post_patch1_id: "38291812"
 oracle_post_patch1_dir: "p{{ oracle_post_patch1_id }}"
 oracle_post_patch1_sub: "{{ oracle_post_patch1_id }}"
-oracle_post_patch1_enabled: true      # set false if patch not present on oracle_patches_src
+oracle_post_patch1_enabled: false     # p38291812 not on AWX /opt/patches — enable when patch uploaded
 
-# Patch 2 — dba_jobs (FIXED — do not change)
-oracle_post_patch2_dir: "p32249704"
-oracle_post_patch2_sub: "32249704"
+# Patch 2 — Oracle 19.30 RU (available on AWX /opt/patches; FIXED — do not change)
+oracle_post_patch2_dir: "p38632161"
+oracle_post_patch2_sub: "38632161"
 
 # Patch 3 — oradism (FIXED — do not change; requires ownership swap around apply)
 oracle_post_patch3_dir: "p34672698"

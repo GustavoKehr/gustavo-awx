@@ -1,0 +1,38 @@
+---
+- name: "Force iSCSI service restart to pick up target write-protect change"
+  hosts: sql_ha_nodes
+  gather_facts: false
+  serial: 1
+
+  tasks:
+    - name: "Restart MSiSCSI service and rescan"
+      ansible.windows.win_shell: |
+        Write-Output "Restarting MSiSCSI service on $env:COMPUTERNAME..."
+        Restart-Service -Name MSiSCSI -Force -ErrorAction Stop
+        Start-Sleep -Seconds 10
+
+        # Rescan storage
+        Update-HostStorageCache
+        Start-Sleep -Seconds 5
+
+        $d = Get-Disk | Where-Object { $_.BusType -eq "iSCSI" -and $_.Size -gt 30GB } | Select-Object -First 1
+        if ($d) {
+          Write-Output "Disk $($d.Number): Offline=$($d.IsOffline) ReadOnly=$($d.IsReadOnly) Part=$($d.PartitionStyle) Health=$($d.HealthStatus)"
+        } else {
+          Write-Output "NO_ISCSI_DISK - waiting longer..."
+          Start-Sleep -Seconds 15
+          Update-HostStorageCache
+          $d2 = Get-Disk | Where-Object { $_.BusType -eq "iSCSI" } | Select-Object -First 1
+          if ($d2) {
+            Write-Output "Disk $($d2.Number): Offline=$($d2.IsOffline) ReadOnly=$($d2.IsReadOnly)"
+          } else {
+            Write-Output "DISK_MISSING"
+            exit 1
+          }
+        }
+      register: _restart
+      changed_when: true
+
+    - name: "Service restart result"
+      ansible.builtin.debug:
+        msg: "{{ _restart.stdout_lines }}"

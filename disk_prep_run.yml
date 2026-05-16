@@ -1,0 +1,83 @@
+---
+- name: "Prepare iSCSI shared disk on sqlvm01"
+  hosts: sqlvm01
+  gather_facts: false
+
+  tasks:
+    - name: "Online disk + clear readonly via diskpart"
+      ansible.windows.win_shell: |
+        $lines = "select disk 2", "online disk", "attributes disk clear readonly"
+        Set-Content -Path C:\ansible_temp\dp_online.txt -Value ($lines -join "`r`n") -Encoding ASCII
+        $out = diskpart /s C:\ansible_temp\dp_online.txt 2>&1
+        Write-Output $out
+        Start-Sleep -Seconds 8
+        $d = Get-Disk -Number 2
+        Write-Output "State: Offline=$($d.IsOffline) ReadOnly=$($d.IsReadOnly) Part=$($d.PartitionStyle)"
+      register: _online
+      changed_when: true
+
+    - name: "Online result"
+      ansible.builtin.debug:
+        msg: "{{ _online.stdout_lines }}"
+
+    - name: "Initialize disk GPT if RAW"
+      ansible.windows.win_shell: |
+        $d = Get-Disk -Number 2
+        Write-Output "Current: Offline=$($d.IsOffline) ReadOnly=$($d.IsReadOnly) Part=$($d.PartitionStyle)"
+        if ($d.PartitionStyle -eq "RAW") {
+          Initialize-Disk -Number 2 -PartitionStyle GPT -ErrorAction Stop
+          Start-Sleep -Seconds 3
+          Write-Output "INITIALIZED"
+        } else {
+          Write-Output "SKIP_$($d.PartitionStyle)"
+        }
+      register: _init
+      changed_when: "'INITIALIZED' in _init.stdout"
+
+    - name: "Init result"
+      ansible.builtin.debug:
+        msg: "{{ _init.stdout_lines }}"
+
+    - name: "Create partition and format NTFS"
+      ansible.windows.win_shell: |
+        $v = Get-Volume -DriveLetter S -ErrorAction SilentlyContinue
+        if ($v) {
+          Write-Output "EXISTS_$($v.FileSystemLabel)"
+        } else {
+          New-Partition -DiskNumber 2 -UseMaximumSize -DriveLetter S -ErrorAction Stop | Out-Null
+          Start-Sleep -Seconds 2
+          Format-Volume -DriveLetter S -FileSystem NTFS -NewFileSystemLabel SQLShared `
+            -AllocationUnitSize 65536 -Force -ErrorAction Stop | Out-Null
+          $v2 = Get-Volume -DriveLetter S
+          Write-Output "FORMATTED_$($v2.FileSystemLabel)_$([math]::Round($v2.Size/1GB,1))GB"
+        }
+      register: _format
+      changed_when: "'FORMATTED' in _format.stdout"
+
+    - name: "Format result"
+      ansible.builtin.debug:
+        msg: "{{ _format.stdout_lines }}"
+
+    - name: "Add disk to cluster"
+      ansible.windows.win_shell: |
+        $ex = Get-ClusterResource -ErrorAction SilentlyContinue |
+          Where-Object { $_.ResourceType -eq "Physical Disk" }
+        if ($ex) {
+          Write-Output "EXISTS_$($ex.Name)_$($ex.State)"
+          exit 0
+        }
+        $av = Get-ClusterAvailableDisk -ErrorAction Stop
+        if (-not $av) {
+          Write-Output "NONE"
+          exit 1
+        }
+        $av | Add-ClusterDisk -ErrorAction Stop | Out-Null
+        $ad = Get-ClusterResource | Where-Object { $_.ResourceType -eq "Physical Disk" }
+        Write-Output "ADDED_$($ad.Name)_$($ad.State)"
+      register: _cdisk
+      changed_when: "'ADDED' in _cdisk.stdout"
+      failed_when: "'NONE' in _cdisk.stdout"
+
+    - name: "Cluster disk result"
+      ansible.builtin.debug:
+        msg: "{{ _cdisk.stdout_lines }}"

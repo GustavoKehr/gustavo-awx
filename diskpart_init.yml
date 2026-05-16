@@ -1,0 +1,111 @@
+---
+- name: "Initialize iSCSI disk via diskpart on sqlvm01"
+  hosts: sqlvm01
+  gather_facts: false
+
+  tasks:
+    - name: "Clear readonly via diskpart and check result"
+      ansible.windows.win_shell: |
+        $v = Get-Volume -DriveLetter S -ErrorAction SilentlyContinue
+        if ($v -and $v.FileSystem -eq 'NTFS') {
+          Write-Output "EXISTS: S: $($v.FileSystemLabel)"
+          exit 0
+        }
+
+        # Step 1: clear readonly only (disk already online)
+        $l1 = @("select disk 2", "attributes disk clear readonly")
+        Set-Content -Path C:\ansible_temp\dp1.txt -Value ($l1 -join "`r`n") -Encoding ASCII
+        $o1 = diskpart /s C:\ansible_temp\dp1.txt 2>&1
+        Write-Output "=== Clear readonly ==="
+        Write-Output $o1
+        Start-Sleep -Seconds 3
+
+        # Verify after
+        $d = Get-Disk -Number 2
+        Write-Output "After clear: ReadOnly=$($d.IsReadOnly) Part=$($d.PartitionStyle)"
+      register: _step1
+      changed_when: true
+
+    - name: "Step 1 result"
+      ansible.builtin.debug:
+        msg: "{{ _step1.stdout_lines }}"
+
+    - name: "Convert GPT via diskpart"
+      ansible.windows.win_shell: |
+        $d = Get-Disk -Number 2
+        if ($d.PartitionStyle -ne 'RAW') {
+          Write-Output "SKIP: already $($d.PartitionStyle)"
+          exit 0
+        }
+
+        # Step 2: convert gpt
+        $l2 = @("select disk 2", "convert gpt")
+        Set-Content -Path C:\ansible_temp\dp2.txt -Value ($l2 -join "`r`n") -Encoding ASCII
+        $o2 = diskpart /s C:\ansible_temp\dp2.txt 2>&1
+        Write-Output "=== Convert GPT ==="
+        Write-Output $o2
+        Start-Sleep -Seconds 3
+
+        $d2 = Get-Disk -Number 2
+        Write-Output "After convert: Part=$($d2.PartitionStyle) ReadOnly=$($d2.IsReadOnly)"
+      register: _step2
+      changed_when: true
+
+    - name: "Step 2 result"
+      ansible.builtin.debug:
+        msg: "{{ _step2.stdout_lines }}"
+
+    - name: "Create partition and assign S via diskpart"
+      ansible.windows.win_shell: |
+        $d = Get-Disk -Number 2
+        if ($d.PartitionStyle -ne 'GPT') {
+          Write-Output "FAIL: disk not GPT, is $($d.PartitionStyle)"
+          exit 1
+        }
+
+        $v = Get-Volume -DriveLetter S -ErrorAction SilentlyContinue
+        if ($v) {
+          Write-Output "S: already exists"
+          exit 0
+        }
+
+        $l3 = @("select disk 2", "create partition primary", "assign letter=s")
+        Set-Content -Path C:\ansible_temp\dp3.txt -Value ($l3 -join "`r`n") -Encoding ASCII
+        $o3 = diskpart /s C:\ansible_temp\dp3.txt 2>&1
+        Write-Output "=== Create partition ==="
+        Write-Output $o3
+        Start-Sleep -Seconds 3
+        Write-Output "PARTITION_DONE"
+      register: _step3
+      changed_when: "'PARTITION_DONE' in _step3.stdout"
+
+    - name: "Step 3 result"
+      ansible.builtin.debug:
+        msg: "{{ _step3.stdout_lines }}"
+
+    - name: "Format S: drive NTFS"
+      ansible.windows.win_shell: |
+        $v = Get-Volume -DriveLetter S -ErrorAction SilentlyContinue
+        if ($v -and $v.FileSystem -eq 'NTFS') {
+          Write-Output "EXISTS: S: $($v.FileSystemLabel)"
+          exit 0
+        }
+        if (-not $v) {
+          Write-Output "NO_VOLUME_S: partition may not have drive letter"
+          # Try to find the raw partition
+          $part = Get-Partition -DiskNumber 2 -ErrorAction SilentlyContinue | Select-Object -Last 1
+          if ($part) {
+            Write-Output "Found partition: $($part.PartitionNumber) type=$($part.Type) letter=$($part.DriveLetter)"
+          }
+          exit 1
+        }
+        Format-Volume -DriveLetter S -FileSystem NTFS -NewFileSystemLabel SQLShared `
+          -AllocationUnitSize 65536 -Force -Confirm:$false -ErrorAction Stop | Out-Null
+        $v2 = Get-Volume -DriveLetter S
+        Write-Output "FORMATTED: S: $($v2.FileSystemLabel) $([math]::Round($v2.Size/1GB,1))GB"
+      register: _format
+      changed_when: "'FORMATTED' in _format.stdout"
+
+    - name: "Format result"
+      ansible.builtin.debug:
+        msg: "{{ _format.stdout_lines }}"

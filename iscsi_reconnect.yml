@@ -1,0 +1,47 @@
+---
+- name: "Reconnect iSCSI session to pick up write-protect change"
+  hosts: sql_ha_nodes
+  gather_facts: false
+
+  tasks:
+    - name: "Disconnect and reconnect iSCSI target"
+      ansible.windows.win_shell: |
+        # Disconnect existing sessions to sqlshared target
+        $target = "iqn.2025-01.lab.gustavo:sqlshared"
+        $portal = "192.168.137.148"
+
+        $sessions = Get-IscsiSession -ErrorAction SilentlyContinue |
+          Where-Object { $_.TargetNodeAddress -like "*sqlshared*" }
+        foreach ($s in $sessions) {
+          Write-Output "Disconnecting session: $($s.SessionIdentifier)"
+          Disconnect-IscsiTarget -SessionIdentifier $s.SessionIdentifier -Confirm:$false -ErrorAction SilentlyContinue
+        }
+        Start-Sleep -Seconds 3
+
+        # Reconnect
+        $conn = Connect-IscsiTarget -NodeAddress $target `
+          -TargetPortalAddress $portal `
+          -IsPersistent $true `
+          -IsMultipathEnabled $false `
+          -ErrorAction Stop
+        Write-Output "Connected: $($conn.IsConnected) SessionId=$($conn.SessionIdentifier)"
+        Start-Sleep -Seconds 5
+
+        # Rescan
+        Update-HostStorageCache
+        Start-Sleep -Seconds 3
+
+        # Check disk
+        $d = Get-Disk | Where-Object { $_.BusType -eq "iSCSI" -and $_.Size -gt 30GB } | Select-Object -First 1
+        if ($d) {
+          Write-Output "Disk $($d.Number): Offline=$($d.IsOffline) ReadOnly=$($d.IsReadOnly) Part=$($d.PartitionStyle)"
+        } else {
+          Write-Output "NO_ISCSI_DISK_FOUND"
+          exit 1
+        }
+      register: _reconnect
+      changed_when: true
+
+    - name: "Reconnect result"
+      ansible.builtin.debug:
+        msg: "{{ _reconnect.stdout_lines }}"

@@ -1,0 +1,96 @@
+---
+# Prepare iSCSI shared disk on primary node, then add to WSFC cluster.
+# Run only on primary node (enforced in playbook).
+# Disk 2 = LIO-ORG sqlshared 40GB iSCSI disk.
+
+- name: "Bring shared disk online and clear read-only"
+  ansible.windows.win_shell: |
+    $disk = Get-Disk -Number 2 -ErrorAction Stop
+    if ($disk.IsOffline) {
+      Set-Disk -Number 2 -IsOffline $false
+    }
+    if ($disk.IsReadOnly) {
+      Set-Disk -Number 2 -IsReadOnly $false
+    }
+    $disk = Get-Disk -Number 2
+    Write-Output "Disk 2 - Offline:$($disk.IsOffline) ReadOnly:$($disk.IsReadOnly) PartStyle:$($disk.PartitionStyle)"
+  register: _disk_online
+  changed_when: true
+
+- name: "Show disk state"
+  ansible.builtin.debug:
+    msg: "{{ _disk_online.stdout_lines }}"
+
+- name: "Initialize disk GPT if RAW"
+  ansible.windows.win_shell: |
+    $disk = Get-Disk -Number 2 -ErrorAction Stop
+    if ($disk.PartitionStyle -eq 'RAW') {
+      Initialize-Disk -Number 2 -PartitionStyle GPT -ErrorAction Stop
+      Write-Output "INITIALIZED"
+    } else {
+      Write-Output "ALREADY_INITIALIZED: $($disk.PartitionStyle)"
+    }
+  register: _disk_init
+  changed_when: "'INITIALIZED' in _disk_init.stdout"
+
+- name: "Create partition and format NTFS (drive letter S)"
+  ansible.windows.win_shell: |
+    # Check if S: already exists
+    $vol = Get-Volume -DriveLetter S -ErrorAction SilentlyContinue
+    if ($vol) {
+      Write-Output "EXISTS: S: already formatted - $($vol.FileSystemLabel)"
+      exit 0
+    }
+    # Create partition using full disk size
+    $part = New-Partition -DiskNumber 2 -UseMaximumSize -DriveLetter S -ErrorAction Stop
+    # Format NTFS with 64K allocation unit (recommended for SQL Server)
+    Format-Volume -DriveLetter S -FileSystem NTFS -NewFileSystemLabel SQLShared `
+      -AllocationUnitSize 65536 -Force -ErrorAction Stop | Out-Null
+    Write-Output "FORMATTED: S: SQLShared NTFS 64K"
+  register: _disk_format
+  changed_when: "'FORMATTED' in _disk_format.stdout"
+
+- name: "Verify S: drive"
+  ansible.windows.win_shell: |
+    $v = Get-Volume -DriveLetter S -ErrorAction SilentlyContinue
+    if ($v) {
+      Write-Output "OK: S: $($v.FileSystemLabel) $($v.FileSystem) SizeRemaining=$([math]::Round($v.SizeRemaining/1GB,1))GB"
+    } else {
+      Write-Output "MISSING: S: drive not found"
+      exit 1
+    }
+  register: _disk_verify
+  changed_when: false
+  failed_when: "'MISSING' in _disk_verify.stdout"
+
+- name: "Show S: drive status"
+  ansible.builtin.debug:
+    msg: "{{ _disk_verify.stdout_lines }}"
+
+- name: "Add shared disk to WSFC cluster"
+  ansible.windows.win_shell: |
+    # Check if already a cluster disk
+    $clusterDisks = Get-ClusterResource -ErrorAction SilentlyContinue |
+      Where-Object { $_.ResourceType -eq 'Physical Disk' }
+    if ($clusterDisks) {
+      Write-Output "EXISTS: cluster disk(s) already present"
+      $clusterDisks | ForEach-Object { Write-Output "  $($_.Name) - $($_.State)" }
+      exit 0
+    }
+    # Get available disks eligible for cluster
+    $available = Get-ClusterAvailableDisk -ErrorAction Stop
+    if (-not $available) {
+      Write-Output "NONE: no available disks for cluster"
+      exit 1
+    }
+    $available | Add-ClusterDisk -ErrorAction Stop | Out-Null
+    Write-Output "ADDED: disk(s) added to cluster"
+    Get-ClusterResource | Where-Object { $_.ResourceType -eq 'Physical Disk' } |
+      ForEach-Object { Write-Output "  $($_.Name) - $($_.State)" }
+  register: _cluster_disk
+  changed_when: "'ADDED' in _cluster_disk.stdout"
+  failed_when: "'NONE' in _cluster_disk.stdout"
+
+- name: "Show cluster disk result"
+  ansible.builtin.debug:
+    msg: "{{ _cluster_disk.stdout_lines }}"

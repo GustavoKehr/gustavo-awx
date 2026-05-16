@@ -77,3 +77,10 @@
         tasks_from: 05_quorum_witness.yml
       tags: [wsfc, wsfc_quorum]
       when: inventory_hostname == wsfc_primary_node | default('sqlvm01')
+
+    - name: "Prepare shared iSCSI disk and add to cluster"
+      ansible.builtin.include_role:
+        name: wsfc_setup
+        tasks_from: 06_shared_disk.yml
+      tags: [wsfc, wsfc_shared_disk]
+      when: inventory_hostname == wsfc_primary_node | default('sqlvm01')

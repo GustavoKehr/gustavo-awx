@@ -31,9 +31,27 @@
     state: present
   register: _iso_mount
 
+- name: "Find mounted ISO drive letter"
+  ansible.windows.win_shell: |
+    $isoPath = '{{ fci_temp_dir }}' + '\SQLServer.iso'
+    $iso = Get-DiskImage -ImagePath $isoPath -ErrorAction SilentlyContinue
+    if ($iso) {
+      $vol = $iso | Get-Volume -ErrorAction SilentlyContinue
+      if ($vol -and $vol.DriveLetter) {
+        $sep = [System.IO.Path]::DirectorySeparatorChar
+        Write-Output ($vol.DriveLetter.ToString() + ':' + $sep)
+        exit 0
+      }
+    }
+    Write-Output 'NOT_FOUND'
+    exit 1
+  register: _iso_drive_result
+  changed_when: false
+  failed_when: "'NOT_FOUND' in _iso_drive_result.stdout"
+
 - name: "Set ISO drive letter fact"
   ansible.builtin.set_fact:
-    _iso_drive: "{{ _iso_mount.mount_path }}"
+    _iso_drive: "{{ _iso_drive_result.stdout | trim }}"
 
 # --- Shared disk initialization (primary only) ---
 - name: "Initialize iSCSI shared disk (primary only)"
