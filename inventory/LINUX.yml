@@ -23,6 +23,8 @@ all:
           postgres_port: 15432
         awxvm:
           ansible_host: 192.168.137.153
+        otvm:
+          ansible_host: 192.168.137.139
     sql_ha_nodes:
       vars:
         ansible_connection: winrm
