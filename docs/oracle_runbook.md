@@ -14,7 +14,7 @@ Guia prático para instalar Oracle 19c e gerenciar usuários via AWX Job Templat
 
 O playbook usa **dois diretórios** no AWX VM como source do rsync:
 
-**`/opt/oracle/`** — installer zip, RPM, libnsl:
+**`/opt/oracle/`** — installer zip, RPM, libnsl, OS Watcher:
 ```bash
 ls -la /opt/oracle/
 ```
@@ -24,6 +24,7 @@ ls -la /opt/oracle/
 | `LINUX.X64_193000_db_home.zip` | Arquivo | Binários Oracle 19c (~3 GB) |
 | `oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm` | Arquivo | RPM de pré-requisitos RHEL 9 |
 | `libnsl_libs/` | Diretório | `libnsl.so.1` e `libnsl.so.2` — copiados para `/usr/lib64/` no target se ausentes |
+| `oswbb840.tar` | Arquivo | OS Watcher (OSWbb) — obrigatório para Phase 6c (`oracle_oswatcher`) |
 
 **`/opt/patches/`** — OPatch e todos os patches:
 ```bash
@@ -44,7 +45,7 @@ ls -la /opt/patches/
 - VM ligada e acessível via SSH
 - Usuário `user_aap` com sudo NOPASSWD
 - Mínimo **6 GB RAM** (SGA 40% = ~2.4 GB em VM 6 GB; menos causa ORA-27072 AIO EINTR)
-- Disco adicional em `/dev/sdc` (≥ 85 GB para defaults: 60+10+5+5+5+1+1+1+1 GB)
+- Disco adicional em `/dev/sdb` (≥ 65 GB para defaults: 50+5+2+2+2+1+1+1+1 GB)
 
 ### 3. AWX Execution Environment
 
@@ -104,6 +105,7 @@ EE precisa montar `/opt/oracle` e `/opt/patches` do host awxvm (configurado via 
 | `oracle_patches` | 5 | opatch: p38632161(19.30 RU) → oradism chown → p34672698(oradism) → oradism restore | 5-15 min |
 | `oracle_dbcreate` | 6 | orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → Users_and_Objects.sql | 10-20 min |
 | `oracle_netcfg` | 6b | listener.ora / tnsnames.ora / sqlnet.ora + lsnrctl LISTENER_\<SID\> + ALTER SYSTEM REGISTER | < 1 min |
+| `oracle_oswatcher` | 6c | Transfer `oswbb840.tar` de awxvm → target + extract + systemd `oswatcher.service` enable+start. Também: check/start via `oracle_configuration_check.yml` | 1-2 min |
 | `oracle_configuration_check` | 7 | security/config checks + auto-remediation + SHUTDOWN/STARTUP (quando `create_initial_db=true` e `oracle_configuration_check_enabled=true`) | 2-5 min |
 | `oracle_manage_users` | 8 | gestão de usuários Oracle (quando `oracle_manage_users_enabled=true`) | 1-3 min |
 | `db_patches` | 9 | patch discovery — sem apply (`db_patches_enabled=false` por padrão) | 1-2 min |
@@ -207,7 +209,34 @@ Requer `create_initial_db=true` e `oracle_configuration_check_enabled=true` (def
 
 ---
 
-### Cenário 3d: Executar security audit (Phase 10)
+### Cenário 3d: Instalar / verificar OS Watcher
+
+**Quando usar:** OSW não instalado ou não rodando. Instala e registra como systemd service.
+
+**Via AWX (JT "ORACLE | Configuration Check", tag `oracle_oswatcher`):**
+- JT 27, limit: host alvo, tag: `oracle_oswatcher`, extra vars: `oracle_sid: <SID>`
+
+**Via CLI:**
+```bash
+# Instalação standalone (Phase 6c do deploy_oracle.yml):
+ansible-playbook playbooks/deploy_oracle.yml --tags oracle_oswatcher \
+  -e oracle_sid=AWOR -l oraclevm
+
+# Ou via oracle_configuration_check.yml (instala + verifica processo):
+ansible-playbook playbooks/oracle_configuration_check.yml \
+  --tags oracle_oswatcher -e oracle_sid=AWOR -l oraclevm
+```
+
+**Verificar:**
+```bash
+systemctl status oswatcher.service
+pgrep -a -f "startOSWbb.sh"
+ls /home/oracle/oswbb/startOSWbb.sh
+```
+
+---
+
+### Cenário 3e: Executar security audit (Phase 10)
 
 **Quando usar:** Auditoria de segurança pós-instalação ou verificação periódica de compliance.
 
@@ -217,6 +246,7 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_security \
 ```
 
 > **Nota:** `oracle_security_check_enabled` default é `false` — deve ser explicitamente ativado.
+> Para check combinado (config + security + report HTML), usar `oracle_configuration_check.yml` sem tags.
 
 ---
 
@@ -254,28 +284,44 @@ Patch discovery: lista patches Oracle disponíveis em `/opt/patches/` sem aplica
 
 ### Phase 10 — oracle_security (standalone)
 
-Auditoria de segurança completa via `playbooks/oracle_configuration_check.yml` (inclui oracle_configuration_check + oracle_security_check):
+Auditoria de segurança via `oracle_security_check` role. Roda automaticamente dentro de `oracle_configuration_check.yml`.
 
+**Recomendado — check combinado (config + security + report):**
 ```bash
 ansible-playbook playbooks/oracle_configuration_check.yml \
   -e oracle_sid=AWOR -e oracle_allow_restart=false -l oraclevm
+```
+
+**Somente security audit via deploy_oracle.yml:**
+```bash
+ansible-playbook playbooks/deploy_oracle.yml --tags oracle_security \
+  -e oracle_security_check_enabled=true -l oraclevm
 ```
 
 Relatório HTML: `reports/oracle_config_check_<SID>_<date>.html`
 
 ---
 
-## Job Template AWX — Configuration & Security Check
+## Job Template AWX — Configuration Check (ID 27)
 
 | Campo AWX | Valor |
 |---|---|
-| **Name** | `ORACLE \| Configuration & Security Check` |
+| **Name** | `ORACLE \| Configuration Check` |
 | **Playbook** | `playbooks/oracle_configuration_check.yml` |
 | **Inventory** | `LINUX` |
 | **Credentials** | `Machine: user_aap` |
-| **Limit** | `oraclevm` |
-| **Extra Variables** | `oracle_sid: AWOR` |
-| **Tags** | *(vazio — roda ambas as fases)* |
+| **Limit** | *(prompt on launch)* |
+| **Survey** | `oracle_sid` (text, default: `AWOR`) · `oracle_allow_restart` (multiplechoice, default: `false`) |
+| **Tags** | *(vazio = config + security + report)* · `oracle_oswatcher` = só OSW install/check |
+
+**Fases executadas (sem tag):**
+- Phase 0: instala OSW se não presente (`oracle_oswatcher`)
+- Phase 1: oracle_configuration_check + auto-remediation + report HTML
+- Phase 2: oracle_security_check
+
+**Tag `oracle_oswatcher` apenas:**
+- Phase 0: transfer + install + systemd service
+- Phase 1 / 5.3: verifica processo, inicia via systemd se parado
 
 ---
 
@@ -587,6 +633,7 @@ oracle_open_cursors: 3000
 2. Ao invés de criar campo por campo, usar a API de import:
    - Ir em **Templates** → selecionar o JT → **...** (kebab menu) → **Survey** não tem import direto na UI
    - **Alternativa via UI:** criar cada campo manualmente conforme tabela abaixo
+   - **Nota:** AWX project configurado para branch `main` do repositório `GustavoKehr/gustavo-awx`
 
 | # | Question Name | Variable | Type | Default | Required | Min | Max |
 |---|---|---|---|---|---|---|---|
@@ -611,11 +658,11 @@ oracle_open_cursors: 3000
 | 19 | TS_\<SID\>_DAT01 datafiles | `ts_sid_dat_datafiles` | Integer | `1` | Não | 1 | 10 |
 | 20 | TS_\<SID\>_IDX01 datafiles | `ts_sid_idx_datafiles` | Integer | `1` | Não | 1 | 10 |
 
-> **Alternativa:** importar o JSON completo via curl (uma linha, sem API browser):
+> **Alternativa:** importar o JSON completo via curl (AWX usa HTTP, porta 31911):
 > ```bash
 > # Na awxvm — substitua <JT_ID> pelo ID do Job Template criado
-> curl -sk -u admin:suasenha \
->   -X POST https://localhost/api/v2/job_templates/<JT_ID>/survey_spec/ \
+> curl -u admin:suasenha \
+>   -X POST http://192.168.137.153:31911/api/v2/job_templates/<JT_ID>/survey_spec/ \
 >   -H "Content-Type: application/json" \
 >   -d @/home/user_aap/gustavo-awx/playbooks/awx_survey_oracle_install.json
 > ```
@@ -648,12 +695,13 @@ ls -la /opt/patches/p6880880/OPatch/
 ls -la /opt/patches/p37641958/
 ls -la /opt/patches/p38632161/
 ls -la /opt/patches/p34672698/
+ls -la /opt/oracle/oswbb840.tar
 
 # SSH no target (ex: oraclevm-fresh 192.168.137.165):
 ssh user_aap@192.168.137.165
 df -h           # confirmar disco livre
 free -m         # confirmar RAM
-lsblk           # confirmar /dev/sdc disponível
+lsblk           # confirmar /dev/sdb disponível
 ```
 
 ---

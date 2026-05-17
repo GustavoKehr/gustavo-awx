@@ -57,15 +57,15 @@ O role usa **dois diretórios source** no host `awxvm`:
 | `LINUX.X64_193000_db_home.zip` | Binários Oracle 19c | ~3 GB |
 | `oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm` | RPM de pré-requisitos RHEL 9 | ~25 KB |
 | `libnsl_libs/` | `libnsl.so.1` + `libnsl.so.2` (ausentes em RHEL 9 minimal) | ~200 KB |
+| `oswbb840.tar` | OS Watcher (OSWbb) — monitoramento de SO em tempo real | ~2 MB |
 
 **`/opt/patches/`** — OPatch e patches:
 
 | Item | Descrição | Tamanho aprox. |
 |---|---|---|
 | `p6880880/` | Substituto do OPatch (versão mais nova que a do ZIP) | ~200 MB |
-| `p37641958/` | Bundle legado — transferido para o target (legacy bundle — runInstaller no longer uses it directly; still required in /opt/patches/) | ~3 GB |
-| `p38291812/` | Patch pós-instalação 1 (opcional — `oracle_post_patch1_enabled: false` por padrão) | varia |
-| `p38632161/` | Usado como `-applyRU` no runInstaller (Oracle 19.30 — required for RHEL9/GCC11 compilation). Também aplicado standalone via opatch. | varia |
+| `p37641958/` | Bundle legado — ainda transferido para o target via rsync, mas **não** usado como `-applyRU` no runInstaller. Manter em `/opt/patches/`. | ~3 GB |
+| `p38632161/` | Usado como `-applyRU` no runInstaller (Oracle 19.30 — required for RHEL9/GCC11). Também aplicado standalone via opatch pós-install. | varia |
 | `p34672698/` | Patch oradism (post_patch3) — aplicado via opatch pós-install | varia |
 
 **Verificar antes de iniciar:**
@@ -86,14 +86,15 @@ ls -la /opt/patches/
 10 fases sequenciais (fases 7-9 opcionais/automáticas). Cada fase depende da anterior.
 
 ```
-Phase 0:  oracle_storage              → PV/VG/LV creation, mkfs.xfs, mount
+Phase 0:  oracle_storage              → PV/VG/LV creation, mkfs.xfs, mount + fstab (noatime,nodiratime,nofail)
 Phase 1:  oracle_prereqs              → RPM, libnsl, hugepages, calc SGA/PGA, sysctl, RHEL9 workaround
 Phase 2:  oracle_dirs                 → diretórios, bash_profile, init.ora, SQL scripts de criação
 Phase 3:  oracle_transfer             → rsync installer + OPatch + RU + post-patches (~8 GB) para /home/oracle/software
 Phase 4:  oracle_install_sw           → unzip + swap OPatch + runInstaller -applyRU p38632161 (sem -applyOneOffs) + root.sh
 Phase 5:  oracle_patches              → opatch: post2(p38632161/19.30) → oradism chown → post3(p34672698) → oradism restore
-Phase 6:  oracle_dbcreate             → orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → Users_and_Objects.sql
+Phase 6:  oracle_dbcreate             → orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → verify_function_12C → Users_and_Objects.sql
 Phase 6b: oracle_netcfg              → listener.ora / tnsnames.ora / sqlnet.ora + lsnrctl LISTENER_<SID> + ALTER SYSTEM REGISTER
+Phase 6c: oracle_oswatcher           → transfer oswbb840.tar + instalar OSW em /home/oracle/oswbb + systemd oswatcher.service
 Phase 7:  oracle_configuration_check → security/config checks + auto-remediation + SHUTDOWN/STARTUP (auto quando create_initial_db=true)
 Phase 8:  oracle_manage_users         → gestão de usuários Oracle (quando oracle_manage_users_enabled=true)
 Phase 9:  db_patches                  → patch discovery, sem apply (quando db_patches_enabled=true)
@@ -114,6 +115,7 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_install_sw
 ansible-playbook playbooks/deploy_oracle.yml --tags oracle_patches
 ansible-playbook playbooks/deploy_oracle.yml --tags oracle_dbcreate
 ansible-playbook playbooks/deploy_oracle.yml --tags oracle_netcfg
+ansible-playbook playbooks/deploy_oracle.yml --tags oracle_oswatcher
 ansible-playbook playbooks/deploy_oracle.yml --tags oracle_configuration_check
 ansible-playbook playbooks/deploy_oracle.yml --tags oracle_manage_users -e oracle_manage_users_enabled=true
 ansible-playbook playbooks/deploy_oracle.yml --tags db_patches -e db_patches_enabled=true
@@ -215,6 +217,24 @@ Exemplo com SGA=2G: `ceil(2048 / 2) × 1.1 = 1024 × 1.1 = 1126 páginas`
 | `oracle_system_password` | **Sim** (tipo: password) | *(empty — obrigatório)* | Senha do usuário SYSTEM. Coletada via survey. |
 
 > **Importante:** As senhas SYS e SYSTEM estão no survey de instalação (campos tipo `password`). O AWX mascara os valores nos logs. Não é necessário setar via extra vars — o survey já cobre isso.
+
+### OS Watcher
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `oracle_oswatcher_tar` | `oswbb840.tar` | Nome do tar do OSWbb em `/opt/oracle/` no awxvm. |
+| `oracle_osw_path` | `/home/oracle/oswbb` | Diretório de instalação no target. |
+| `oracle_osw_interval` | `30` | Intervalo de coleta em segundos. |
+| `oracle_osw_archive_hours` | `720` | Horas de retenção dos arquivos coletados (30 dias). |
+
+O serviço systemd `oswatcher.service` é criado na Phase 6c (`oracle_oswatcher`) e gerenciado via `systemctl`. Idempotente: skip se `startOSWbb.sh` já presente.
+
+```bash
+# Verificar status no target:
+systemctl status oswatcher.service
+```
+
+---
 
 ### Controle de Fase e Tablespace Datafiles
 
@@ -415,6 +435,7 @@ O RU aplicado é sempre `p38632161/38632161` (Oracle 19.30). Não há `-applyOne
 | `oracle_patches` | opatch: p38632161 (19.30 RU) → oradism chown → p34672698 (oradism) → oradism restore (Phase 5) |
 | `oracle_dbcreate` | Criação do banco, catalog, datapatch, SPFILE (Phase 6) |
 | `oracle_netcfg` | listener.ora / tnsnames.ora / sqlnet.ora + lsnrctl LISTENER_\<SID\> (Phase 6b) |
+| `oracle_oswatcher` | Instalar OS Watcher: transfer tar + extract + systemd oswatcher.service (Phase 6c). Também: check/start via oracle_configuration_check.yml |
 | `oracle_security` | Security audit via oracle_security_check role (Phase 10 — requer `oracle_security_check_enabled=true`) |
 | `oracle_users` | Ciclo de gestão de usuários |
 | `oracle_users_validate` | Validação de variáveis de usuário |

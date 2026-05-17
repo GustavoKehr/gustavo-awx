@@ -17,7 +17,7 @@ Referência central: qual playbook, tags e arquivo de survey usar para cada oper
 | `SQLSERVER \| Deploy Base` | `deploy_sqlserver.yml` | *(vazio)* | Não obrigatório |
 | `SQLSERVER \| Manage Users` | `manage_sqlserver_users.yml` | `sql_users` | `awx_survey_sqlserver_manage_users.json` |
 | `ORACLE \| Deploy` | `deploy_oracle.yml` | *(vazio — all phases)* | `awx_survey_oracle_install.json` |
-| `ORACLE \| Configuration & Security Check` | `oracle_configuration_check.yml` | *(vazio — config + security)* | *(sem survey — extra vars: `oracle_sid`, `oracle_allow_restart`)* |
+| `ORACLE \| Configuration Check` | `oracle_configuration_check.yml` | *(vazio = config+security+report)* · `oracle_oswatcher` = OSW install/check | survey: `oracle_sid` (text) · `oracle_allow_restart` (bool) |
 | `ORACLE \| Manage Users` | `manage_oracle_users.yml` | `oracle_users` | `awx_survey_oracle_manage_users.json` |
 | `DB \| Patch Discovery` | qualquer engine | `db_patches` | *(vars manuais)* |
 | `SQL Server HA \| VM Provisioning` | `provision_sqlha_vms.yml` | *(vazio)* | `awx_survey_sqlha_provisioning.json` |
