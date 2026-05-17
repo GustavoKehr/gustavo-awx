@@ -25,16 +25,13 @@
     _sec_5_3_compliant: "{{ _sec_5_3_installed.stat.exists and (_sec_5_3_result.stdout | default('stopped')) == 'running' }}"
   tags: [oracle_configuration_check, sec_op, sec_5_3, oracle_oswatcher]
 
-- name: "5.3 - [FIX] Start OS Watcher"
-  ansible.builtin.shell: |
-    cd "{{ oracle_osw_path }}"
-    nohup ./startOSWbb.sh {{ oracle_osw_interval }} {{ oracle_osw_archive_hours }} > /dev/null 2>&1 &
-    sleep 2
-    pgrep -f "startOSWbb.sh" > /dev/null 2>&1 && echo started || echo failed
+- name: "5.3 - [FIX] Start OS Watcher via systemd"
+  ansible.builtin.systemd:
+    name: oswatcher
+    state: started
+    enabled: true
   register: _sec_5_3_start
-  changed_when: "'started' in _sec_5_3_start.stdout"
   become: true
-  become_user: "{{ oracle_os_user }}"
   when:
     - _sec_5_3_installed.stat.exists
     - not _sec_5_3_compliant

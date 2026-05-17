@@ -92,7 +92,43 @@
   when: not _osw_verify.stat.exists
   tags: oracle_oswatcher
 
+- name: "OSW | Deploy systemd service unit"
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/oswatcher.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Oracle OS Watcher (OSWbb)
+      After=network.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      User=oracle
+      Group=oinstall
+      WorkingDirectory={{ oracle_osw_path }}
+      ExecStart=/bin/bash {{ oracle_osw_path }}/startOSWbb.sh {{ oracle_osw_interval }} {{ oracle_osw_archive_hours }}
+      ExecStop=/bin/bash {{ oracle_osw_path }}/stopOSWbb.sh
+
+      [Install]
+      WantedBy=multi-user.target
+  tags: oracle_oswatcher
+
+- name: "OSW | Reload systemd daemon"
+  ansible.builtin.systemd:
+    daemon_reload: true
+  tags: oracle_oswatcher
+
+- name: "OSW | Enable and start oswatcher service"
+  ansible.builtin.systemd:
+    name: oswatcher
+    enabled: true
+    state: started
+  tags: oracle_oswatcher
+
 - name: "OSW | Installation summary"
   ansible.builtin.debug:
-    msg: "OS Watcher installed at {{ oracle_osw_path }} (startOSWbb.sh present)"
+    msg: "OS Watcher installed at {{ oracle_osw_path }} and running via systemd oswatcher.service"
   tags: oracle_oswatcher
