@@ -16,6 +16,12 @@
         tasks_from: 07_network_config.yml
       tags: [oracle, oracle_netcfg]
 
+    - name: "Phase 6c: OS Watcher installation"
+      ansible.builtin.include_role:
+        name: oracle_install
+        tasks_from: 08_oswatcher.yml
+      tags: [oracle, oracle_oswatcher]
+
     - name: "Phase 7: Configuration check and remediation (oracle_configuration_check)"
       ansible.builtin.include_role:
         name: oracle_configuration_check

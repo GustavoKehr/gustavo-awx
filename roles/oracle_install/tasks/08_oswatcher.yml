@@ -1,0 +1,91 @@
+---
+# Phase 8 — OS Watcher Installation
+# Transfers oswbb tar from awxvm /opt/oracle and installs to oracle_osw_path.
+# Idempotent: skips if startOSWbb.sh already present at oracle_osw_path.
+
+- name: "OSW | Check if OS Watcher already installed"
+  ansible.builtin.stat:
+    path: "{{ oracle_osw_path }}/startOSWbb.sh"
+  register: _osw_installed
+  tags: oracle_oswatcher
+
+- name: "OSW | Check tar source exists on awxvm"
+  ansible.builtin.stat:
+    path: "{{ oracle_software_src }}/{{ oracle_oswatcher_tar }}"
+  delegate_to: awxvm
+  become: false
+  register: _osw_tar_stat
+  when: not _osw_installed.stat.exists
+  tags: oracle_oswatcher
+
+- name: "OSW | Abort if tar not found on awxvm"
+  ansible.builtin.fail:
+    msg: >-
+      OS Watcher tar not found: {{ oracle_software_src }}/{{ oracle_oswatcher_tar }} on awxvm.
+      Upload the file before running this phase.
+  when:
+    - not _osw_installed.stat.exists
+    - not _osw_tar_stat.stat.exists
+  tags: oracle_oswatcher
+
+- name: "OSW | Transfer tar from awxvm to target"
+  ansible.builtin.shell: |
+    rsync -az \
+      -e "ssh -i ~/.ssh/id_user_aap -o StrictHostKeyChecking=no" \
+      {{ oracle_software_src }}/{{ oracle_oswatcher_tar }} \
+      user_aap@{{ ansible_host }}:/tmp/{{ oracle_oswatcher_tar }}
+  delegate_to: awxvm
+  become: false
+  when: not _osw_installed.stat.exists
+  changed_when: true
+  tags: oracle_oswatcher
+
+- name: "OSW | Create install directory"
+  ansible.builtin.file:
+    path: "{{ oracle_osw_path }}"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: "0750"
+  when: not _osw_installed.stat.exists
+  tags: oracle_oswatcher
+
+- name: "OSW | Extract tar to install directory"
+  ansible.builtin.shell: |
+    cd "{{ oracle_osw_path }}"
+    tar -xf /tmp/{{ oracle_oswatcher_tar }} --strip-components=1
+    rm -f /tmp/{{ oracle_oswatcher_tar }}
+  become: true
+  become_user: oracle
+  when: not _osw_installed.stat.exists
+  changed_when: true
+  tags: oracle_oswatcher
+
+- name: "OSW | Fix ownership"
+  ansible.builtin.file:
+    path: "{{ oracle_osw_path }}"
+    state: directory
+    owner: oracle
+    group: oinstall
+    recurse: true
+  when: not _osw_installed.stat.exists
+  tags: oracle_oswatcher
+
+- name: "OSW | Verify installation"
+  ansible.builtin.stat:
+    path: "{{ oracle_osw_path }}/startOSWbb.sh"
+  register: _osw_verify
+  tags: oracle_oswatcher
+
+- name: "OSW | Abort if startOSWbb.sh not found after install"
+  ansible.builtin.fail:
+    msg: >-
+      startOSWbb.sh not found at {{ oracle_osw_path }} after extraction.
+      Check if {{ oracle_oswatcher_tar }} has the expected oswbb structure.
+  when: not _osw_verify.stat.exists
+  tags: oracle_oswatcher
+
+- name: "OSW | Installation summary"
+  ansible.builtin.debug:
+    msg: "OS Watcher installed at {{ oracle_osw_path }} (startOSWbb.sh present)"
+  tags: oracle_oswatcher
