@@ -10,6 +10,12 @@
         name: oracle_install
       tags: [oracle, oracle_install]
 
+    - name: "Phase 6b: Network configuration (listener.ora / tnsnames.ora / sqlnet.ora)"
+      ansible.builtin.include_role:
+        name: oracle_install
+        tasks_from: 07_network_config.yml
+      tags: [oracle, oracle_netcfg]
+
     - name: "Phase 7: Configuration check and remediation (oracle_configuration_check)"
       ansible.builtin.include_role:
         name: oracle_configuration_check

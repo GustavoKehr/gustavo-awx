@@ -36,7 +36,3 @@
   ansible.builtin.include_tasks: 06_create_database.yml
   when: create_initial_db | default(true) | bool
   tags: [oracle, oracle_dbcreate]
-
-- name: "ORACLE | Phase 7 - Network configuration (listener.ora / tnsnames.ora / sqlnet.ora)"
-  ansible.builtin.include_tasks: 07_network_config.yml
-  tags: [oracle, oracle_netcfg]
