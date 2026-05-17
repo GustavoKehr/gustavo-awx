@@ -23,5 +23,5 @@ all:
           postgres_port: 15432
         awxvm:
           ansible_host: 192.168.137.153
-        otvm:
+        otvm-001:
           ansible_host: 192.168.137.139
