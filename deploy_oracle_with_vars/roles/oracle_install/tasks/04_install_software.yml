@@ -88,8 +88,6 @@
     export ORACLE_HOSTNAME=$(hostname)
     cd "{{ oracle_home }}"
     ./runInstaller \
-      -applyRU {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_ru_subpath }} \
-      -applyOneOffs {{ oracle_software_dst }}/{{ oracle_ru_patch_dir }}/{{ oracle_oneoff_subpath }} \
       -silent \
       -responseFile {{ oracle_home }}/install/response/db_install.rsp \
       -ignorePrereq \
