@@ -18,13 +18,10 @@ all:
         mysqlvm:
           ansible_host: 192.168.137.160
           mysql_port: 13306
-        postgresvm:
-          ansible_host: 192.168.137.158
-          postgres_port: 15432
         awxvm:
           ansible_host: 192.168.137.153
         otvm-001:
-          ansible_host: 192.168.137.139
+          ansible_host: 192.168.137.158
     sql_ha_nodes:
       vars:
         ansible_connection: winrm
