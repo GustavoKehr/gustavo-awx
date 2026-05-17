@@ -96,14 +96,14 @@ EE precisa montar `/opt/oracle` e `/opt/patches` do host awxvm (configurado via 
 
 | Tag | Fase | O que executa | Duração aprox. |
 |---|---|---|---|
-| `oracle_storage` | 0 | PV/VG/LV creation, mkfs.xfs, mount de todos os LVs | 1-2 min |
+| `oracle_storage` | 0 | PV/VG/LV creation, mkfs.xfs, mount + entradas fstab (noatime,nodiratime,nofail) | 1-2 min |
 | `oracle_validate` | — | Assert: oracle_sid, oracle_sys_password e oracle_system_password não-vazios | < 1 min |
 | `oracle_prereqs` | 1 | RPM preinstall, libnsl copy, sysctl, hugepages calc, SGA/PGA calc, workaround RHEL 9 | 5-10 min |
 | `oracle_dirs` | 2 | Estrutura de diretórios, bash_profile, init.ora, SQL scripts de criação | 1-2 min |
 | `oracle_transfer` | 3 | Rsync installer + OPatch + RU + post-patches para `/home/oracle/software` (~8 GB) | 5-20 min |
 | `oracle_install_sw` | 4 | unzip + troca OPatch + runInstaller **com `-applyRU p38632161`** (sem -applyOneOffs) + root.sh | 15-30 min |
 | `oracle_patches` | 5 | opatch: p38632161(19.30 RU) → oradism chown → p34672698(oradism) → oradism restore | 5-15 min |
-| `oracle_dbcreate` | 6 | orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → Users_and_Objects.sql | 10-20 min |
+| `oracle_dbcreate` | 6 | orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → verify_function_12C → Users_and_Objects.sql | 10-20 min |
 | `oracle_netcfg` | 6b | listener.ora / tnsnames.ora / sqlnet.ora + lsnrctl LISTENER_\<SID\> + ALTER SYSTEM REGISTER | < 1 min |
 | `oracle_oswatcher` | 6c | Transfer `oswbb840.tar` de awxvm → target + extract + systemd `oswatcher.service` enable+start. Também: check/start via `oracle_configuration_check.yml` | 1-2 min |
 | `oracle_configuration_check` | 7 | security/config checks + auto-remediation + SHUTDOWN/STARTUP (quando `create_initial_db=true` e `oracle_configuration_check_enabled=true`) | 2-5 min |
@@ -590,7 +590,7 @@ AWX → **Templates** → **Add** → **Add job template**
 | **Name** | `ORACLE \| Deploy` |
 | **Job Type** | Run |
 | **Inventory** | `LINUX` |
-| **Project** | (projeto apontando para a raiz do repositório `gustavo-awx`) |
+| **Project** | `gustavo-awx` — `https://github.com/GustavoKehr/gustavo-awx` · branch: `main` |
 | **Execution Environment** | `oracle-ee` (EE com `/opt/oracle` e `/opt/patches` montados) |
 | **Playbook** | `playbooks/deploy_oracle.yml` |
 | **Credentials** | `Machine: user_aap` |

@@ -76,14 +76,14 @@ ls -la /opt/patches/
 
 **Hardware mínimo recomendado para Oracle 19c:**
 - RAM: 8 GB (2 GB para SGA padrão + SO)
-- Disco: 65 GB mínimo (50G base + 5G oradata + 2G×3 arch/undo/temp + 2G×4 logs)
+- Disco: 65 GB mínimo (50G base + 5G oradata + 2G×3 arch/undo/temp + 1G×4 logs)
 - CPU: 2 vCPUs
 
 ---
 
 ## Playbook — deploy_oracle.yml
 
-10 fases sequenciais (fases 7-9 opcionais/automáticas). Cada fase depende da anterior.
+11 fases (0–10). Fases 6c, 8, 9, 10 opcionais; fase 7 automática quando `create_initial_db=true`. Cada fase depende da anterior.
 
 ```
 Phase 0:  oracle_storage              → PV/VG/LV creation, mkfs.xfs, mount + fstab (noatime,nodiratime,nofail)
@@ -203,11 +203,11 @@ Exemplo com SGA=2G: `ceil(2048 / 2) × 1.1 = 1024 × 1.1 = 1126 páginas`
 | Variável | Padrão | Survey | Descrição |
 |---|---|---|---|
 | `oracle_character_set` | `AL32UTF8` | Não | Character set do banco. `AL32UTF8` = Unicode completo (recomendado). `WE8MSWIN1252` para legado Windows. |
-| `oracle_nchar_set` | `AL16UTF16` | National character set (para colunas NCHAR/NVARCHAR2). |
-| `oracle_nls_language` | `AMERICAN` | Idioma para mensagens de erro e formatos. |
-| `oracle_nls_territory` | `AMERICA` | Território para formatos de data/número. |
+| `oracle_nchar_set` | `AL16UTF16` | Não | National character set (para colunas NCHAR/NVARCHAR2). |
+| `oracle_nls_language` | `AMERICAN` | Não | Idioma para mensagens de erro e formatos. |
+| `oracle_nls_territory` | `AMERICA` | Não | Território para formatos de data/número. |
 | `oracle_listener_port` | `1521` | **Sim** | Porta do listener Oracle. Survey: integer, range 1024-65535. |
-| `oracle_undo_tablespace` | `UNDOTBS1` | Nome da tablespace de undo. |
+| `oracle_undo_tablespace` | `UNDOTBS1` | Não | Nome da tablespace de undo. |
 
 ### Senhas (campos do survey — tipo password)
 
