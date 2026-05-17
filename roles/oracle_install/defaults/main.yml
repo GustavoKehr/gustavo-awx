@@ -99,3 +99,6 @@ create_initial_db: true
 # --- OS Watcher ---
 # Tar file must be present at oracle_software_src (/opt/oracle) on awxvm.
 oracle_oswatcher_tar: "oswbb840.tar"
+oracle_osw_path: "/home/oracle/oswbb"
+oracle_osw_interval: 30
+oracle_osw_archive_hours: 720
