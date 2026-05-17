@@ -79,6 +79,71 @@ EE precisa montar `/opt/oracle` e `/opt/patches` do host awxvm (configurado via 
 
 ---
 
+## Acessando o AWX
+
+| Item | Valor |
+|---|---|
+| URL | `http://192.168.137.153:31911` |
+| Usuário | `admin` |
+| Credencial de máquina | `user_aap` (SSH key, NOPASSWD sudo) |
+| Project | `gustavo-awx` → branch `main` → `https://github.com/GustavoKehr/gustavo-awx` |
+
+> **Antes de qualquer job:** AWX roda em k3s dentro do Proxmox. Se AWX inacessível → abrir VMware Workstation → ligar Proxmox VM → aguardar pods subirem (~2 min).
+
+```bash
+# Verificar pods AWX (na awxvm):
+kubectl get pods -n awx
+# Todos devem estar Running/Completed
+```
+
+---
+
+## Como Executar Jobs via AWX Web
+
+### Deploy Oracle (`ORACLE | Deploy`, JT ID 7)
+
+1. AWX → **Templates** → `ORACLE | Deploy` → **Launch** (ícone ▶)
+2. Preencher survey (ver tabela na seção "Configuração Manual" abaixo)
+3. **Campos críticos:** Oracle SID, SYS Password, SYSTEM Password, VG Name, LV sizes
+4. **Limit:** `oraclevm` ou o host alvo (definido no JT — mudar aqui se precisar de outro host)
+5. Clicar **Next** → revisar variáveis → **Launch**
+6. Monitorar output — fases levam ~12 min no total. Vermelho = falha → ver Troubleshooting
+
+> **Sem tag = todas as fases.** Para rodar fase isolada: ir em **Extra Variables** antes de lançar e adicionar `--tags` não é possível na UI diretamente — usar campo **Job Tags** no lançamento (AWX permite definir tags no momento do launch: **Prompt on launch** deve estar marcado no JT).
+
+---
+
+### Configuration Check (`ORACLE | Configuration Check`, JT ID 27)
+
+1. AWX → **Templates** → `ORACLE | Configuration Check` → **Launch**
+2. Survey:
+   - `oracle_sid`: SID do banco a verificar (ex: `AWOR`)
+   - `oracle_allow_restart`: `false` (recomendado) ou `true` (DB reinicia para efetivar SPFILE)
+3. **Sem tag** → roda todas as fases: install OSW (se ausente) + 29 checks + security audit + relatório HTML
+4. **Tag `oracle_oswatcher`** → só instala/verifica OS Watcher (transfer + extract + systemd)
+5. Relatório gerado em `reports/oracle_config_check_<SID>_<data>.html`
+
+> **Nota:** Checks 3.1 (RAC) e 3.3 (Cluster Redundancy) aparecem como **FAIL** em qualquer instalação single-instance — comportamento esperado em lab/dev. Não requerem ação.
+
+---
+
+### Manage Users (`ORACLE | Manage Users`)
+
+1. AWX → **Templates** → `ORACLE | Manage Users` → **Launch**
+2. Survey — campos principais:
+   - `oracle_username`: nome em MAIÚSCULAS (ex: `WEBAPP`)
+   - `oracle_password`: senha (obrigatório se state=present)
+   - `oracle_user_state`: `present` (criar/atualizar) ou `absent` (remover)
+   - `oracle_privileges`: system privileges separados por vírgula (ex: `CONNECT,RESOURCE`)
+   - `oracle_roles`: roles Oracle (ex: `DBA`) — deixar vazio para usuário de aplicação padrão
+   - `oracle_revoke_access`: `false` (conceder) ou `true` (revogar)
+   - `oracle_default_tablespace`: `USERS` (padrão)
+   - `oracle_temp_tablespace`: `TEMP` (padrão)
+   - `oracle_allowed_ips`: IPs para `sqlnet.ora TCP.INVITED_NODES` (opcional)
+3. Launch → aguardar (< 1 min)
+
+---
+
 ## Job Template AWX — Instalação Completa
 
 | Campo AWX | Valor |
@@ -706,8 +771,108 @@ lsblk           # confirmar /dev/sdb disponível
 
 ---
 
+---
+
+## Configuração Manual — ORACLE | Configuration Check (sem API)
+
+### Passo 1 — Criar o Job Template
+
+AWX → **Templates** → **Add** → **Add job template**
+
+| Campo | Valor |
+|---|---|
+| **Name** | `ORACLE \| Configuration Check` |
+| **Job Type** | Run |
+| **Inventory** | `LINUX` |
+| **Project** | `gustavo-awx` — `https://github.com/GustavoKehr/gustavo-awx` · branch: `main` |
+| **Execution Environment** | `oracle-ee` |
+| **Playbook** | `playbooks/oracle_configuration_check.yml` |
+| **Credentials** | `Machine: user_aap` |
+| **Limit** | *(marcar "Prompt on launch")* |
+| **Job Tags** | *(vazio = check completo; ou marcar "Prompt on launch" para permitir `oracle_oswatcher`)* |
+| **Verbosity** | Normal (0) |
+| **Enable Privilege Escalation** | ✅ |
+
+### Passo 2 — Survey
+
+AWX → aba **Survey** → **Enable Survey** → criar campos:
+
+| # | Question Name | Variable | Type | Default | Required | Choices |
+|---|---|---|---|---|---|---|
+| 1 | Oracle SID | `oracle_sid` | Text | `AWOR` | Sim | — |
+| 2 | Allow DB Restart | `oracle_allow_restart` | Multiple Choice (single) | `false` | Sim | `false` / `true` |
+
+> **oracle_allow_restart:** `false` = checks rodam, parâmetros SPFILE ficam pendentes até próximo restart manual. `true` = SHUTDOWN + STARTUP ao final para efetivar todos os parâmetros.
+
+### Passo 3 — Verificar antes de lançar
+
+```bash
+# Banco deve estar OPEN:
+sudo -u oracle /oracle/<SID>/19.0.0/bin/sqlplus / as sysdba <<EOF
+SELECT status FROM v\$instance;
+EOF
+
+# OSW tar deve existir no awxvm (para Phase 0):
+ls -la /opt/oracle/oswbb840.tar
+```
+
+---
+
+## Configuração Manual — ORACLE | Manage Users (sem API)
+
+### Passo 1 — Criar o Job Template
+
+AWX → **Templates** → **Add** → **Add job template**
+
+| Campo | Valor |
+|---|---|
+| **Name** | `ORACLE \| Manage Users` |
+| **Job Type** | Run |
+| **Inventory** | `LINUX` |
+| **Project** | `gustavo-awx` — `https://github.com/GustavoKehr/gustavo-awx` · branch: `main` |
+| **Execution Environment** | `oracle-ee` |
+| **Playbook** | `playbooks/manage_oracle_users.yml` |
+| **Credentials** | `Machine: user_aap` |
+| **Limit** | `oraclevm` *(ou "Prompt on launch")* |
+| **Verbosity** | Normal (0) |
+| **Enable Privilege Escalation** | ✅ |
+
+### Passo 2 — Extra Variables (obrigatório)
+
+```yaml
+oracle_manage_users_enabled: true
+```
+
+> Sem essa var o role não executa a gestão de usuários (guard de segurança).
+
+### Passo 3 — Survey
+
+AWX → aba **Survey** → **Enable Survey** → criar campos:
+
+| # | Question Name | Variable | Type | Default | Required | Choices |
+|---|---|---|---|---|---|---|
+| 1 | Oracle username | `oracle_username` | Text | — | Sim | — |
+| 2 | Oracle password | `oracle_password` | Password | — | Não | — |
+| 3 | User state | `oracle_user_state` | Multiple Choice (single) | `present` | Sim | `present` / `absent` |
+| 4 | System Privileges | `oracle_privileges` | Text | `CONNECT,RESOURCE` | Não | — |
+| 5 | Oracle Roles | `oracle_roles` | Text | — | Não | — |
+| 6 | Revoke access | `oracle_revoke_access` | Multiple Choice (single) | `false` | Sim | `false` / `true` |
+| 7 | Default tablespace | `oracle_default_tablespace` | Text | `USERS` | Não | — |
+| 8 | Temp tablespace | `oracle_temp_tablespace` | Text | `TEMP` | Não | — |
+| 9 | Allowed IPs | `oracle_allowed_ips` | Textarea | — | Não | — |
+
+> **Importar via API (alternativa):**
+> ```bash
+> curl -u admin:suasenha \
+>   -X POST http://192.168.137.153:31911/api/v2/job_templates/<JT_ID>/survey_spec/ \
+>   -H "Content-Type: application/json" \
+>   -d @/home/user_aap/gustavo-awx/playbooks/awx_survey_oracle_manage_users.json
+> ```
+
+---
+
 ## Ver Também
 
-- [`oracle_guide.md`](oracle_guide.md) — Documentação técnica completa
+- [`oracle_guide.md`](oracle_guide.md) — Documentação técnica completa (checks detalhados, profiles de senha, decisões de design)
 - [`offline_requirements.md`](offline_requirements.md) — Como preparar binários Oracle offline
 - [`awx_surveys.md`](awx_surveys.md) — Referência de todos os surveys AWX
