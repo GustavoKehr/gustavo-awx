@@ -2,7 +2,8 @@
 -- Creates APPLICATION profile (if absent) then applies limits to both profiles.
 -- DEFAULT profile exists in every Oracle DB — only ALTER needed.
 -- PASSWORD_REUSE_TIME unit: days (Oracle converts internally).
--- PASSWORD_VERIFY_FUNCTION: verify_function_12C created by postDBCreation.sql
+-- PASSWORD_VERIFY_FUNCTION: verify_function_12C created by verify_function_12c.sql (Phase 6, before this script)
+WHENEVER SQLERROR EXIT FAILURE;
 
 -- ── APPLICATION profile ───────────────────────────────────────────────────────
 -- Create if not exists (idempotent: exception swallowed if already present)
@@ -44,7 +45,7 @@ ALTER PROFILE "DEFAULT" LIMIT
   CONNECT_TIME                 UNLIMITED
   PRIVATE_SGA                  UNLIMITED
   FAILED_LOGIN_ATTEMPTS        3
-  PASSWORD_LIFE_TIME           90
+  PASSWORD_LIFE_TIME           5
   PASSWORD_REUSE_TIME          180
   PASSWORD_REUSE_MAX           1
   PASSWORD_VERIFY_FUNCTION     verify_function_12C

@@ -108,14 +108,34 @@
   when: spfile_check.stdout is not search('spfile', ignorecase=True)
   tags: oracle_dbcreate
 
+- name: "DBCREATE | Create verify_function_12C (required by profile PASSWORD_VERIFY_FUNCTION)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH={{ oracle_home }}/bin:$PATH
+    # Skip if function already exists
+    result=$(sqlplus -s "/ as sysdba" <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF HEADING OFF
+    SELECT COUNT(*) FROM dba_objects WHERE object_name='VERIFY_FUNCTION_12C' AND owner='SYS';
+    EXIT;
+    EOF
+    )
+    echo "$result" | grep -q "^[1-9]" && exit 0
+    sqlplus -s "/ as sysdba" @{{ oracle_scripts_dir }}/verify_function_12c.sql < /dev/null
+  become: true
+  become_user: oracle
+  register: _verify_fn_result
+  changed_when: "'Function created' in _verify_fn_result.stdout or 'Function created.' in _verify_fn_result.stdout"
+  tags: oracle_dbcreate
+
 - name: "DBCREATE | Check if Users_and_Objects profile already applied"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export ORACLE_SID={{ oracle_sid }}
     export PATH={{ oracle_home }}/bin:$PATH
-    result=$(sqlplus -s "/ as sysdba" <<EOF
-    SET PAGESIZE 0 FEEDBACK OFF
-    SELECT COUNT(*) FROM dba_profiles WHERE profile='ORACLE_PROFILE' AND resource_name='PASSWORD_LIFE_TIME';
+    result=$(sqlplus -s "/ as sysdba" <<'EOF'
+    SET PAGESIZE 0 FEEDBACK OFF HEADING OFF
+    SELECT COUNT(*) FROM dba_profiles WHERE profile='APPLICATION' AND resource_name='PASSWORD_LIFE_TIME';
     EXIT;
     EOF
     )

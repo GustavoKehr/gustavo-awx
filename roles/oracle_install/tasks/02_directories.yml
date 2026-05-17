@@ -73,6 +73,7 @@
   loop:
     - lockAccount.sql
     - Users_and_Objects.sql
+    - verify_function_12c.sql
   tags: oracle_dirs
 
 - name: "DIRS | Deploy database creation shell script"
