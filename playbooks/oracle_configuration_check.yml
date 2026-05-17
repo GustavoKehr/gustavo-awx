@@ -42,7 +42,7 @@
       vars:
         oracle_generate_report: true
         oracle_security_allow_restart: "{{ oracle_allow_restart | default(false) | bool }}"
-      tags: [oracle, oracle_configuration_check, post_install]
+      tags: [oracle, oracle_configuration_check, post_install, oracle_oswatcher]
 
     - name: "Phase 2 — Security audit and hardening"
       ansible.builtin.include_role:
