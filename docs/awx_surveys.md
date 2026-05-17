@@ -115,25 +115,27 @@ sql_manage_users_enabled: true
 
 Arquivo: `playbooks/awx_survey_oracle_install.json`
 
-> **Nota:** SGA e PGA são definidos como % da RAM da VM — calculados dinamicamente em `01_prereqs.yml`. Senhas (SYS/SYSTEM) ficam nos defaults do role (`oracle_sys_password`, `oracle_system_password`), não no survey.
+> **Nota:** SGA e PGA são definidos como % da RAM da VM — calculados dinamicamente em `01_prereqs.yml`. Senhas SYS e SYSTEM são coletadas pelo survey (tipo `password`) — não ficam em extra vars ou defaults.
 
-### Identidade e Storage
+### Identidade, Senhas e Storage
 
 | Campo | Variável | Tipo | Padrão | Obrigatório | Descrição |
 |---|---|---|---|---|---|
 | Oracle SID | `oracle_sid` | text | `AWOR` | **Sim** | SID + nome do banco. Define `/oracle/<SID>` e `lv_<sid>`. Máx 8 chars |
-| Data Disk (PV source) | `oracle_data_disk` | text | `/dev/sdc` | Não | Dispositivo raw para PV/VG. Deixar vazio se VG já existe |
+| SYS Password | `oracle_sys_password` | password | *(empty)* | **Sim** | Senha do usuário SYS. Mascarada nos logs do AWX. |
+| SYSTEM Password | `oracle_system_password` | password | *(empty)* | **Sim** | Senha do usuário SYSTEM. Mascarada nos logs do AWX. |
+| Data Disk (PV source) | `oracle_data_disk` | text | `/dev/sdb` | Não | Dispositivo raw para PV/VG. Deixar vazio se VG já existe |
 | VG Name | `oracle_vg_name` | text | `vg_data` | **Sim** | LVM Volume Group para todos os LVs Oracle |
 
 ### Tamanho dos LVs
 
 | Campo | Variável | Tipo | Padrão | Obrigatório | Descrição |
 |---|---|---|---|---|---|
-| LV base size | `oracle_lv_base_size` | text | `60G` | **Sim** | `lv_<SID>` — Oracle home + software staging |
-| LV oradata size | `oracle_lv_oradata_size` | text | `10G` | **Sim** | `lv_oradata` — datafiles |
-| LV oraarch size | `oracle_lv_oraarch_size` | text | `5G` | **Sim** | `lv_oraarch` — archive logs |
-| LV undofile size | `oracle_lv_undofile_size` | text | `5G` | **Sim** | `lv_undofile` — undo tablespace |
-| LV tempfile size | `oracle_lv_tempfile_size` | text | `5G` | **Sim** | `lv_tempfile` — temp tablespace |
+| LV base size | `oracle_lv_base_size` | text | `50G` | **Sim** | `lv_<SID>` — Oracle home + software staging |
+| LV oradata size | `oracle_lv_oradata_size` | text | `5G` | **Sim** | `lv_oradata` — datafiles |
+| LV oraarch size | `oracle_lv_oraarch_size` | text | `2G` | **Sim** | `lv_oraarch` — archive logs |
+| LV undofile size | `oracle_lv_undofile_size` | text | `2G` | **Sim** | `lv_undofile` — undo tablespace |
+| LV tempfile size | `oracle_lv_tempfile_size` | text | `2G` | **Sim** | `lv_tempfile` — temp tablespace |
 | LV mirrlog size | `oracle_lv_mirrlogA_size` | text | `1G` | **Sim** | `lv_mirrlogA` e `lv_mirrlogB` (mesmo tamanho para ambos) |
 | LV origlog size | `oracle_lv_origlogA_size` | text | `1G` | **Sim** | `lv_origlogA` e `lv_origlogB` (mesmo tamanho para ambos) |
 
@@ -143,6 +145,7 @@ Arquivo: `playbooks/awx_survey_oracle_install.json`
 |---|---|---|---|---|---|---|
 | SGA % de RAM | `oracle_sga_pct` | integer | `40` | **Sim** | 10–80 | % da RAM da VM para SGA |
 | PGA % de RAM | `oracle_pga_pct` | integer | `20` | **Sim** | 5–50 | % da RAM da VM para PGA |
+| Listener Port | `oracle_listener_port` | integer | `1521` | **Sim** | 1024–65535 | Porta TCP do listener Oracle |
 | Character Set | `oracle_character_set` | text | `AL32UTF8` | Não | — | Charset do banco. `WE8MSWIN1252` para legado Windows |
 
 ### Tablespaces — Datafiles

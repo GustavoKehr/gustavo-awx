@@ -30,13 +30,13 @@ ls -la /opt/oracle/
 ls -la /opt/patches/
 ```
 
-| Item | Tipo | Descrição |
-|---|---|---|
-| `p6880880/` | Diretório | OPatch substituto (versão mais nova que a do ZIP) |
-| `p37641958/` | Diretório | Release Update (RU) + one-off — aplicados **dentro do runInstaller** (`-applyRU`) |
-| `p38291812/` | Diretório | Patch pós-instalação 1 (post_patch1) |
-| `p38632161/` | Diretório | Patch pós-instalação 2 — Oracle 19.30 (post_patch2) |
-| `p34672698/` | Diretório | Patch pós-instalação 3 — oradism-related (post_patch3) |
+| Item | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `p6880880/OPatch/` | Diretório | **Sim** | OPatch substituto (versão mais nova que a do ZIP) |
+| `p37641958/` | Diretório | **Sim** (~3 GB) | Bundle legado — ainda transferido para o target via rsync, mas runInstaller **não** o usa mais como `-applyRU`. Manter em `/opt/patches/`. |
+| `p38632161/38632161/` | Diretório | **Sim** | Usado como argumento `-applyRU` no runInstaller (Oracle 19.30, RHEL9/GCC11). Também aplicado standalone via opatch (pula se já no inventário). |
+| `p34672698/34672698/` | Diretório | **Sim** | Patch oradism (post_patch3) — aplicado via opatch pós-install |
+| `p38291812/38291812/` | Diretório | Só se `oracle_post_patch1_enabled: true` | Patch opcional post_patch1 — desativado por padrão |
 
 > **Atenção:** O AWX EE acessa estes diretórios diretamente — o rsync é delegado para `awxvm` (não roda dentro do container EE). Os arquivos devem estar no host `awxvm`, não dentro do EE.
 
@@ -100,11 +100,14 @@ EE precisa montar `/opt/oracle` e `/opt/patches` do host awxvm (configurado via 
 | `oracle_prereqs` | 1 | RPM preinstall, libnsl copy, sysctl, hugepages calc, SGA/PGA calc, workaround RHEL 9 | 5-10 min |
 | `oracle_dirs` | 2 | Estrutura de diretórios, bash_profile, init.ora, SQL scripts de criação | 1-2 min |
 | `oracle_transfer` | 3 | Rsync installer + OPatch + RU + post-patches para `/oracle/<SID>/software` (~8 GB) | 5-20 min |
-| `oracle_install_sw` | 4 | unzip + troca OPatch + runInstaller **com `-applyRU` e `-applyOneOffs`** + root.sh | 15-30 min |
+| `oracle_install_sw` | 4 | unzip + troca OPatch + runInstaller **com `-applyRU p38632161`** (sem -applyOneOffs) + root.sh | 15-30 min |
 | `oracle_patches` | 5 | opatch: post1 → post2 → oradism chown → post3 → oradism restore | 5-15 min |
 | `oracle_dbcreate` | 6 | orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → Users_and_Objects.sql | 10-20 min |
+| `oracle_configuration_check` | 7 | security/config checks + auto-remediation + SHUTDOWN/STARTUP (quando `create_initial_db=true` e `oracle_configuration_check_enabled=true`) | 2-5 min |
+| `oracle_manage_users` | 8 | gestão de usuários Oracle (quando `oracle_manage_users_enabled=true`) | 1-3 min |
+| `db_patches` | 9 | patch discovery — sem apply (`db_patches_enabled=false` por padrão) | 1-2 min |
 
-**Tempo total medido:** ~47 min (Job AWX 271, fresh VM, 2026-04-28)
+**Tempo total medido:** ~12 min (Job AWX 428, fresh VM, 2026-05-17)
 
 ---
 
@@ -117,20 +120,23 @@ EE precisa montar `/opt/oracle` e `/opt/patches` do host awxvm (configurado via 
 | Campo | Valor de exemplo |
 |---|---|
 | Oracle SID | `AWOR` |
-| Data Disk | `/dev/sdc` (deixar vazio se VG já existe) |
+| SYS Password | `<senha segura>` |
+| SYSTEM Password | `<senha segura>` |
+| Data Disk | `/dev/sdb` (deixar vazio se VG já existe) |
 | VG Name | `vg_data` |
-| LV base size | `60G` |
-| LV oradata size | `10G` |
-| LV oraarch size | `5G` |
-| LV undofile size | `5G` |
-| LV tempfile size | `5G` |
+| LV base size | `50G` |
+| LV oradata size | `5G` |
+| LV oraarch size | `2G` |
+| LV undofile size | `2G` |
+| LV tempfile size | `2G` |
 | LV mirrlog size | `1G` |
 | LV origlog size | `1G` |
 | SGA % de RAM | `40` |
 | PGA % de RAM | `20` |
+| Listener Port | `1521` |
 | Character Set | `AL32UTF8` |
 
-Não especificar tags — roda todas as 7 fases (storage → prereqs → dirs → transfer → install → patches → dbcreate).
+Não especificar tags — roda todas as fases (storage → prereqs → dirs → transfer → install → patches → dbcreate → configuration_check).
 
 ---
 
@@ -148,21 +154,42 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_dbcreate -l oraclevm
 
 ### Cenário 3: Atualizar patches (novo RU trimestral)
 
-1. Colocar novo RU em `/opt/patches/p<NOVO>/` no awxvm
-2. Colocar novos post-patches em `/opt/patches/p<NOVO_POST>/` no awxvm
-3. Atualizar vars no AWX Job Template (Extra Variables ou defaults):
+Os patches estão **hardcoded nos defaults do role** — não são variáveis de survey. Para trocar o RU:
+
+1. Baixar o novo RU do Oracle Support e colocar em `/opt/patches/p<NOVO>/` no awxvm
+2. Editar `roles/oracle_install/defaults/main.yml`:
    ```yaml
-   oracle_ru_patch_dir: "p<NOVO>"
-   oracle_ru_subpath: "<NOVO>/<RU_SUB>"
-   oracle_oneoff_subpath: "<NOVO>/<ONEOFF_SUB>"
+   oracle_post_patch2_dir: "p<NOVO>"       # era p38632161
+   oracle_post_patch2_sub: "<NUM>"         # era 38632161
    ```
-4. Executar apenas Phase 3 (transfer) + Phase 4 (install) para RU:
+3. Se houver novo post_patch3 (oradism):
+   ```yaml
+   oracle_post_patch3_dir: "p<NOVO3>"
+   oracle_post_patch3_sub: "<NUM3>"
+   ```
+4. Executar apenas Phase 3 (transfer) + Phase 4 (install) para re-aplicar RU via runInstaller:
    ```bash
    ansible-playbook playbooks/deploy_oracle.yml \
      --tags oracle_transfer,oracle_install_sw -l oraclevm
    ```
+5. Executar Phase 5 para re-aplicar patches opatch:
+   ```bash
+   ansible-playbook playbooks/deploy_oracle.yml --tags oracle_patches -l oraclevm
+   ```
 
-> **Nota:** RU é aplicado dentro do `runInstaller` com `-applyRU`. Para re-aplicar RU o instalador precisa ser re-executado. Phase 5 (`oracle_patches`) aplica apenas post-install patches (p38291812, p38632161, p34672698).
+> **Nota:** `oracle_ru_patch_dir` (p37641958) é variável legada — o diretório ainda é transferido para o target mas o `runInstaller` **não** o usa mais. O RU aplicado via `-applyRU` é `oracle_post_patch2_dir` (p38632161). Manter p37641958 em `/opt/patches/` até confirmar que o role não o referencia mais.
+
+---
+
+### Cenário 3b: Re-executar configuration check
+
+**Quando usar:** Banco criado, mas verificações de segurança/config não rodaram ou falharam.
+
+```bash
+ansible-playbook playbooks/deploy_oracle.yml --tags oracle_configuration_check -l oraclevm
+```
+
+Requer `create_initial_db=true` e `oracle_configuration_check_enabled=true` (default: true quando `create_initial_db=true`).
 
 ---
 
@@ -175,6 +202,29 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_transfer -l oraclevm
 ```
 
 O rsync só retransfer o que mudou — se os arquivos estiverem intactos, a task termina rápido.
+
+---
+
+## Fases Pós-Instalação (7, 8, 9)
+
+### Phase 7 — oracle_configuration_check
+
+Executa automaticamente após `oracle_dbcreate` quando `create_initial_db=true` e `oracle_configuration_check_enabled=true`:
+
+- Auditorias de segurança (AUDIT_TRAIL, password policies, default profiles)
+- Auto-remediation de configurações fora do padrão
+- SHUTDOWN + STARTUP para efetivar parâmetros do SPFILE
+- Verificação final: `SELECT status FROM v$instance` deve retornar `OPEN`
+
+### Phase 8 — oracle_manage_users
+
+Gestão de usuários Oracle via survey. Só roda quando `oracle_manage_users_enabled: true` (default: `false`).
+
+Usar o Job Template dedicado `ORACLE | Manage Users` com survey `awx_survey_oracle_manage_users.json`.
+
+### Phase 9 — db_patches
+
+Patch discovery: lista patches Oracle disponíveis em `/opt/patches/` sem aplicar. Só roda quando `db_patches_enabled: true` (default: `false`). `db_patch_apply_enabled` é sempre `false` por design — aplicação requer janela de manutenção aprovada.
 
 ---
 
@@ -457,9 +507,9 @@ AWX → **Templates** → **Add** → **Add job template**
 
 Na aba **Variables** do Job Template, setar:
 
+As senhas SYS e SYSTEM são coletadas pelo **survey** (campos tipo `password`) — não precisam ficar em Extra Variables. Se quiser forçar um valor diferente do survey via extra vars:
+
 ```yaml
-# Senhas obrigatórias — os defaults do role têm valor hardcoded F9toqfd(
-# Em ambiente de lab pode deixar vazio (usa o default); em produção SEMPRE override aqui.
 oracle_sys_password: "SuaSenhaSegura123!"
 oracle_system_password: "SuaSenhaSegura123!"
 ```
@@ -492,22 +542,25 @@ oracle_open_cursors: 3000
 | # | Question Name | Variable | Type | Default | Required | Min | Max |
 |---|---|---|---|---|---|---|---|
 | 1 | Oracle SID | `oracle_sid` | Text | `AWOR` | Sim | 1 | 8 |
-| 2 | Data Disk (PV source) | `oracle_data_disk` | Text | `/dev/sdc` | Não | 0 | 20 |
-| 3 | VG Name | `oracle_vg_name` | Text | `vg_data` | Sim | 1 | 32 |
-| 4 | LV: lv_\<SID\> size (base) | `oracle_lv_base_size` | Text | `60G` | Sim | 2 | 10 |
-| 5 | LV: lv_oradata size | `oracle_lv_oradata_size` | Text | `10G` | Sim | 2 | 10 |
-| 6 | LV: lv_oraarch size | `oracle_lv_oraarch_size` | Text | `5G` | Sim | 2 | 10 |
-| 7 | LV: lv_undofile size | `oracle_lv_undofile_size` | Text | `5G` | Sim | 2 | 10 |
-| 8 | LV: lv_tempfile size | `oracle_lv_tempfile_size` | Text | `5G` | Sim | 2 | 10 |
-| 9 | LV: lv_mirrlogA/B size | `oracle_lv_mirrlogA_size` | Text | `1G` | Sim | 2 | 10 |
-| 10 | LV: lv_origlogA/B size | `oracle_lv_origlogA_size` | Text | `1G` | Sim | 2 | 10 |
-| 11 | SGA % of VM RAM | `oracle_sga_pct` | Integer | `40` | Sim | 10 | 80 |
-| 12 | PGA % of VM RAM | `oracle_pga_pct` | Integer | `20` | Sim | 5 | 50 |
-| 13 | Character Set | `oracle_character_set` | Text | `AL32UTF8` | Não | 5 | 30 |
-| 14 | TS_AUDIT_DAT01 datafiles | `ts_audit_datafiles` | Integer | `1` | Não | 1 | 10 |
-| 15 | TS_PERFSTAT_DAT01 datafiles | `ts_perfstat_datafiles` | Integer | `1` | Não | 1 | 10 |
-| 16 | TS_\<SID\>_DAT01 datafiles | `ts_sid_dat_datafiles` | Integer | `1` | Não | 1 | 10 |
-| 17 | TS_\<SID\>_IDX01 datafiles | `ts_sid_idx_datafiles` | Integer | `1` | Não | 1 | 10 |
+| 2 | SYS Password | `oracle_sys_password` | Password | *(empty)* | Sim | — | — |
+| 3 | SYSTEM Password | `oracle_system_password` | Password | *(empty)* | Sim | — | — |
+| 4 | Data Disk (PV source) | `oracle_data_disk` | Text | `/dev/sdb` | Não | 0 | 20 |
+| 5 | VG Name | `oracle_vg_name` | Text | `vg_data` | Sim | 1 | 32 |
+| 6 | LV: lv_\<SID\> size (base) | `oracle_lv_base_size` | Text | `50G` | Sim | 2 | 10 |
+| 7 | LV: lv_oradata size | `oracle_lv_oradata_size` | Text | `5G` | Sim | 2 | 10 |
+| 8 | LV: lv_oraarch size | `oracle_lv_oraarch_size` | Text | `2G` | Sim | 2 | 10 |
+| 9 | LV: lv_undofile size | `oracle_lv_undofile_size` | Text | `2G` | Sim | 2 | 10 |
+| 10 | LV: lv_tempfile size | `oracle_lv_tempfile_size` | Text | `2G` | Sim | 2 | 10 |
+| 11 | LV: lv_mirrlogA/B size | `oracle_lv_mirrlogA_size` | Text | `1G` | Sim | 2 | 10 |
+| 12 | LV: lv_origlogA/B size | `oracle_lv_origlogA_size` | Text | `1G` | Sim | 2 | 10 |
+| 13 | SGA % of VM RAM | `oracle_sga_pct` | Integer | `40` | Sim | 10 | 80 |
+| 14 | PGA % of VM RAM | `oracle_pga_pct` | Integer | `20` | Sim | 5 | 50 |
+| 15 | Listener Port | `oracle_listener_port` | Integer | `1521` | Sim | 1024 | 65535 |
+| 16 | Character Set | `oracle_character_set` | Text | `AL32UTF8` | Não | 5 | 30 |
+| 17 | TS_AUDIT_DAT01 datafiles | `ts_audit_datafiles` | Integer | `1` | Não | 1 | 10 |
+| 18 | TS_PERFSTAT_DAT01 datafiles | `ts_perfstat_datafiles` | Integer | `1` | Não | 1 | 10 |
+| 19 | TS_\<SID\>_DAT01 datafiles | `ts_sid_dat_datafiles` | Integer | `1` | Não | 1 | 10 |
+| 20 | TS_\<SID\>_IDX01 datafiles | `ts_sid_idx_datafiles` | Integer | `1` | Não | 1 | 10 |
 
 > **Alternativa:** importar o JSON completo via curl (uma linha, sem API browser):
 > ```bash

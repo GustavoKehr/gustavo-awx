@@ -63,10 +63,10 @@ O role usa **dois diretórios source** no host `awxvm`:
 | Item | Descrição | Tamanho aprox. |
 |---|---|---|
 | `p6880880/` | Substituto do OPatch (versão mais nova que a do ZIP) | ~200 MB |
-| `p37641958/` | Release Update (RU) + one-off — aplicados no runInstaller | ~3 GB |
-| `p38291812/` | Patch pós-instalação 1 | varia |
-| `p38632161/` | Patch pós-instalação 2 (Oracle 19.30) | varia |
-| `p34672698/` | Patch pós-instalação 3 | varia |
+| `p37641958/` | Bundle legado — transferido para o target (legacy bundle — runInstaller no longer uses it directly; still required in /opt/patches/) | ~3 GB |
+| `p38291812/` | Patch pós-instalação 1 (opcional — `oracle_post_patch1_enabled: false` por padrão) | varia |
+| `p38632161/` | Usado como `-applyRU` no runInstaller (Oracle 19.30 — required for RHEL9/GCC11 compilation). Também aplicado standalone via opatch. | varia |
+| `p34672698/` | Patch oradism (post_patch3) — aplicado via opatch pós-install | varia |
 
 **Verificar antes de iniciar:**
 ```bash
@@ -76,29 +76,32 @@ ls -la /opt/patches/
 
 **Hardware mínimo recomendado para Oracle 19c:**
 - RAM: 8 GB (2 GB para SGA padrão + SO)
-- Disco: 50 GB (software + banco + logs)
+- Disco: 65 GB mínimo (50G base + 5G oradata + 2G×3 arch/undo/temp + 2G×4 logs)
 - CPU: 2 vCPUs
 
 ---
 
 ## Playbook — deploy_oracle.yml
 
-7 fases sequenciais. Cada fase depende da anterior.
+10 fases sequenciais (fases 7-9 opcionais/automáticas). Cada fase depende da anterior.
 
 ```
-Phase 0: oracle_storage    → oracle_storage    → PV/VG/LV creation, mkfs.xfs, mount
-Phase 1: oracle_prereqs    → oracle_prereqs    → RPM, libnsl, hugepages, calc SGA/PGA, sysctl, RHEL9 workaround
-Phase 2: oracle_dirs       → oracle_dirs       → diretórios, bash_profile, init.ora, SQL scripts de criação
-Phase 3: oracle_transfer   → oracle_transfer   → rsync installer + OPatch + RU + post-patches (~8 GB) para /oracle/<SID>/software
-Phase 4: oracle_install_sw → oracle_install_sw → unzip + swap OPatch + runInstaller -applyRU -applyOneOffs + root.sh
-Phase 5: oracle_patches    → oracle_patches    → opatch: post1 → post2 → oradism chown → post3 → oradism restore
-Phase 6: oracle_dbcreate   → oracle_dbcreate   → orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → Users_and_Objects.sql
+Phase 0: oracle_storage              → PV/VG/LV creation, mkfs.xfs, mount
+Phase 1: oracle_prereqs              → RPM, libnsl, hugepages, calc SGA/PGA, sysctl, RHEL9 workaround
+Phase 2: oracle_dirs                 → diretórios, bash_profile, init.ora, SQL scripts de criação
+Phase 3: oracle_transfer             → rsync installer + OPatch + RU + post-patches (~8 GB) para /oracle/<SID>/software
+Phase 4: oracle_install_sw           → unzip + swap OPatch + runInstaller -applyRU p38632161 (sem -applyOneOffs) + root.sh
+Phase 5: oracle_patches              → opatch: post1(opcional) → post2 → oradism chown → post3 → oradism restore
+Phase 6: oracle_dbcreate             → orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → Users_and_Objects.sql
+Phase 7: oracle_configuration_check → security/config checks + auto-remediation + SHUTDOWN/STARTUP (auto quando create_initial_db=true)
+Phase 8: oracle_manage_users         → gestão de usuários Oracle (quando oracle_manage_users_enabled=true)
+Phase 9: db_patches                  → patch discovery, sem apply (quando db_patches_enabled=true)
 ```
 
 ### Comandos de execução
 
 ```bash
-# Instalação completa (todas as 6 fases — pode levar 2-3 horas)
+# Instalação completa (todas as fases — ~12 min com hardware correto)
 ansible-playbook playbooks/deploy_oracle.yml
 
 # Fases individuais:
@@ -108,6 +111,9 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_transfer
 ansible-playbook playbooks/deploy_oracle.yml --tags oracle_install_sw
 ansible-playbook playbooks/deploy_oracle.yml --tags oracle_patches
 ansible-playbook playbooks/deploy_oracle.yml --tags oracle_dbcreate
+ansible-playbook playbooks/deploy_oracle.yml --tags oracle_configuration_check
+ansible-playbook playbooks/deploy_oracle.yml --tags oracle_manage_users -e oracle_manage_users_enabled=true
+ansible-playbook playbooks/deploy_oracle.yml --tags db_patches -e db_patches_enabled=true
 
 # Limitado a um host
 ansible-playbook playbooks/deploy_oracle.yml -l oraclevm
@@ -134,11 +140,11 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_users -l oraclevm
 |---|---|---|---|
 | `oracle_data_disk` | `/dev/sdc` | Não | Dispositivo raw para PV/VG. Vazio = skip PV/VG creation. |
 | `oracle_vg_name` | `vg_data` | **Sim** | LVM Volume Group para todos os LVs Oracle. |
-| `oracle_lv_base_size` | `60G` | **Sim** | `lv_<SID>` — Oracle home + software staging + scripts |
-| `oracle_lv_oradata_size` | `10G` | **Sim** | `lv_oradata` — datafiles |
-| `oracle_lv_oraarch_size` | `5G` | **Sim** | `lv_oraarch` — archive logs |
-| `oracle_lv_undofile_size` | `5G` | **Sim** | `lv_undofile` — undo tablespace |
-| `oracle_lv_tempfile_size` | `5G` | **Sim** | `lv_tempfile` — temp tablespace |
+| `oracle_lv_base_size` | `50G` | **Sim** | `lv_<SID>` — Oracle home + software staging + scripts |
+| `oracle_lv_oradata_size` | `5G` | **Sim** | `lv_oradata` — datafiles |
+| `oracle_lv_oraarch_size` | `2G` | **Sim** | `lv_oraarch` — archive logs |
+| `oracle_lv_undofile_size` | `2G` | **Sim** | `lv_undofile` — undo tablespace |
+| `oracle_lv_tempfile_size` | `2G` | **Sim** | `lv_tempfile` — temp tablespace |
 | `oracle_lv_mirrlogA_size` | `1G` | **Sim** | `lv_mirrlogA` e `lv_mirrlogB` (mesmo tamanho para ambos) |
 | `oracle_lv_origlogA_size` | `1G` | **Sim** | `lv_origlogA` e `lv_origlogB` (mesmo tamanho para ambos) |
 
@@ -152,12 +158,12 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_users -l oraclevm
 | `oracle_installer_zip` | `LINUX.X64_193000_db_home.zip` | ZIP com binários do Oracle 19c. |
 | `oracle_preinstall_rpm` | `oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm` | RPM de pré-requisitos. Configura grupos, limites, kernel params. |
 | `oracle_opatch_dir` | `p6880880` | Diretório do OPatch substituto (versão mais nova que a do ZIP). |
-| `oracle_ru_patch_dir` | `p37641958` | **Atualizar a cada trimestre** com o RU mais recente. |
-| `oracle_ru_subpath` | `37641958/37642901` | Subpath do patch RU dentro do diretório. |
-| `oracle_oneoff_subpath` | `37641958/37643161` | Subpath do patch one-off (aplicado junto ao RU). |
-| `oracle_post_patch1_dir` | `p38291812` | Patch pós-instalação 1 (após runInstaller). |
-| `oracle_post_patch2_dir` | `p38632161` | Patch pós-instalação 2 (Oracle 19.30). |
-| `oracle_post_patch3_dir` | `p34672698` | Patch pós-instalação 3. |
+| `oracle_ru_patch_dir` | `p37641958` | **Legado** — ainda transferido para o target via rsync, mas runInstaller não o usa mais diretamente. Manter em `/opt/patches/`. |
+| `oracle_ru_subpath` | `37641958/37642901` | Legado — subpath do patch RU legado. Não usado como argumento de runInstaller. |
+| `oracle_oneoff_subpath` | `37641958/37643161` | Legado — removido do runInstaller. Sem `-applyOneOffs` na configuração atual. |
+| `oracle_post_patch1_dir` | `p38291812` | Patch pós-instalação 1 (opcional, `oracle_post_patch1_enabled: false` por padrão). |
+| `oracle_post_patch2_dir` | `p38632161` | **Usado como `-applyRU` no runInstaller** (Oracle 19.30 — necessário para RHEL9/GCC11). Também aplicado standalone via opatch (pula se já no inventário do runInstaller). |
+| `oracle_post_patch3_dir` | `p34672698` | Patch oradism (post_patch3) — aplicado via opatch pós-install. |
 
 ### HugePages (Memória Grande)
 
@@ -195,17 +201,17 @@ Exemplo com SGA=2G: `ceil(2048 / 2) × 1.1 = 1024 × 1.1 = 1126 páginas`
 | `oracle_nchar_set` | `AL16UTF16` | National character set (para colunas NCHAR/NVARCHAR2). |
 | `oracle_nls_language` | `AMERICAN` | Idioma para mensagens de erro e formatos. |
 | `oracle_nls_territory` | `AMERICA` | Território para formatos de data/número. |
-| `oracle_listener_port` | `1521` | Porta do listener Oracle (padrão do setor). |
+| `oracle_listener_port` | `1521` | **Sim** | Porta do listener Oracle. Survey: integer, range 1024-65535. |
 | `oracle_undo_tablespace` | `UNDOTBS1` | Nome da tablespace de undo. |
 
-### Senhas (defaults do role — não estão no survey de instalação)
+### Senhas (campos do survey — tipo password)
 
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `oracle_sys_password` | definido em `defaults/main.yml` | Senha do usuário SYS (superusuário). Override via extra vars ou vault em produção. |
-| `oracle_system_password` | definido em `defaults/main.yml` | Senha do usuário SYSTEM. Override via extra vars ou vault em produção. |
+| Variável | Survey | Padrão | Descrição |
+|---|---|---|---|
+| `oracle_sys_password` | **Sim** (tipo: password) | *(empty — obrigatório)* | Senha do usuário SYS (superusuário). Coletada via survey, não armazenada em texto claro. |
+| `oracle_system_password` | **Sim** (tipo: password) | *(empty — obrigatório)* | Senha do usuário SYSTEM. Coletada via survey. |
 
-> **Em produção:** nunca usar os defaults. Setar via AWX extra variables com vault ou credential injection.
+> **Importante:** As senhas SYS e SYSTEM estão no survey de instalação (campos tipo `password`). O AWX mascara os valores nos logs. Não é necessário setar via extra vars — o survey já cobre isso.
 
 ### Controle de Fase e Tablespace Datafiles
 
@@ -387,7 +393,9 @@ O banco é criado via sequência de scripts SQL (`CreateDB.sql`, `CreateDBFiles.
 
 ### Por que `-applyRU` durante o runInstaller?
 
-Aplicar o Release Update (RU) durante a instalação faz o Oracle home já nascer no patch level correto. A alternativa — opatch apply após instalar — exige descompactar o RU separadamente, parar todos os processos Oracle, aplicar, e verificar. Mais complexo e mais propenso a erros. O one-off é aplicado junto via `-applyOneOffs`.
+Aplicar o Release Update (RU) durante a instalação faz o Oracle home já nascer no patch level correto. A alternativa — opatch apply após instalar — exige descompactar o RU separadamente, parar todos os processos Oracle, aplicar, e verificar. Mais complexo e mais propenso a erros.
+
+O RU aplicado é sempre `p38632161/38632161` (Oracle 19.30). Não há `-applyOneOffs` na configuração atual — foi removido. O Phase 5 (`oracle_patches`) complementa com patches adicionais via opatch standalone.
 
 ---
 
