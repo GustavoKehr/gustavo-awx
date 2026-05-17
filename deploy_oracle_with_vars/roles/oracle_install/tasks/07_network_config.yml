@@ -41,11 +41,23 @@
     mode: "0640"
   tags: [oracle, oracle_netcfg]
 
+- name: "NETCFG | Stop legacy default LISTENER (port conflict guard)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    lsnrctl status LISTENER 2>&1 | grep -q "The command completed successfully" || exit 0
+    lsnrctl stop LISTENER
+  become: true
+  become_user: oracle
+  register: _legacy_stop
+  changed_when: "'Connecting to' in _legacy_stop.stdout"
+  tags: [oracle, oracle_netcfg]
+
 - name: "NETCFG | Check if listener is running"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export PATH=$ORACLE_HOME/bin:$PATH
-    lsnrctl status LISTENER 2>&1 | grep -q "The command completed successfully" && echo running || echo stopped
+    lsnrctl status LISTENER_{{ oracle_sid }} 2>&1 | grep -q "The command completed successfully" && echo running || echo stopped
   become: true
   become_user: oracle
   register: _listener_status
@@ -56,7 +68,7 @@
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export PATH=$ORACLE_HOME/bin:$PATH
-    lsnrctl stop LISTENER
+    lsnrctl stop LISTENER_{{ oracle_sid }}
   become: true
   become_user: oracle
   when:
@@ -70,7 +82,7 @@
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export PATH=$ORACLE_HOME/bin:$PATH
-    lsnrctl start LISTENER
+    lsnrctl start LISTENER_{{ oracle_sid }}
   become: true
   become_user: oracle
   when: _listener_status.stdout == "stopped" or _listener_ora.changed
@@ -82,7 +94,7 @@
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
     export PATH=$ORACLE_HOME/bin:$PATH
-    lsnrctl status LISTENER
+    lsnrctl status LISTENER_{{ oracle_sid }}
   become: true
   become_user: oracle
   register: _lsnr_verify
