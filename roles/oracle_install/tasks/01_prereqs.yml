@@ -110,6 +110,12 @@
   changed_when: false
   tags: oracle_prereqs
 
+- name: "PREREQS | Zero hugepages until DB is created (allocated in 06_create_database after SPFILE restart)"
+  ansible.builtin.shell: |
+    echo 0 > /proc/sys/vm/nr_hugepages
+  changed_when: false
+  tags: oracle_prereqs
+
 - name: "PREREQS | Set oracle user password (created by preinstall RPM)"
   ansible.builtin.user:
     name: oracle

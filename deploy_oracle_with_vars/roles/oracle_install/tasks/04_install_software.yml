@@ -27,14 +27,6 @@
   changed_when: false
   tags: oracle_install_sw
 
-- name: "INSTALL | Free hugepages before unzip + runInstaller (prevents OOM on 4GB VM)"
-  ansible.builtin.shell: |
-    test -s "{{ oracle_home }}/bin/oracle" && exit 0
-    cat /proc/sys/vm/nr_hugepages > /tmp/oracle_hugepages_saved_install
-    echo 0 > /proc/sys/vm/nr_hugepages
-  changed_when: false
-  tags: oracle_install_sw
-
 - name: "INSTALL | Unzip Oracle installer into ORACLE_HOME"
   ansible.builtin.shell: |
     test -s "{{ oracle_home }}/bin/oracle" && exit 0
@@ -118,4 +110,3 @@
     "{{ oracle_home }}/root.sh"
   changed_when: false
   tags: oracle_install_sw
-# Note: hugepages remain at 0 here — 05_apply_patches.yml restores them after all patches complete

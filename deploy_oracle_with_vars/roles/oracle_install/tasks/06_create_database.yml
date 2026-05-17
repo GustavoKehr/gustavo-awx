@@ -64,6 +64,12 @@
     fail_msg: "Database did not reach OPEN status. Check {{ oracle_scripts_dir }}/CreateDB.log"
   tags: oracle_dbcreate
 
+- name: "DBCREATE | Allocate hugepages before SPFILE restart so DB maps SGA onto them"
+  ansible.builtin.shell: |
+    echo {{ _oracle_hugepages_final }} > /proc/sys/vm/nr_hugepages
+  changed_when: false
+  tags: oracle_dbcreate
+
 - name: "DBCREATE | Create SPFILE from pfile and restart"
   ansible.builtin.shell: |
     export ORACLE_HOME={{ oracle_home }}
