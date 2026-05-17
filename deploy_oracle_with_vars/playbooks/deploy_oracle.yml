@@ -45,16 +45,19 @@
         - oracle_security_check_enabled | default(false) | bool
           or ('oracle_security' in (ansible_run_tags | default([])))
       tags: [oracle, oracle_security, post_install]
+      vars:
+        _sec_oracle_base: "/oracle/{{ oracle_sid }}"
+        _sec_oracle_home: "{{ oracle_home | default(_sec_oracle_base + '/19.0.0') }}"
       block:
         - name: "Phase 10 | Verify sqlplus accessible"
           ansible.builtin.stat:
-            path: "{{ oracle_home }}/bin/sqlplus"
+            path: "{{ _sec_oracle_home }}/bin/sqlplus"
           register: _sec_sqlplus_stat
 
         - name: "Phase 10 | Abort if sqlplus not found"
           ansible.builtin.fail:
             msg: >-
-              sqlplus not found at {{ oracle_home }}/bin/sqlplus.
+              sqlplus not found at {{ _sec_oracle_home }}/bin/sqlplus.
               Oracle must be installed before running the security check.
           when: not _sec_sqlplus_stat.stat.exists
 
