@@ -17,38 +17,31 @@ oracle_preinstall_rpm: "oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm"
 # --- OPatch replacement ---
 oracle_opatch_dir: "p6880880"
 
-# --- Release Update + one-off applied during runInstaller (survey-driven) ---
+# --- Release Update + one-off applied inside runInstaller ---
 # Update these every quarter when Oracle releases a new RU.
-# oracle_oneoff_subpath: set to "" to skip -applyOneOffs entirely.
 oracle_ru_patch_dir: "p37641958"
 oracle_ru_subpath: "37641958/37642901"
 oracle_oneoff_subpath: "37641958/37643161"
 
 # --- Post-install opatch patches (applied after runInstaller, in order) ---
-#
-# Patch 1 — version patch (SURVEY-DRIVEN — update quarterly)
-# oracle_post_patch1_id is set via survey; dir and sub are derived automatically.
-# Do not override oracle_post_patch1_dir / oracle_post_patch1_sub manually.
-oracle_post_patch1_id: "38291812"
-oracle_post_patch1_dir: "p{{ oracle_post_patch1_id }}"
-oracle_post_patch1_sub: "{{ oracle_post_patch1_id }}"
+# Each entry: dir = top-level folder name, subdir = patch number folder inside.
+# Update dir/subdir values when newer patches are available.
+oracle_post_patch1_dir: "p38291812"
+oracle_post_patch1_sub: "38291812"
 oracle_post_patch1_enabled: false     # p38291812 not on AWX /opt/patches — enable when patch uploaded
 
-# Patch 2 — Oracle 19.30 RU (available on AWX /opt/patches; FIXED — do not change)
-oracle_post_patch2_dir: "p38632161"
-oracle_post_patch2_sub: "38632161"
+oracle_post_patch2_dir: "p32249704"   # dba_jobs fix (FIXED — do not change)
+oracle_post_patch2_sub: "32249704"
 
-# Patch 3 — oradism (FIXED — do not change; requires ownership swap around apply)
 oracle_post_patch3_dir: "p34672698"
 oracle_post_patch3_sub: "34672698"
 
 # --- LVM storage layout (used to create LVs on fresh VMs) ---
 # oracle_data_disk: raw disk to initialize as PV and VG (created if VG absent).
 # Set to "" to skip PV/VG creation (VG must already exist).
-oracle_data_disk: "/dev/sdb"      # REQUIRED via AWX survey — raw disk for PV/VG creation
+oracle_data_disk: "/dev/sdb"      # REQUIRED via AWX survey — override per environment
 oracle_vg_name: "vg_data"
-# LV sizes — minimum viable for dev/lab Oracle 19c (total ~35G on data disk).
-# Override via AWX survey for production sizing.
+# LV sizes — minimum viable dev/lab (~35G total). Override via AWX survey for production.
 oracle_lv_base_size: "50G"        # ORACLE_HOME: binary ~12G + OPatch workspace ~9.5G + DB creation + headroom
 oracle_lv_oradata_size: "5G"      # Datafiles
 oracle_lv_mirrlogA_size: "1G"     # Mirrored redo log A
@@ -91,9 +84,7 @@ oracle_nls_territory: "AMERICA"
 oracle_listener_port: 1521
 oracle_listener_name: "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ oracle_listener_port }})))"
 
-# --- Passwords (ALWAYS set via survey — never hardcode in production) ---
-# Empty string is intentional: forces survey to provide values.
-# If empty at runtime, DB creation will fail with an auth error — by design.
+# --- Passwords (always set via survey — never hardcode) ---
 oracle_sys_password: ""
 oracle_system_password: ""
 
@@ -108,12 +99,3 @@ ts_sid_idx_datafiles: 1
 # Gate Phase 6 (database creation). Default true — Oracle always creates a DB.
 # Set to false to install software only (useful for standby node prep).
 create_initial_db: true
-
-# --- Configuration check (Phase 7) ---
-# oracle_configuration_check_enabled: run oracle_configuration_check role after DB creation.
-# oracle_configuration_check_remediate: apply fixes for non-compliant items (ALTER SYSTEM, etc.).
-# oracle_security_allow_restart: allow DB restart to activate SPFILE changes made by fixes.
-#   Set true for fresh deploys (restart expected). Set false on running production DBs.
-oracle_configuration_check_enabled: true
-oracle_configuration_check_remediate: true
-oracle_security_allow_restart: true

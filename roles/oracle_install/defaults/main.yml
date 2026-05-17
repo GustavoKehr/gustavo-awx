@@ -30,8 +30,8 @@ oracle_post_patch1_dir: "p38291812"
 oracle_post_patch1_sub: "38291812"
 oracle_post_patch1_enabled: false     # p38291812 not on AWX /opt/patches — enable when patch uploaded
 
-oracle_post_patch2_dir: "p38632161"   # Oracle 19.30 RU (available on AWX /opt/patches)
-oracle_post_patch2_sub: "38632161"
+oracle_post_patch2_dir: "p32249704"   # dba_jobs fix (FIXED — do not change)
+oracle_post_patch2_sub: "32249704"
 
 oracle_post_patch3_dir: "p34672698"
 oracle_post_patch3_sub: "34672698"
