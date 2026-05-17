@@ -4,7 +4,9 @@
     # Only meaningful if oracle was actually installed (oraInventory exists)
     test -f "{{ oracle_base }}/oraInventory/ContentsXML/comps.xml" || exit 0
     find "{{ oracle_home }}/lib" -name "*.a" -empty 2>/dev/null | grep -q . && echo corrupt && exit 0
-    if ! /usr/bin/ar t "{{ oracle_home }}/lib/libserver19.a" > /dev/null 2>&1; then
+    # Capture both exit code and stderr — ar t may return 0 but print "not a valid archive"
+    ar_out=$(/usr/bin/ar t "{{ oracle_home }}/lib/libserver19.a" 2>&1)
+    if [ $? -ne 0 ] || echo "$ar_out" | grep -qi "not a valid archive"; then
       echo corrupt
       exit 0
     fi
@@ -21,6 +23,30 @@
     chown oracle:oinstall "{{ oracle_home }}"
     chmod 0750 "{{ oracle_home }}"
   when: _ohome_corrupt.stdout == "corrupt"
+  changed_when: true
+  tags: oracle_install_sw
+
+- name: "INSTALL | Detect RU p37642901 in oracle home (applied via -applyRU, incompatible with post-install patches)"
+  ansible.builtin.shell: |
+    # If oraInventory missing, runInstaller hasn't run — nothing to check
+    test -f "{{ oracle_base }}/oraInventory/ContentsXML/comps.xml" || exit 0
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH=$PATH:{{ oracle_home }}/OPatch
+    {{ oracle_home }}/OPatch/opatch lsinventory 2>/dev/null | grep -q "Patch  37642901 " && echo has_ru || echo no_ru
+  become: true
+  become_user: oracle
+  register: _ru_check
+  changed_when: false
+  tags: oracle_install_sw
+
+- name: "INSTALL | Wipe oracle home — RU p37642901 present, incompatible with post-install patches"
+  ansible.builtin.shell: |
+    rm -rf "{{ oracle_home }}"
+    rm -rf "{{ oracle_base }}/oraInventory"
+    mkdir -p "{{ oracle_home }}"
+    chown oracle:oinstall "{{ oracle_home }}"
+    chmod 0750 "{{ oracle_home }}"
+  when: _ru_check.stdout == "has_ru"
   changed_when: true
   tags: oracle_install_sw
 
