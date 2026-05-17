@@ -1,6 +1,6 @@
 {
   "name": "Oracle 19c Installation Survey",
-  "description": "SID is required. LV sizes and memory % are pre-filled with defaults - adjust for your environment.",
+  "description": "SID e senhas sao obrigatorios. LV sizes, memoria %, listener e charset tem defaults - ajuste para seu ambiente. Todos os patches (OPatch/RU-19.30/oradism/dba_jobs) estao hardcoded no role.",
   "spec": [
     {
       "question_name": "Oracle SID",
@@ -13,12 +13,32 @@
       "max": 8
     },
     {
+      "question_name": "SYS Password",
+      "question_description": "Senha do superusuario SYS. Obrigatorio - nunca usar default em producao.",
+      "required": true,
+      "type": "password",
+      "variable": "oracle_sys_password",
+      "default": "",
+      "min": 8,
+      "max": 30
+    },
+    {
+      "question_name": "SYSTEM Password",
+      "question_description": "Senha do usuario SYSTEM. Obrigatorio - nunca usar default em producao.",
+      "required": true,
+      "type": "password",
+      "variable": "oracle_system_password",
+      "default": "",
+      "min": 8,
+      "max": 30
+    },
+    {
       "question_name": "Data Disk (PV source)",
       "question_description": "Raw block device to initialize as PV and create the VG on (e.g. /dev/sdb, /dev/sdc). Leave empty if VG already exists on the target. WARNING: device will be wiped with pvcreate.",
       "required": false,
       "type": "text",
       "variable": "oracle_data_disk",
-      "default": "/dev/sdc",
+      "default": "/dev/sdb",
       "min": 0,
       "max": 20
     },
@@ -38,7 +58,7 @@
       "required": true,
       "type": "text",
       "variable": "oracle_lv_base_size",
-      "default": "60G",
+      "default": "50G",
       "min": 2,
       "max": 10
     },
@@ -48,7 +68,7 @@
       "required": true,
       "type": "text",
       "variable": "oracle_lv_oradata_size",
-      "default": "10G",
+      "default": "5G",
       "min": 2,
       "max": 10
     },
@@ -58,7 +78,7 @@
       "required": true,
       "type": "text",
       "variable": "oracle_lv_oraarch_size",
-      "default": "5G",
+      "default": "2G",
       "min": 2,
       "max": 10
     },
@@ -68,7 +88,7 @@
       "required": true,
       "type": "text",
       "variable": "oracle_lv_undofile_size",
-      "default": "5G",
+      "default": "2G",
       "min": 2,
       "max": 10
     },
@@ -78,13 +98,13 @@
       "required": true,
       "type": "text",
       "variable": "oracle_lv_tempfile_size",
-      "default": "5G",
+      "default": "2G",
       "min": 2,
       "max": 10
     },
     {
       "question_name": "LV: lv_mirrlogA/B size (mirrored redo logs)",
-      "question_description": "Size for each mirrored redo log LV (A and B use the same size). Format: e.g. 1G",
+      "question_description": "Size for both mirrored redo log LVs (lv_mirrlogA and lv_mirrlogB share this value). Format: e.g. 1G",
       "required": true,
       "type": "text",
       "variable": "oracle_lv_mirrlogA_size",
@@ -94,7 +114,7 @@
     },
     {
       "question_name": "LV: lv_origlogA/B size (original redo logs)",
-      "question_description": "Size for each original redo log LV (A and B use the same size). Format: e.g. 1G",
+      "question_description": "Size for both original redo log LVs (lv_origlogA and lv_origlogB share this value). Format: e.g. 1G",
       "required": true,
       "type": "text",
       "variable": "oracle_lv_origlogA_size",
@@ -121,6 +141,16 @@
       "default": 20,
       "min": 5,
       "max": 50
+    },
+    {
+      "question_name": "Listener Port",
+      "question_description": "TCP port for the Oracle listener. Default 1521 is the industry standard. Change only if the port is already in use on the target VM.",
+      "required": true,
+      "type": "integer",
+      "variable": "oracle_listener_port",
+      "default": 1521,
+      "min": 1024,
+      "max": 65535
     },
     {
       "question_name": "Character Set",
