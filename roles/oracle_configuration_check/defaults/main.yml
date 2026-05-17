@@ -9,7 +9,7 @@ oracle_db_version: "19"
 
 oracle_security_remediate: true
 oracle_configuration_check_remediate: true   # alias used by all FIX tasks; override via AWX survey
-oracle_security_allow_restart: false
+oracle_security_allow_restart: true
 oracle_generate_report: true  # set false to skip report output; remove report.yml import to remove completely
 
 # 1.1 AUD$ Table

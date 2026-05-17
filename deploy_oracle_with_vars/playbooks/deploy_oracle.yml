@@ -18,6 +18,7 @@
         - oracle_configuration_check_enabled | default(true) | bool
       vars:
         oracle_generate_report: true
+        oracle_security_allow_restart: true   # always restart after deploy to activate SPFILE changes
       tags: [oracle, oracle_config_check, oracle_configuration_check, post_install]
 
     - name: "Phase 8: Optional user management"
