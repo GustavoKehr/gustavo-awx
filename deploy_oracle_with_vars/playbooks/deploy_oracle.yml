@@ -38,3 +38,26 @@
       vars:
         db_patch_platform: "oracle"
       tags: [oracle, db_patches, patching]
+
+    - name: "Phase 10: Security audit (oracle_security_check)"
+      when:
+        - create_initial_db | default(true) | bool
+        - oracle_security_check_enabled | default(false) | bool
+          or ('oracle_security' in (ansible_run_tags | default([])))
+      tags: [oracle, oracle_security, post_install]
+      block:
+        - name: "Phase 10 | Verify sqlplus accessible"
+          ansible.builtin.stat:
+            path: "{{ oracle_home }}/bin/sqlplus"
+          register: _sec_sqlplus_stat
+
+        - name: "Phase 10 | Abort if sqlplus not found"
+          ansible.builtin.fail:
+            msg: >-
+              sqlplus not found at {{ oracle_home }}/bin/sqlplus.
+              Oracle must be installed before running the security check.
+          when: not _sec_sqlplus_stat.stat.exists
+
+        - name: "Phase 10 | Run oracle_security_check role"
+          ansible.builtin.include_role:
+            name: oracle_security_check
