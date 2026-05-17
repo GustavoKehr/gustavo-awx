@@ -1,28 +1,28 @@
 ---
 # 5.3 - OS Watcher
-# PASS: OSW process (OSWbb) running
-# FAIL: OSW not running
-# Fix: start OSW with configured interval and archive hours
+# N/A:  OSW not installed (startOSWbb.sh absent) — skip process check
+# PASS: OSW installed and OSWbb process running
+# FAIL: OSW installed but not running
+# Fix:  start OSW with configured interval and archive hours
+
+- name: "5.3 - [CHECK] Verify OS Watcher is installed"
+  ansible.builtin.stat:
+    path: "{{ oracle_osw_path }}/startOSWbb.sh"
+  register: _sec_5_3_installed
+  tags: [oracle_configuration_check, sec_op, sec_5_3]
 
 - name: "5.3 - [CHECK] Check if OS Watcher process is running"
-  ansible.builtin.shell: "pgrep -f OSWbb | wc -l"
+  ansible.builtin.shell: |
+    pgrep -f "startOSWbb.sh" > /dev/null 2>&1 && echo running || echo stopped
   register: _sec_5_3_result
   changed_when: false
+  when: _sec_5_3_installed.stat.exists
   tags: [oracle_configuration_check, sec_op, sec_5_3]
 
 - name: "5.3 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
-    _sec_5_3_procs: "{{ _sec_5_3_result.stdout | trim | int }}"
-    _sec_5_3_compliant: "{{ _sec_5_3_result.stdout | trim | int > 0 }}"
-  tags: [oracle_configuration_check, sec_op, sec_5_3]
-
-- name: "5.3 - [CHECK] Verify OSW directory exists"
-  ansible.builtin.stat:
-    path: "{{ oracle_osw_path }}/startOSWbb.sh"
-  register: _sec_5_3_osw_stat
-  when:
-    - not _sec_5_3_compliant
-    - oracle_configuration_check_remediate | bool
+    _sec_5_3_installed_flag: "{{ _sec_5_3_installed.stat.exists }}"
+    _sec_5_3_compliant: "{{ _sec_5_3_installed.stat.exists and (_sec_5_3_result.stdout | default('stopped')) == 'running' }}"
   tags: [oracle_configuration_check, sec_op, sec_5_3]
 
 - name: "5.3 - [FIX] Start OS Watcher"
@@ -30,19 +30,25 @@
     cd "{{ oracle_osw_path }}"
     nohup ./startOSWbb.sh {{ oracle_osw_interval }} {{ oracle_osw_archive_hours }} > /dev/null 2>&1 &
     sleep 2
-    pgrep -f OSWbb | wc -l
+    pgrep -f "startOSWbb.sh" > /dev/null 2>&1 && echo started || echo failed
   register: _sec_5_3_start
-  changed_when: _sec_5_3_start.stdout | trim | int > 0
+  changed_when: "'started' in _sec_5_3_start.stdout"
   become: true
   become_user: "{{ oracle_os_user }}"
   when:
+    - _sec_5_3_installed.stat.exists
     - not _sec_5_3_compliant
     - oracle_configuration_check_remediate | bool
-    - _sec_5_3_osw_stat.stat.exists
   tags: [oracle_configuration_check, sec_op, sec_5_3]
 
 # REPORT: remove this task to disable reporting
 - name: "5.3 - [REPORT] Store result"
   ansible.builtin.set_fact:
-    _sec_report: "{{ _sec_report | default([]) + [{'id': '5.3', 'name': 'OS Watcher', 'status': 'PASS' if _sec_5_3_compliant else 'FAIL', 'fixed': _sec_5_3_start is defined and _sec_5_3_start is changed}] }}"
+    _sec_report: >-
+      {{ _sec_report | default([]) + [{
+        'id': '5.3',
+        'name': 'OS Watcher',
+        'status': 'N/A' if not _sec_5_3_installed_flag else ('PASS' if _sec_5_3_compliant else 'FAIL'),
+        'fixed': _sec_5_3_start is defined and _sec_5_3_start is changed
+      }] }}
   tags: [oracle_configuration_check, sec_op, sec_5_3]
