@@ -1,0 +1,110 @@
+---
+# Phase 7 — Oracle Network Configuration
+# Creates listener.ora, tnsnames.ora, sqlnet.ora in $ORACLE_HOME/network/admin
+# Starts and registers the Oracle listener.
+# Idempotent: template tasks only update files when content changes.
+
+- name: "NETCFG | Ensure network/admin directory exists"
+  ansible.builtin.file:
+    path: "{{ oracle_home }}/network/admin"
+    state: directory
+    owner: oracle
+    group: oinstall
+    mode: "0755"
+  tags: [oracle, oracle_netcfg]
+
+- name: "NETCFG | Deploy listener.ora"
+  ansible.builtin.template:
+    src: listener.ora.j2
+    dest: "{{ oracle_home }}/network/admin/listener.ora"
+    owner: oracle
+    group: oinstall
+    mode: "0640"
+  register: _listener_ora
+  tags: [oracle, oracle_netcfg]
+
+- name: "NETCFG | Deploy tnsnames.ora"
+  ansible.builtin.template:
+    src: tnsnames.ora.j2
+    dest: "{{ oracle_home }}/network/admin/tnsnames.ora"
+    owner: oracle
+    group: oinstall
+    mode: "0640"
+  tags: [oracle, oracle_netcfg]
+
+- name: "NETCFG | Deploy sqlnet.ora"
+  ansible.builtin.template:
+    src: sqlnet.ora.j2
+    dest: "{{ oracle_home }}/network/admin/sqlnet.ora"
+    owner: oracle
+    group: oinstall
+    mode: "0640"
+  tags: [oracle, oracle_netcfg]
+
+- name: "NETCFG | Check if listener is running"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    lsnrctl status LISTENER 2>&1 | grep -q "The command completed successfully" && echo running || echo stopped
+  become: true
+  become_user: oracle
+  register: _listener_status
+  changed_when: false
+  tags: [oracle, oracle_netcfg]
+
+- name: "NETCFG | Stop listener before reload (if running and listener.ora changed)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    lsnrctl stop LISTENER
+  become: true
+  become_user: oracle
+  when:
+    - _listener_status.stdout == "running"
+    - _listener_ora.changed
+  register: _lsnr_stop
+  changed_when: true
+  tags: [oracle, oracle_netcfg]
+
+- name: "NETCFG | Start listener"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    lsnrctl start LISTENER
+  become: true
+  become_user: oracle
+  when: _listener_status.stdout == "stopped" or _listener_ora.changed
+  register: _lsnr_start
+  changed_when: "'The command completed successfully' in _lsnr_start.stdout"
+  tags: [oracle, oracle_netcfg]
+
+- name: "NETCFG | Verify listener is up"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    lsnrctl status LISTENER
+  become: true
+  become_user: oracle
+  register: _lsnr_verify
+  changed_when: false
+  tags: [oracle, oracle_netcfg]
+
+- name: "NETCFG | Display listener status"
+  ansible.builtin.debug:
+    msg: "{{ _lsnr_verify.stdout_lines[-10:] }}"
+  tags: [oracle, oracle_netcfg]
+
+- name: "NETCFG | Register DB service with listener (ALTER SYSTEM REGISTER)"
+  ansible.builtin.shell: |
+    export ORACLE_HOME={{ oracle_home }}
+    export ORACLE_SID={{ oracle_sid }}
+    export PATH=$ORACLE_HOME/bin:$PATH
+    sqlplus -s / as sysdba <<'EOF'
+    ALTER SYSTEM REGISTER;
+    EXIT;
+    EOF
+  become: true
+  become_user: oracle
+  changed_when: false
+  when: create_initial_db | default(true) | bool
+  tags: [oracle, oracle_netcfg]

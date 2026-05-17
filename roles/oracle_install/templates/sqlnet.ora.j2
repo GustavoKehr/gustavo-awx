@@ -1,0 +1,15 @@
+# sqlnet.ora — managed by Ansible oracle_install role
+# Generated: {{ ansible_date_time.iso8601 }}
+
+NAMES.DIRECTORY_PATH = (TNSNAMES, EZCONNECT)
+
+# ADR base for network diagnostic tracing
+ADR_BASE = {{ oracle_base }}
+
+# Sqlnet timeout settings (seconds)
+SQLNET.INBOUND_CONNECT_TIMEOUT  = 60
+SQLNET.SEND_TIMEOUT             = 60
+SQLNET.RECV_TIMEOUT             = 60
+
+# Expired password grace period — disallow login with expired password
+SQLNET.EXPIRE_TIME = 10
