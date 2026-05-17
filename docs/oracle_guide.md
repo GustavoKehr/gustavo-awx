@@ -91,7 +91,7 @@ Phase 1:  oracle_prereqs              → RPM, libnsl, hugepages, calc SGA/PGA, 
 Phase 2:  oracle_dirs                 → diretórios, bash_profile, init.ora, SQL scripts de criação
 Phase 3:  oracle_transfer             → rsync installer + OPatch + RU + post-patches (~8 GB) para /home/oracle/software
 Phase 4:  oracle_install_sw           → unzip + swap OPatch + runInstaller -applyRU p38632161 (sem -applyOneOffs) + root.sh
-Phase 5:  oracle_patches              → opatch: post1(opcional) → post2 → oradism chown → post3 → oradism restore
+Phase 5:  oracle_patches              → opatch: post2(p38632161/19.30) → oradism chown → post3(p34672698) → oradism restore
 Phase 6:  oracle_dbcreate             → orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → Users_and_Objects.sql
 Phase 6b: oracle_netcfg              → listener.ora / tnsnames.ora / sqlnet.ora + lsnrctl LISTENER_<SID> + ALTER SYSTEM REGISTER
 Phase 7:  oracle_configuration_check → security/config checks + auto-remediation + SHUTDOWN/STARTUP (auto quando create_initial_db=true)
@@ -165,7 +165,6 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_users -l oraclevm
 | `oracle_ru_patch_dir` | `p37641958` | **Legado** — ainda transferido para o target via rsync, mas runInstaller não o usa mais diretamente. Manter em `/opt/patches/`. |
 | `oracle_ru_subpath` | `37641958/37642901` | Legado — subpath do patch RU legado. Não usado como argumento de runInstaller. |
 | `oracle_oneoff_subpath` | `37641958/37643161` | Legado — removido do runInstaller. Sem `-applyOneOffs` na configuração atual. |
-| `oracle_post_patch1_dir` | `p38291812` | Patch pós-instalação 1 (opcional, `oracle_post_patch1_enabled: false` por padrão). |
 | `oracle_post_patch2_dir` | `p38632161` | **Usado como `-applyRU` no runInstaller** (Oracle 19.30 — necessário para RHEL9/GCC11). Também aplicado standalone via opatch (pula se já no inventário do runInstaller). |
 | `oracle_post_patch3_dir` | `p34672698` | Patch oradism (post_patch3) — aplicado via opatch pós-install. |
 
@@ -413,7 +412,7 @@ O RU aplicado é sempre `p38632161/38632161` (Oracle 19.30). Não há `-applyOne
 | `oracle_dirs` | Criação de diretórios, bash_profile (Phase 2) |
 | `oracle_transfer` | Rsync binários AWX → target (Phase 3) |
 | `oracle_install_sw` | Descompactar + runInstaller + root.sh (Phase 4) |
-| `oracle_patches` | opatch em sequência — RU, one-off, post-install (Phase 5) |
+| `oracle_patches` | opatch: p38632161 (19.30 RU) → oradism chown → p34672698 (oradism) → oradism restore (Phase 5) |
 | `oracle_dbcreate` | Criação do banco, catalog, datapatch, SPFILE (Phase 6) |
 | `oracle_netcfg` | listener.ora / tnsnames.ora / sqlnet.ora + lsnrctl LISTENER_\<SID\> (Phase 6b) |
 | `oracle_security` | Security audit via oracle_security_check role (Phase 10 — requer `oracle_security_check_enabled=true`) |

@@ -26,10 +26,6 @@ oracle_oneoff_subpath: "37641958/37643161"
 # --- Post-install opatch patches (applied after runInstaller, in order) ---
 # Each entry: dir = top-level folder name, subdir = patch number folder inside.
 # Update dir/subdir values when newer patches are available.
-oracle_post_patch1_dir: "p38291812"
-oracle_post_patch1_sub: "38291812"
-oracle_post_patch1_enabled: false     # p38291812 not on AWX /opt/patches — enable when patch uploaded
-
 oracle_post_patch2_dir: "p38632161"   # RU 19.30 — prereq for oradism p34672698 (FIXED — do not change)
 oracle_post_patch2_sub: "38632161"
 

@@ -36,7 +36,6 @@ ls -la /opt/patches/
 | `p37641958/` | Diretório | **Sim** (~3 GB) | Bundle legado — ainda transferido para o target via rsync, mas runInstaller **não** o usa mais como `-applyRU`. Manter em `/opt/patches/`. |
 | `p38632161/38632161/` | Diretório | **Sim** | Usado como argumento `-applyRU` no runInstaller (Oracle 19.30, RHEL9/GCC11). Também aplicado standalone via opatch (pula se já no inventário). |
 | `p34672698/34672698/` | Diretório | **Sim** | Patch oradism (post_patch3) — aplicado via opatch pós-install |
-| `p38291812/38291812/` | Diretório | Só se `oracle_post_patch1_enabled: true` | Patch opcional post_patch1 — desativado por padrão |
 
 > **Atenção:** O AWX EE acessa estes diretórios diretamente — o rsync é delegado para `awxvm` (não roda dentro do container EE). Os arquivos devem estar no host `awxvm`, não dentro do EE.
 
@@ -102,7 +101,7 @@ EE precisa montar `/opt/oracle` e `/opt/patches` do host awxvm (configurado via 
 | `oracle_dirs` | 2 | Estrutura de diretórios, bash_profile, init.ora, SQL scripts de criação | 1-2 min |
 | `oracle_transfer` | 3 | Rsync installer + OPatch + RU + post-patches para `/home/oracle/software` (~8 GB) | 5-20 min |
 | `oracle_install_sw` | 4 | unzip + troca OPatch + runInstaller **com `-applyRU p38632161`** (sem -applyOneOffs) + root.sh | 15-30 min |
-| `oracle_patches` | 5 | opatch: post1 → post2 → oradism chown → post3 → oradism restore | 5-15 min |
+| `oracle_patches` | 5 | opatch: p38632161(19.30 RU) → oradism chown → p34672698(oradism) → oradism restore | 5-15 min |
 | `oracle_dbcreate` | 6 | orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → Users_and_Objects.sql | 10-20 min |
 | `oracle_netcfg` | 6b | listener.ora / tnsnames.ora / sqlnet.ora + lsnrctl LISTENER_\<SID\> + ALTER SYSTEM REGISTER | < 1 min |
 | `oracle_configuration_check` | 7 | security/config checks + auto-remediation + SHUTDOWN/STARTUP (quando `create_initial_db=true` e `oracle_configuration_check_enabled=true`) | 2-5 min |
@@ -546,8 +545,6 @@ Variáveis opcionais (só setar se precisar mudar o default):
 
 ```yaml
 # Controle de patches — omitir usa os defaults de defaults/main.yml
-oracle_post_patch1_enabled: true   # false se p38291812 não estiver em /opt/patches
-
 # Controle de fases
 create_initial_db: true            # false = instala só software (standby prep)
 
@@ -625,7 +622,6 @@ ls -la /opt/oracle/oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm
 ls -la /opt/oracle/libnsl_libs/
 ls -la /opt/patches/p6880880/OPatch/
 ls -la /opt/patches/p37641958/
-ls -la /opt/patches/p38291812/
 ls -la /opt/patches/p38632161/
 ls -la /opt/patches/p34672698/
 
