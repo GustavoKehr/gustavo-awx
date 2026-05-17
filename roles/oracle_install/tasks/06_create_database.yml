@@ -117,7 +117,7 @@
     SET PAGESIZE 0 FEEDBACK OFF
     SELECT COUNT(*) FROM dba_profiles WHERE profile='ORACLE_PROFILE' AND resource_name='PASSWORD_LIFE_TIME';
     EXIT;
-EOF
+    EOF
     )
     echo "$result" | grep -q "^[1-9]" && echo already_applied || echo not_applied
   become: true
