@@ -1,9 +1,68 @@
 ---
-- name: "Oracle Security Check & Remediation"
+# Oracle Configuration Check + Security Audit — combined playbook
+# Phase 1: oracle_configuration_check  (config/perf/availability checks + auto-remediation)
+# Phase 2: oracle_security_check       (security hardening audit + fix)
+# Report:  HTML fetched to reports/ on controller
+
+- name: "Oracle Configuration Check & Security Audit"
   hosts: "{{ target_hosts | default('all') }}"
   become: true
   gather_facts: true
 
-  roles:
-    - role: oracle_configuration_check
-      tags: [oracle_configuration_check]
+  vars:
+    _sec_oracle_base: "/oracle/{{ oracle_sid }}"
+    _sec_oracle_home: "{{ oracle_home | default(_sec_oracle_base + '/19.0.0') }}"
+
+  pre_tasks:
+    - name: "PRE | Verify sqlplus accessible"
+      ansible.builtin.stat:
+        path: "{{ _sec_oracle_home }}/bin/sqlplus"
+      register: _sqlplus_stat
+      tags: always
+
+    - name: "PRE | Abort if sqlplus not found"
+      ansible.builtin.fail:
+        msg: >-
+          sqlplus not found at {{ _sec_oracle_home }}/bin/sqlplus.
+          Oracle must be installed before running checks.
+          Set oracle_home or oracle_sid correctly (default oracle_home: /oracle/<SID>/19.0.0).
+      when: not _sqlplus_stat.stat.exists
+      tags: always
+
+  tasks:
+    - name: "Phase 1 — Configuration check and remediation"
+      ansible.builtin.include_role:
+        name: oracle_configuration_check
+      vars:
+        oracle_generate_report: true
+        oracle_security_allow_restart: "{{ oracle_allow_restart | default(false) | bool }}"
+      tags: [oracle, oracle_configuration_check, post_install]
+
+    - name: "Phase 2 — Security audit and hardening"
+      ansible.builtin.include_role:
+        name: oracle_security_check
+      tags: [oracle, oracle_security, post_install]
+
+    - name: "REPORT | Compute report filename"
+      ansible.builtin.set_fact:
+        _config_report_file: "oracle_config_check_{{ oracle_sid }}_{{ ansible_date_time.date }}.html"
+      tags: [oracle, oracle_report]
+
+    - name: "REPORT | Fetch HTML config report to controller"
+      ansible.builtin.fetch:
+        src: "/tmp/{{ _config_report_file }}"
+        dest: "reports/{{ _config_report_file }}"
+        flat: true
+      ignore_errors: true
+      tags: [oracle, oracle_report]
+
+    - name: "REPORT | Summary"
+      ansible.builtin.debug:
+        msg: |
+          ════════════════════════════════════════════════════════════════
+           ORACLE CHECK COMPLETE — {{ oracle_sid }} @ {{ inventory_hostname }}
+          ════════════════════════════════════════════════════════════════
+           Config check HTML : reports/{{ _config_report_file }}
+           Security summary  : see task output above (oracle_security_check)
+          ════════════════════════════════════════════════════════════════
+      tags: [oracle, oracle_report]

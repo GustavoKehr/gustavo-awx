@@ -232,16 +232,15 @@ O rsync só retransfer o que mudou — se os arquivos estiverem intactos, a task
 
 ---
 
-## Fases Pós-Instalação (7, 8, 9)
+## Fases Pós-Instalação (7–10)
 
 ### Phase 7 — oracle_configuration_check
 
 Executa automaticamente após `oracle_dbcreate` quando `create_initial_db=true` e `oracle_configuration_check_enabled=true`:
 
-- Auditorias de segurança (AUDIT_TRAIL, password policies, default profiles)
-- Auto-remediation de configurações fora do padrão
+- Auditorias de configuração/performance/disponibilidade com auto-remediation
 - SHUTDOWN + STARTUP para efetivar parâmetros do SPFILE
-- Verificação final: `SELECT status FROM v$instance` deve retornar `OPEN`
+- Relatório HTML gerado em `/tmp/oracle_config_check_<SID>_<date>.html` + copiado para `reports/`
 
 ### Phase 8 — oracle_manage_users
 
@@ -252,6 +251,31 @@ Usar o Job Template dedicado `ORACLE | Manage Users` com survey `awx_survey_orac
 ### Phase 9 — db_patches
 
 Patch discovery: lista patches Oracle disponíveis em `/opt/patches/` sem aplicar. Só roda quando `db_patches_enabled: true` (default: `false`). `db_patch_apply_enabled` é sempre `false` por design — aplicação requer janela de manutenção aprovada.
+
+### Phase 10 — oracle_security (standalone)
+
+Auditoria de segurança completa via `playbooks/oracle_configuration_check.yml` (inclui oracle_configuration_check + oracle_security_check):
+
+```bash
+ansible-playbook playbooks/oracle_configuration_check.yml \
+  -e oracle_sid=AWOR -e oracle_allow_restart=false -l oraclevm
+```
+
+Relatório HTML: `reports/oracle_config_check_<SID>_<date>.html`
+
+---
+
+## Job Template AWX — Configuration & Security Check
+
+| Campo AWX | Valor |
+|---|---|
+| **Name** | `ORACLE \| Configuration & Security Check` |
+| **Playbook** | `playbooks/oracle_configuration_check.yml` |
+| **Inventory** | `LINUX` |
+| **Credentials** | `Machine: user_aap` |
+| **Limit** | `oraclevm` |
+| **Extra Variables** | `oracle_sid: AWOR` |
+| **Tags** | *(vazio — roda ambas as fases)* |
 
 ---
 

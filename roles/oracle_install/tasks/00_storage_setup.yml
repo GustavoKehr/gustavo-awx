@@ -141,3 +141,17 @@
     label: "{{ item.mp }}"
   changed_when: false
   tags: oracle_storage
+
+- name: "STORAGE | Persist oracle LV mounts in /etc/fstab"
+  ansible.builtin.mount:
+    src: "{{ item.lv }}"
+    path: "{{ item.mp }}"
+    fstype: xfs
+    opts: "defaults,noatime,nodiratime,nofail"
+    dump: "0"
+    passno: "2"
+    state: present
+  loop: "{{ _oracle_lv_mounts }}"
+  loop_control:
+    label: "{{ item.mp }}"
+  tags: oracle_storage
