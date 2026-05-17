@@ -1,6 +1,6 @@
 {
   "name": "Oracle 19c Installation Survey",
-  "description": "SID e senhas sao obrigatorios. LV sizes, memoria %, patches e listener tem defaults - ajuste para seu ambiente. Patches fixos (dba_jobs/oradism/opatch) estao hardcoded no role.",
+  "description": "SID e senhas sao obrigatorios. LV sizes, memoria %, listener e charset tem defaults - ajuste para seu ambiente. Todos os patches (OPatch/RU-19.30/oradism/dba_jobs) estao hardcoded no role.",
   "spec": [
     {
       "question_name": "Oracle SID",
@@ -104,7 +104,7 @@
     },
     {
       "question_name": "LV: lv_mirrlogA/B size (mirrored redo logs)",
-      "question_description": "Size for each mirrored redo log LV (A and B use the same size). Format: e.g. 1G",
+      "question_description": "Size for both mirrored redo log LVs (lv_mirrlogA and lv_mirrlogB share this value). Format: e.g. 1G",
       "required": true,
       "type": "text",
       "variable": "oracle_lv_mirrlogA_size",
@@ -114,7 +114,7 @@
     },
     {
       "question_name": "LV: lv_origlogA/B size (original redo logs)",
-      "question_description": "Size for each original redo log LV (A and B use the same size). Format: e.g. 1G",
+      "question_description": "Size for both original redo log LVs (lv_origlogA and lv_origlogB share this value). Format: e.g. 1G",
       "required": true,
       "type": "text",
       "variable": "oracle_lv_origlogA_size",
@@ -161,46 +161,6 @@
       "default": "AL32UTF8",
       "min": 5,
       "max": 30
-    },
-    {
-      "question_name": "RU Patch Bundle Directory",
-      "question_description": "Top-level directory of the Release Update bundle in /opt/patches on the AWX VM. Format: p<PatchID> (e.g. p37641958). Update quarterly when Oracle releases a new RU.",
-      "required": true,
-      "type": "text",
-      "variable": "oracle_ru_patch_dir",
-      "default": "p37641958",
-      "min": 5,
-      "max": 20
-    },
-    {
-      "question_name": "RU Subpath (within bundle)",
-      "question_description": "Subpath to the Release Update patch inside the bundle directory. Format: <BundleID>/<RU_ID> (e.g. 37641958/37642901). Used as -applyRU argument to runInstaller.",
-      "required": true,
-      "type": "text",
-      "variable": "oracle_ru_subpath",
-      "default": "37641958/37642901",
-      "min": 5,
-      "max": 40
-    },
-    {
-      "question_name": "One-off Patch Subpath (optional)",
-      "question_description": "Subpath to the one-off patch inside the bundle directory. Format: <BundleID>/<Oneoff_ID> (e.g. 37641958/37643161). Used as -applyOneOffs to runInstaller. Leave EMPTY to skip -applyOneOffs.",
-      "required": false,
-      "type": "text",
-      "variable": "oracle_oneoff_subpath",
-      "default": "37641958/37643161",
-      "min": 0,
-      "max": 40
-    },
-    {
-      "question_name": "Post-install Patch 1 ID (version patch)",
-      "question_description": "Patch ID for the first post-installation patch (the version/release patch). Applied via opatch after runInstaller. Directory derived as p<ID>/<ID> under /opt/patches. Update quarterly.",
-      "required": true,
-      "type": "text",
-      "variable": "oracle_post_patch1_id",
-      "default": "38291812",
-      "min": 5,
-      "max": 12
     },
     {
       "question_name": "TS_AUDIT_DAT01 datafile count",
