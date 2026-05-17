@@ -392,6 +392,132 @@ DROP USER OLDUSER CASCADE;
 
 ---
 
+## Checks do oracle_configuration_check — Referência Completa
+
+O role `oracle_configuration_check` executa 29 verificações agrupadas em 5 categorias. Cada check produz `PASS`, `FAIL`, `FIXED` ou `N/A` no relatório HTML.
+
+> **oracle_configuration_check_remediate: true** (default) — FIX tasks rodam automaticamente. Setar `false` para modo auditoria apenas (nenhuma alteração no banco/SO).
+> **oracle_security_allow_restart: true** — DB reinicia ao final para efetivar parâmetros SPFILE. Setar `false` para aplicar sem reinício (parâmetros ficam pendentes até próximo restart manual).
+
+### Categoria 1 — Configuração Geral
+
+| ID | Check | O que verifica | Auto-fix | O que o FIX faz |
+|---|---|---|---|---|
+| 1.1 | AUD$ Table | Tabela de auditoria não está em SYSTEM/SYSAUX — deve estar em `TS_AUDIT_DAT01` | **Sim** | Move AUD$ para tablespace correta |
+| 1.2 | DB User DBA Role | Nenhum usuário não-padrão com role DBA (exceto lista `oracle_dba_role_approved_users`) | Não | Só reporte — requer revisão manual |
+| 1.3 | oradism File Permission | `oradism` com owner=root, mode=4750 no ORACLE_HOME | **Sim** | Corrige permissões via `chmod/chown` |
+| 1.4 | Linux swappiness | `vm.swappiness=1` (kernel >2.6.18) | **Sim** | `sysctl vm.swappiness=1` + persiste em `/etc/sysctl.conf` |
+| 1.5 | Linux SELinux | SELinux desabilitado (`SELINUX=disabled`) | **Sim** | `setenforce 0` + atualiza `/etc/selinux/config` + grub |
+| 1.6 | Page Table Size | `PageTables` ≤ 2% da RAM total | Não | Requer HugePages corretamente configurado (fase 1) |
+| 1.7 | DB Logon Delay | `_sys_logon_delay=0` (Oracle 12+) | **Sim** | `ALTER SYSTEM SET _sys_logon_delay=0 SCOPE=SPFILE` |
+| 1.8 | _cleanup_rollback_entries | Parâmetro ≥ 2000 | **Sim** | `ALTER SYSTEM SET _cleanup_rollback_entries=2000 SCOPE=SPFILE` |
+| 1.9 | deferred_segment_creation | Parâmetro = `false` | **Sim** | `ALTER SYSTEM SET deferred_segment_creation=FALSE SCOPE=SPFILE` |
+| 1.10 | _disable_system_state | Parâmetro = `10` | **Sim** | `ALTER SYSTEM SET _disable_system_state=10 SCOPE=SPFILE` |
+
+### Categoria 2 — Defeitos e Erros Conhecidos
+
+| ID | Check | O que verifica | Auto-fix | O que o FIX faz |
+|---|---|---|---|---|
+| 2.1 | _rowsets_enabled | Parâmetro = `false` (evita bug de corrupção em batch) | **Sim** | `ALTER SYSTEM SET _rowsets_enabled=FALSE SCOPE=SPFILE` |
+| 2.2 | _drop_stat_segment | Parâmetro = `1` OR patch `23125826` aplicado | **Sim** | `ALTER SYSTEM SET _drop_stat_segment=1 SCOPE=SPFILE` se patch ausente |
+| 2.3 | LSLT Bug | Patch `33121934` aplicado AND `_disable_last_successful_login_time=true` | **Sim** | `ALTER SYSTEM SET` (só se patch presente; restart necessário) |
+| 2.4 | Min OS Free Memory | `vm.min_free_kbytes ≥ 524288` AND MTU loopback=16436 | **Sim** | Atualiza sysctl + `nmcli` para MTU do loopback |
+| 2.5 | Listener.log Errors | Nenhum erro repetido > threshold nos últimos 30 dias | Não | Só reporte — verificar log manualmente |
+
+### Categoria 3 — Disponibilidade
+
+| ID | Check | O que verifica | Auto-fix | Observação |
+|---|---|---|---|---|
+| 3.1 | RAC Configuration | Banco em modo RAC (`parallel=YES`) | Não | **Sempre FAIL em single-instance** — esperado em lab |
+| 3.3 | DB Server Redundancy | Daemon de cluster rodando (crsd/corosync/pacemaker) | Não | **Sempre FAIL em servidor único** — esperado em lab |
+
+> **Nota:** Checks 3.1 e 3.3 são FAIL em qualquer instalação single-instance — isso é **normal** em ambientes de lab e desenvolvimento. Não requerem ação.
+
+### Categoria 4 — Performance e Capacidade
+
+| ID | Check | O que verifica | Auto-fix | O que o FIX faz |
+|---|---|---|---|---|
+| 4.1 | Checkpoint Not Complete | Sem mensagem "checkpoint not complete" no alert.log | Não | Requer aumento dos redo logs — manual |
+| 4.2 | PGA Limit | `pga_aggregate_limit=0` AND `_pga_max_size ≥ oracle_pga_max_size_gb` (default: 2 GB) | **Sim** | `ALTER SYSTEM SET` ambos os parâmetros SCOPE=SPFILE |
+| 4.3 | _parallel_adaptive_max_users | Parâmetro = `2` | **Sim** | `ALTER SYSTEM SET _parallel_adaptive_max_users=2 SCOPE=SPFILE` |
+| 4.4 | filesystemio_options | Parâmetro = `setall` (obrigatório para LVM/XFS) | **Sim** | `ALTER SYSTEM SET filesystemio_options=setall SCOPE=SPFILE` |
+| 4.5 | SGA/PGA Memory Sizing | SGA entre `oracle_sga_pct_min` (20%) e `oracle_sga_pct_max` (50%) da RAM; PGA entre 10%-40% | **Sim** | `ALTER SYSTEM SET sga_target / pga_aggregate_target` baseado em % da RAM |
+
+### Categoria 5 — Operação
+
+| ID | Check | O que verifica | Auto-fix | O que o FIX faz |
+|---|---|---|---|---|
+| 5.1 | User Account Lock | Perfis de aplicação com `FAILED_LOGIN_ATTEMPTS` limitado | **Sim** | `ALTER PROFILE ... LIMIT FAILED_LOGIN_ATTEMPTS 3` (sem restart) |
+| 5.2 | DBA_REGISTRY Components | Todos os componentes do dicionário com status `VALID` | Não | Específico por versão — requer intervenção manual |
+| 5.3 | OS Watcher | `startOSWbb.sh` instalado + processo em execução | **Sim** | Inicia `systemctl start oswatcher` |
+| 5.4 | Nologging | Sem LOBs ou datafiles marcados como `NOLOGGING` | Não | Requer `ALTER ... LOGGING` manual por objeto |
+| 5.5 | DB Full Backup | Backup completo (RMAN ou export) executado | Não | Requer política de backup configurada |
+| 5.6 | Control File Backup | Backup do control file nos últimos 8 dias | Não | Requer `BACKUP CURRENT CONTROLFILE` agendado |
+| 5.7 | AWR Configuration | Retenção ≥ 35 dias AND intervalo ≤ 20 min | **Sim** | `DBMS_WORKLOAD_REPOSITORY.MODIFY_SNAPSHOT_SETTINGS` (sem restart) |
+
+### Resumo: Auto-fix vs Reporte
+
+**Auto-fix (17 checks):** 1.1, 1.3, 1.4, 1.5, 1.7, 1.8, 1.9, 1.10, 2.1, 2.2, 2.3, 2.4, 4.2, 4.3, 4.4, 4.5, 5.1, 5.3, 5.7
+
+**Reporte apenas (10 checks):** 1.2, 1.6, 2.5, 3.1, 3.3, 4.1, 5.2, 5.4, 5.5, 5.6
+
+---
+
+## Política de Senhas — Profiles Oracle
+
+Criados/atualizados na Phase 6 (`oracle_dbcreate`) via `Users_and_Objects.sql`.
+
+### Profile APPLICATION
+
+Atribuído aos usuários de aplicação criados pelo playbook. Política mais permissiva em relação à expiração (UNLIMITED), mas com verificação de complexidade obrigatória.
+
+| Parâmetro | Valor | Descrição |
+|---|---|---|
+| `FAILED_LOGIN_ATTEMPTS` | `3` | Conta bloqueada após 3 falhas consecutivas |
+| `PASSWORD_LIFE_TIME` | `UNLIMITED` | Senha não expira (aplicações não podem receber prompt de troca) |
+| `PASSWORD_REUSE_TIME` | `180` | Não pode reutilizar senha usada nos últimos 180 dias |
+| `PASSWORD_REUSE_MAX` | `1` | Deve trocar senha ao menos 1 vez antes de reutilizar |
+| `PASSWORD_VERIFY_FUNCTION` | `verify_function_12C` | Verifica complexidade: mínimo 8 chars, maiúsc + minúsc + número + especial |
+| `PASSWORD_LOCK_TIME` | `1` | Conta bloqueada por 1 dia após exceder FAILED_LOGIN_ATTEMPTS |
+| `PASSWORD_GRACE_TIME` | `7` | 7 dias de aviso antes da expiração |
+
+### Profile DEFAULT
+
+Aplicado a todos os usuários Oracle sem profile explícito (incluindo contas de DBA).
+
+| Parâmetro | Valor | Descrição |
+|---|---|---|
+| `FAILED_LOGIN_ATTEMPTS` | `3` | Conta bloqueada após 3 falhas |
+| `PASSWORD_LIFE_TIME` | `5` | Senha expira em 5 dias — força troca periódica para contas administrativas |
+| `PASSWORD_REUSE_TIME` | `180` | Não pode reutilizar nos últimos 180 dias |
+| `PASSWORD_REUSE_MAX` | `1` | Mínimo 1 troca antes de reutilizar |
+| `PASSWORD_VERIFY_FUNCTION` | `verify_function_12C` | Mesmo verificador de complexidade |
+| `PASSWORD_LOCK_TIME` | `1` | Bloqueio por 1 dia |
+| `PASSWORD_GRACE_TIME` | `7` | 7 dias de aviso |
+
+### verify_function_12C
+
+Função de verificação de complexidade criada em `roles/oracle_install/files/verify_function_12c.sql` e executada na Phase 6 **antes** do `Users_and_Objects.sql`.
+
+Regras verificadas:
+- Mínimo 8 caracteres
+- Pelo menos 1 letra maiúscula
+- Pelo menos 1 letra minúscula
+- Pelo menos 1 dígito numérico
+- Pelo menos 1 caractere especial
+- Senha não pode conter o nome do usuário
+- Senha não pode ser igual à senha anterior
+
+```bash
+# Verificar manualmente se a função existe:
+sudo -u oracle /oracle/<SID>/19.0.0/bin/sqlplus / as sysdba <<EOF
+SELECT object_name, status FROM dba_objects
+WHERE object_name = 'VERIFY_FUNCTION_12C' AND owner = 'SYS';
+EOF
+```
+
+---
+
 ## Decisões de Design
 
 ### Por que `CV_ASSUME_DISTID=RHEL8`?
