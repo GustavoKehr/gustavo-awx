@@ -138,22 +138,15 @@
 </head>
 <body>
 
-{# ── Counters via namespace (Jinja2 2.10+, no list.append) ── #}
-{% set ns = namespace(total=0, n_pass=0, n_fail=0, n_fixed=0) %}
-{% for item in _sec_report | default([]) %}
-  {% set ns.total = ns.total + 1 %}
-  {% if item.status == 'PASS' %}
-    {% set ns.n_pass = ns.n_pass + 1 %}
-  {% elif item.fixed %}
-    {% set ns.n_fixed = ns.n_fixed + 1 %}
-  {% else %}
-    {% set ns.n_fail = ns.n_fail + 1 %}
-  {% endif %}
-{% endfor %}
+{# ── Counters — pre-computed by report.yml set_fact task ── #}
+{% set _total = _report_total | default(0) | int %}
+{% set _pass  = _report_pass  | default(0) | int %}
+{% set _fixed = _report_fixed | default(0) | int %}
+{% set _fail  = _report_fail  | default(0) | int %}
 
-{% set pct_pass  = ((ns.n_pass  / ns.total * 100) | round(1)) if ns.total > 0 else 0 %}
-{% set pct_fixed = ((ns.n_fixed / ns.total * 100) | round(1)) if ns.total > 0 else 0 %}
-{% set pct_fail  = ((ns.n_fail  / ns.total * 100) | round(1)) if ns.total > 0 else 0 %}
+{% set pct_pass  = ((_pass  / _total * 100) | round(1)) if _total > 0 else 0 %}
+{% set pct_fixed = ((_fixed / _total * 100) | round(1)) if _total > 0 else 0 %}
+{% set pct_fail  = ((_fail  / _total * 100) | round(1)) if _total > 0 else 0 %}
 
 {# ── Category definitions ── #}
 {% set categories = [
@@ -198,22 +191,22 @@
 <div class="summary">
   <div class="card card-total">
     <div class="card-label">Total Checks</div>
-    <div class="card-number">{{ ns.total }}</div>
+    <div class="card-number">{{ _total }}</div>
     <div class="card-sub">across 5 categories</div>
   </div>
   <div class="card card-pass">
     <div class="card-label">Pass</div>
-    <div class="card-number">{{ ns.n_pass }}</div>
+    <div class="card-number">{{ _pass }}</div>
     <div class="card-sub">{{ pct_pass }}% compliant</div>
   </div>
   <div class="card card-fail">
     <div class="card-label">Fail · Open</div>
-    <div class="card-number">{{ ns.n_fail }}</div>
+    <div class="card-number">{{ _fail }}</div>
     <div class="card-sub">manual action required</div>
   </div>
   <div class="card card-fixed">
-    <div class="card-label">Fail → Fixed</div>
-    <div class="card-number">{{ ns.n_fixed }}</div>
+    <div class="card-label">Fail &rarr; Fixed</div>
+    <div class="card-number">{{ _fixed }}</div>
     <div class="card-sub">auto-remediated</div>
   </div>
 </div>
@@ -270,7 +263,7 @@
             </td>
             <td>
               {% if item.status == 'PASS' %}
-                <span class="action-none">—</span>
+                <span class="action-none">&mdash;</span>
               {% elif item.fixed %}
                 <span class="action-fixed">Auto-remediated</span>
               {% else %}
