@@ -6,6 +6,21 @@
 #   4. opatch post_patch3 (p34672698)
 #   5. root: chown root oradism + chmod 4750
 
+- name: "PATCHES | Verify swap is active and show memory state before patching"
+  ansible.builtin.shell: |
+    swapon --show | grep -q . || swapon /swapfile 2>/dev/null || true
+    echo "=== Memory before patches ==="
+    free -h
+    echo "=== Swap ==="
+    swapon --show
+    echo "=== nr_hugepages ==="
+    cat /proc/sys/vm/nr_hugepages
+    echo "=== Drop caches ==="
+    echo 3 > /proc/sys/vm/drop_caches
+    free -h
+  changed_when: false
+  tags: oracle_patches
+
 - name: "PATCHES | Clean stale OPatch staging from previous failed applies"
   ansible.builtin.shell: |
     rm -rf "{{ oracle_home }}/.patch_storage/oracle-home-"*
