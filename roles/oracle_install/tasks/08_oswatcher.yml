@@ -54,11 +54,18 @@
   ansible.builtin.shell: |
     cd "{{ oracle_osw_path }}"
     tar -xf /tmp/{{ oracle_oswatcher_tar }} --strip-components=1
-    rm -f /tmp/{{ oracle_oswatcher_tar }}
   become: true
   become_user: oracle
   when: not _osw_installed.stat.exists
   changed_when: true
+  tags: oracle_oswatcher
+
+- name: "OSW | Remove transferred tar from /tmp"
+  ansible.builtin.file:
+    path: "/tmp/{{ oracle_oswatcher_tar }}"
+    state: absent
+  become: true
+  when: not _osw_installed.stat.exists
   tags: oracle_oswatcher
 
 - name: "OSW | Fix ownership"
