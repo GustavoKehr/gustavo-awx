@@ -1,16 +1,10 @@
 ---
-- name: "INSTALL | Detect corrupted Oracle home (0-byte or invalid .a libs from interrupted patch)"
+- name: "INSTALL | Detect corrupted Oracle home (0-byte .a libs from interrupted patch)"
   ansible.builtin.shell: |
     # Only meaningful if oracle was actually installed (oraInventory exists)
     test -f "{{ oracle_base }}/oraInventory/ContentsXML/comps.xml" || exit 0
-    find "{{ oracle_home }}/lib" -name "*.a" -empty 2>/dev/null | grep -q . && echo corrupt && exit 0
-    # Capture both exit code and stderr - ar t may return 0 but print "not a valid archive"
-    ar_out=$(/usr/bin/ar t "{{ oracle_home }}/lib/libserver19.a" 2>&1)
-    if [ $? -ne 0 ] || echo "$ar_out" | grep -qi "not a valid archive"; then
-      echo corrupt
-      exit 0
-    fi
-    echo ok
+    # Only flag empty .a files - a sign of interrupted patching, not a valid RU-modified home
+    find "{{ oracle_home }}/lib" -name "*.a" -empty 2>/dev/null | grep -q . && echo corrupt || echo ok
   register: _ohome_corrupt
   changed_when: false
   tags: oracle_install_sw
@@ -118,6 +112,7 @@
     export ORACLE_HOSTNAME=$(hostname)
     cd "{{ oracle_home }}"
     ./runInstaller \
+      -applyRU {{ oracle_software_dst }}/{{ oracle_post_patch2_dir }}/{{ oracle_post_patch2_sub }} \
       -silent \
       -responseFile {{ oracle_home }}/install/response/db_install.rsp \
       -ignorePrereq \
