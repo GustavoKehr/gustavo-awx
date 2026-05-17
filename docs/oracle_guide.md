@@ -86,16 +86,18 @@ ls -la /opt/patches/
 10 fases sequenciais (fases 7-9 opcionais/automáticas). Cada fase depende da anterior.
 
 ```
-Phase 0: oracle_storage              → PV/VG/LV creation, mkfs.xfs, mount
-Phase 1: oracle_prereqs              → RPM, libnsl, hugepages, calc SGA/PGA, sysctl, RHEL9 workaround
-Phase 2: oracle_dirs                 → diretórios, bash_profile, init.ora, SQL scripts de criação
-Phase 3: oracle_transfer             → rsync installer + OPatch + RU + post-patches (~8 GB) para /oracle/<SID>/software
-Phase 4: oracle_install_sw           → unzip + swap OPatch + runInstaller -applyRU p38632161 (sem -applyOneOffs) + root.sh
-Phase 5: oracle_patches              → opatch: post1(opcional) → post2 → oradism chown → post3 → oradism restore
-Phase 6: oracle_dbcreate             → orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → Users_and_Objects.sql
-Phase 7: oracle_configuration_check → security/config checks + auto-remediation + SHUTDOWN/STARTUP (auto quando create_initial_db=true)
-Phase 8: oracle_manage_users         → gestão de usuários Oracle (quando oracle_manage_users_enabled=true)
-Phase 9: db_patches                  → patch discovery, sem apply (quando db_patches_enabled=true)
+Phase 0:  oracle_storage              → PV/VG/LV creation, mkfs.xfs, mount
+Phase 1:  oracle_prereqs              → RPM, libnsl, hugepages, calc SGA/PGA, sysctl, RHEL9 workaround
+Phase 2:  oracle_dirs                 → diretórios, bash_profile, init.ora, SQL scripts de criação
+Phase 3:  oracle_transfer             → rsync installer + OPatch + RU + post-patches (~8 GB) para /home/oracle/software
+Phase 4:  oracle_install_sw           → unzip + swap OPatch + runInstaller -applyRU p38632161 (sem -applyOneOffs) + root.sh
+Phase 5:  oracle_patches              → opatch: post1(opcional) → post2 → oradism chown → post3 → oradism restore
+Phase 6:  oracle_dbcreate             → orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → Users_and_Objects.sql
+Phase 6b: oracle_netcfg              → listener.ora / tnsnames.ora / sqlnet.ora + lsnrctl LISTENER_<SID> + ALTER SYSTEM REGISTER
+Phase 7:  oracle_configuration_check → security/config checks + auto-remediation + SHUTDOWN/STARTUP (auto quando create_initial_db=true)
+Phase 8:  oracle_manage_users         → gestão de usuários Oracle (quando oracle_manage_users_enabled=true)
+Phase 9:  db_patches                  → patch discovery, sem apply (quando db_patches_enabled=true)
+Phase 10: oracle_security             → security audit oracle_security_check (quando oracle_security_check_enabled=true)
 ```
 
 ### Comandos de execução
@@ -111,9 +113,11 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_transfer
 ansible-playbook playbooks/deploy_oracle.yml --tags oracle_install_sw
 ansible-playbook playbooks/deploy_oracle.yml --tags oracle_patches
 ansible-playbook playbooks/deploy_oracle.yml --tags oracle_dbcreate
+ansible-playbook playbooks/deploy_oracle.yml --tags oracle_netcfg
 ansible-playbook playbooks/deploy_oracle.yml --tags oracle_configuration_check
 ansible-playbook playbooks/deploy_oracle.yml --tags oracle_manage_users -e oracle_manage_users_enabled=true
 ansible-playbook playbooks/deploy_oracle.yml --tags db_patches -e db_patches_enabled=true
+ansible-playbook playbooks/deploy_oracle.yml --tags oracle_security -e oracle_security_check_enabled=true
 
 # Limitado a um host
 ansible-playbook playbooks/deploy_oracle.yml -l oraclevm
@@ -138,7 +142,7 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_users -l oraclevm
 
 | Variável | Padrão | Survey | Descrição |
 |---|---|---|---|
-| `oracle_data_disk` | `/dev/sdc` | Não | Dispositivo raw para PV/VG. Vazio = skip PV/VG creation. |
+| `oracle_data_disk` | `/dev/sdb` | Não | Dispositivo raw para PV/VG. Vazio = skip PV/VG creation. |
 | `oracle_vg_name` | `vg_data` | **Sim** | LVM Volume Group para todos os LVs Oracle. |
 | `oracle_lv_base_size` | `50G` | **Sim** | `lv_<SID>` — Oracle home + software staging + scripts |
 | `oracle_lv_oradata_size` | `5G` | **Sim** | `lv_oradata` — datafiles |
@@ -154,7 +158,7 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_users -l oraclevm
 |---|---|---|
 | `oracle_software_src` | `/opt/oracle` | Source do rsync no awxvm — installer zip, RPM, libnsl_libs. |
 | `oracle_patches_src` | `/opt/patches` | Source do rsync no awxvm — OPatch, RU, one-off, post-patches. |
-| `oracle_software_dst` | `/oracle/{{ oracle_sid }}/software` | Destino no target — dentro do lv_base. Todos os patches chegam aqui. |
+| `oracle_software_dst` | `/home/oracle/software` | Destino no target — diretório de staging. Todos os binários e patches chegam aqui via rsync. |
 | `oracle_installer_zip` | `LINUX.X64_193000_db_home.zip` | ZIP com binários do Oracle 19c. |
 | `oracle_preinstall_rpm` | `oracle-database-preinstall-19c-1.0-1.el9.x86_64.rpm` | RPM de pré-requisitos. Configura grupos, limites, kernel params. |
 | `oracle_opatch_dir` | `p6880880` | Diretório do OPatch substituto (versão mais nova que a do ZIP). |
@@ -411,6 +415,8 @@ O RU aplicado é sempre `p38632161/38632161` (Oracle 19.30). Não há `-applyOne
 | `oracle_install_sw` | Descompactar + runInstaller + root.sh (Phase 4) |
 | `oracle_patches` | opatch em sequência — RU, one-off, post-install (Phase 5) |
 | `oracle_dbcreate` | Criação do banco, catalog, datapatch, SPFILE (Phase 6) |
+| `oracle_netcfg` | listener.ora / tnsnames.ora / sqlnet.ora + lsnrctl LISTENER_\<SID\> (Phase 6b) |
+| `oracle_security` | Security audit via oracle_security_check role (Phase 10 — requer `oracle_security_check_enabled=true`) |
 | `oracle_users` | Ciclo de gestão de usuários |
 | `oracle_users_validate` | Validação de variáveis de usuário |
 | `oracle_user_create` | Criação do usuário via sqlplus |

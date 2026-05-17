@@ -56,10 +56,11 @@ EE precisa montar `/opt/oracle` e `/opt/patches` do host awxvm (configurado via 
 ## Estrutura de LVs e Diretórios no Target
 
 ```
-/oracle/<SID>/                       ← lv_<SID> (base: Oracle home, software, scripts)
+/home/oracle/software/               ← staging dos binários (rsync do AWX — fora do lv_base)
+
+/oracle/<SID>/                       ← lv_<SID> (base: Oracle home, scripts)
 ├── 19.0.0/                          ← ORACLE_HOME (binários)
 ├── oraInventory/                    ← inventory Oracle
-├── software/                        ← staging dos binários (rsync do AWX)
 ├── admin/
 │   ├── adump/                       ← audit dump
 │   ├── dpdump/                      ← data pump
@@ -99,13 +100,15 @@ EE precisa montar `/opt/oracle` e `/opt/patches` do host awxvm (configurado via 
 | `oracle_validate` | — | Assert: oracle_sid, oracle_sys_password e oracle_system_password não-vazios | < 1 min |
 | `oracle_prereqs` | 1 | RPM preinstall, libnsl copy, sysctl, hugepages calc, SGA/PGA calc, workaround RHEL 9 | 5-10 min |
 | `oracle_dirs` | 2 | Estrutura de diretórios, bash_profile, init.ora, SQL scripts de criação | 1-2 min |
-| `oracle_transfer` | 3 | Rsync installer + OPatch + RU + post-patches para `/oracle/<SID>/software` (~8 GB) | 5-20 min |
+| `oracle_transfer` | 3 | Rsync installer + OPatch + RU + post-patches para `/home/oracle/software` (~8 GB) | 5-20 min |
 | `oracle_install_sw` | 4 | unzip + troca OPatch + runInstaller **com `-applyRU p38632161`** (sem -applyOneOffs) + root.sh | 15-30 min |
 | `oracle_patches` | 5 | opatch: post1 → post2 → oradism chown → post3 → oradism restore | 5-15 min |
 | `oracle_dbcreate` | 6 | orapwd + CreateDB.sql → CreateDBFiles.sql → catalog/catproc → datapatch → SPFILE → utlrp → Users_and_Objects.sql | 10-20 min |
+| `oracle_netcfg` | 6b | listener.ora / tnsnames.ora / sqlnet.ora + lsnrctl LISTENER_\<SID\> + ALTER SYSTEM REGISTER | < 1 min |
 | `oracle_configuration_check` | 7 | security/config checks + auto-remediation + SHUTDOWN/STARTUP (quando `create_initial_db=true` e `oracle_configuration_check_enabled=true`) | 2-5 min |
 | `oracle_manage_users` | 8 | gestão de usuários Oracle (quando `oracle_manage_users_enabled=true`) | 1-3 min |
 | `db_patches` | 9 | patch discovery — sem apply (`db_patches_enabled=false` por padrão) | 1-2 min |
+| `oracle_security` | 10 | security audit (oracle_security_check) — requer `oracle_security_check_enabled=true` | 2-5 min |
 
 **Tempo total medido:** ~12 min (Job AWX 428, fresh VM, 2026-05-17)
 
@@ -181,7 +184,19 @@ Os patches estão **hardcoded nos defaults do role** — não são variáveis de
 
 ---
 
-### Cenário 3b: Re-executar configuration check
+### Cenário 3b: Re-criar arquivos de rede do listener
+
+**Quando usar:** listener.ora / tnsnames.ora / sqlnet.ora ausentes ou corrompidos. Listener `LISTENER_<SID>` não iniciando.
+
+```bash
+ansible-playbook playbooks/deploy_oracle.yml --tags oracle_netcfg -l oraclevm
+```
+
+Idempotente: só para/reinicia o listener se `listener.ora` mudou. Executa `ALTER SYSTEM REGISTER` no final.
+
+---
+
+### Cenário 3c: Re-executar configuration check
 
 **Quando usar:** Banco criado, mas verificações de segurança/config não rodaram ou falharam.
 
@@ -190,6 +205,19 @@ ansible-playbook playbooks/deploy_oracle.yml --tags oracle_configuration_check -
 ```
 
 Requer `create_initial_db=true` e `oracle_configuration_check_enabled=true` (default: true quando `create_initial_db=true`).
+
+---
+
+### Cenário 3d: Executar security audit (Phase 10)
+
+**Quando usar:** Auditoria de segurança pós-instalação ou verificação periódica de compliance.
+
+```bash
+ansible-playbook playbooks/deploy_oracle.yml --tags oracle_security \
+  -e oracle_security_check_enabled=true -l oraclevm
+```
+
+> **Nota:** `oracle_security_check_enabled` default é `false` — deve ser explicitamente ativado.
 
 ---
 
@@ -352,7 +380,7 @@ qm set <VM_ID> -memory 8192
 **Verificar progresso:**
 ```bash
 # SSH no target e verificar tamanho dos arquivos em staging:
-sudo du -sh /oracle/<SID>/software/*
+sudo du -sh /home/oracle/software/*
 ```
 
 **Guard de idempotência do rsync:** A task verifica se o diretório destino existe **e não está vazio**. Se rsync foi interrompido e deixou diretório parcialmente preenchido, a próxima execução **pula o rsync** (vê dir não-vazio). Resultado: conteúdo incompleto → opatch falha com `FileNotFoundException`.
@@ -360,7 +388,7 @@ sudo du -sh /oracle/<SID>/software/*
 **Fix:**
 ```bash
 # Forçar re-rsync deletando o dir no target:
-sudo rm -rf /oracle/<SID>/software/<patch_dir>
+sudo rm -rf /home/oracle/software/<patch_dir>
 # Relaunch do job — rsync vai re-transferir completo
 ```
 
@@ -385,7 +413,7 @@ tail -100 /oracle/<SID>/oraInventory/logs/installActions*.log
 **Verificar:**
 ```bash
 df -h /oracle/<SID>
-sudo du -sh /oracle/<SID>/software/*
+sudo du -sh /home/oracle/software/*
 ```
 
 **Fix:** Estender lv_base:
@@ -493,7 +521,7 @@ AWX → **Templates** → **Add** → **Add job template**
 | **Name** | `ORACLE \| Deploy` |
 | **Job Type** | Run |
 | **Inventory** | `LINUX` |
-| **Project** | (projeto apontando para `deploy_oracle_with_vars`) |
+| **Project** | (projeto apontando para a raiz do repositório `gustavo-awx`) |
 | **Execution Environment** | `oracle-ee` (EE com `/opt/oracle` e `/opt/patches` montados) |
 | **Playbook** | `playbooks/deploy_oracle.yml` |
 | **Credentials** | `Machine: user_aap` |
@@ -568,7 +596,7 @@ oracle_open_cursors: 3000
 > curl -sk -u admin:suasenha \
 >   -X POST https://localhost/api/v2/job_templates/<JT_ID>/survey_spec/ \
 >   -H "Content-Type: application/json" \
->   -d @/home/user_aap/deploy_oracle_with_vars/playbooks/awx_survey_oracle_install.json
+>   -d @/home/user_aap/gustavo-awx/playbooks/awx_survey_oracle_install.json
 > ```
 
 ---
