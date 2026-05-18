@@ -476,6 +476,156 @@ zabbix_export:
       type: SECRET_TEXT
     - macro: '{$MYSQL.USER}'
       value: zbx_odbc
+    dashboards:
+    - uuid: d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9
+      name: MySQL Monitoring
+      pages:
+      - name: Connections & Queries
+        widgets:
+        - type: graph
+          width: '36'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: mysql-comprehensive-monitoring
+              name: 'MySQL ODBC: Connections'
+          - type: STRING
+            name: reference
+            value: AAAAA
+        - type: graph
+          'y': '5'
+          width: '36'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: mysql-comprehensive-monitoring
+              name: 'MySQL ODBC: Query Rates'
+          - type: STRING
+            name: reference
+            value: AAAAB
+        - type: graph
+          'y': '10'
+          width: '36'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: mysql-comprehensive-monitoring
+              name: 'MySQL ODBC: DML Operations'
+          - type: STRING
+            name: reference
+            value: AAAAC
+        - type: graph
+          'y': '15'
+          width: '36'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: mysql-comprehensive-monitoring
+              name: 'MySQL ODBC: Network Traffic'
+          - type: STRING
+            name: reference
+            value: AAAAD
+      - name: InnoDB & Transactions
+        widgets:
+        - type: graph
+          width: '36'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: mysql-comprehensive-monitoring
+              name: 'MySQL ODBC: InnoDB Buffer Pool'
+          - type: STRING
+            name: reference
+            value: AAAAE
+        - type: graph
+          'y': '5'
+          width: '36'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: mysql-comprehensive-monitoring
+              name: 'MySQL ODBC: InnoDB Contention'
+          - type: STRING
+            name: reference
+            value: AAAAF
+        - type: graph
+          'y': '10'
+          width: '36'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: mysql-comprehensive-monitoring
+              name: 'MySQL ODBC: Transactions & Locks'
+          - type: STRING
+            name: reference
+            value: AAAAG
+        - type: graph
+          'y': '15'
+          width: '36'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: mysql-comprehensive-monitoring
+              name: 'MySQL ODBC: InnoDB Dirty & Log'
+          - type: STRING
+            name: reference
+            value: AAAAH
+        - type: graph
+          'y': '20'
+          width: '36'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: mysql-comprehensive-monitoring
+              name: 'MySQL ODBC: InnoDB Pending I/O'
+          - type: STRING
+            name: reference
+            value: AAAAI
+      - name: Storage & Security
+        widgets:
+        - type: graph
+          width: '36'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: mysql-comprehensive-monitoring
+              name: 'MySQL ODBC: Temp Tables & Open Objects'
+          - type: STRING
+            name: reference
+            value: AAAAJ
+        - type: graph
+          'y': '5'
+          width: '36'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: mysql-comprehensive-monitoring
+              name: 'MySQL ODBC: Connections & Security'
+          - type: STRING
+            name: reference
+            value: AAAAK
     uuid: e470c1ea80784d1f93e5385b44b24605
     template: mysql-comprehensive-monitoring
   graphs:
