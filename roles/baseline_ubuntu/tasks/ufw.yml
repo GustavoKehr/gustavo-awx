@@ -1,0 +1,48 @@
+---
+#####################################
+# baseline_ubuntu — UFW Firewall
+# Ubuntu uses ufw; firewalld is not default
+#####################################
+
+- name: "ufw — Install ufw"
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+  tags: [baseline_ubuntu, ufw]
+
+- name: "ufw — Disable UFW (if disable_ufw=true)"
+  community.general.ufw:
+    state: disabled
+  when: disable_ufw | bool
+  tags: [baseline_ubuntu, ufw]
+
+- name: "ufw — Configure UFW (if disable_ufw=false)"
+  when: not (disable_ufw | bool)
+  tags: [baseline_ubuntu, ufw]
+  block:
+
+    - name: "ufw — Set default deny incoming"
+      community.general.ufw:
+        default: deny
+        direction: incoming
+
+    - name: "ufw — Set default allow outgoing"
+      community.general.ufw:
+        default: allow
+        direction: outgoing
+
+    - name: "ufw — Allow SSH port 22 (rate-limited)"
+      community.general.ufw:
+        rule: limit
+        port: "22"
+        proto: tcp
+
+    - name: "ufw — Allow SSH port 20022 (rate-limited)"
+      community.general.ufw:
+        rule: limit
+        port: "20022"
+        proto: tcp
+
+    - name: "ufw — Enable UFW"
+      community.general.ufw:
+        state: enabled

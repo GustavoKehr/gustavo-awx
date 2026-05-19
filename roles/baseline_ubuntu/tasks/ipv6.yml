@@ -1,0 +1,82 @@
+---
+#####################################
+# baseline_ubuntu — Disable IPv6
+# Method 1: sysctl (immediate)
+# Method 2: GRUB cmdline (persistent across reboot)
+#####################################
+
+- name: "ipv6 — Check current kernel cmdline"
+  ansible.builtin.command: cat /proc/cmdline
+  register: grub_cmdline
+  changed_when: false
+  when: disable_ipv6 | bool
+
+- name: "ipv6 — Ensure sysctl hardening file exists"
+  ansible.builtin.file:
+    path: /etc/sysctl.d/99-hardening.conf
+    state: touch
+    owner: root
+    group: root
+    mode: "0644"
+  when: disable_ipv6 | bool
+
+- name: "ipv6 — Disable via sysctl (all)"
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.disable_ipv6
+    value: "1"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-hardening.conf
+    reload: true
+  when: disable_ipv6 | bool
+
+- name: "ipv6 — Disable via sysctl (default)"
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.default.disable_ipv6
+    value: "1"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-hardening.conf
+    reload: true
+  when: disable_ipv6 | bool
+
+- name: "ipv6 — Disable via sysctl (loopback)"
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.lo.disable_ipv6
+    value: "1"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-hardening.conf
+    reload: true
+  when: disable_ipv6 | bool
+
+- name: "ipv6 — Check /etc/default/grub exists"
+  ansible.builtin.stat:
+    path: /etc/default/grub
+  register: grub_default_stat
+  when: disable_ipv6 | bool
+
+- name: "ipv6 — Add ipv6.disable=1 to GRUB_CMDLINE_LINUX"
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX='
+    line: 'GRUB_CMDLINE_LINUX="ipv6.disable=1"'
+    backrefs: false
+  register: grub_ipv6_change
+  when:
+    - disable_ipv6 | bool
+    - grub_default_stat.stat.exists
+    - "'ipv6.disable=1' not in grub_cmdline.stdout"
+
+- name: "ipv6 — Run update-grub (only if GRUB changed)"
+  ansible.builtin.command: update-grub
+  changed_when: true
+  when:
+    - disable_ipv6 | bool
+    - grub_default_stat.stat.exists
+    - grub_ipv6_change.changed
+
+- name: "ipv6 — Notify reboot needed"
+  ansible.builtin.debug:
+    msg: "ipv6.disable=1 added to GRUB. Reboot required for full effect."
+  when:
+    - disable_ipv6 | bool
+    - grub_ipv6_change is defined
+    - grub_ipv6_change.changed

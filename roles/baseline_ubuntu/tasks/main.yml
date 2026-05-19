@@ -1,0 +1,29 @@
+---
+#####################################
+# baseline_ubuntu — task dispatcher
+# Ubuntu 22.04 / 24.04
+#####################################
+
+- name: "Ubuntu baseline — import packages"
+  ansible.builtin.import_tasks: packages.yml
+  tags: [baseline_ubuntu, packages]
+
+- name: "Ubuntu baseline — import ipv6"
+  ansible.builtin.import_tasks: ipv6.yml
+  tags: [baseline_ubuntu, ipv6]
+
+- name: "Ubuntu baseline — import ufw"
+  ansible.builtin.import_tasks: ufw.yml
+  tags: [baseline_ubuntu, ufw]
+
+- name: "Ubuntu baseline — import journald"
+  ansible.builtin.import_tasks: journald.yml
+  tags: [baseline_ubuntu, journald]
+
+- name: "Ubuntu baseline — import chrony"
+  ansible.builtin.import_tasks: chrony.yml
+  tags: [baseline_ubuntu, chrony]
+
+- name: "Ubuntu baseline — import ctrlaltdel"
+  ansible.builtin.import_tasks: ctrlaltdel.yml
+  tags: [baseline_ubuntu, ctrlaltdel]

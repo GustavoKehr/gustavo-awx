@@ -1,0 +1,16 @@
+---
+#####################################
+# baseline_ubuntu — Mask CTRL+ALT+DEL
+# Prevents accidental/malicious reboots
+#####################################
+
+- name: "ctrlaltdel — Mask ctrl-alt-del target"
+  ansible.builtin.systemd:
+    name: ctrl-alt-del.target
+    masked: true
+  tags: [baseline_ubuntu, ctrlaltdel]
+
+- name: "ctrlaltdel — Reload systemd daemon"
+  ansible.builtin.command: systemctl daemon-reexec
+  changed_when: false
+  tags: [baseline_ubuntu, ctrlaltdel]

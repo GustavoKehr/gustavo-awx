@@ -1,0 +1,16 @@
+---
+#####################################
+# baseline_ubuntu — package installation
+#####################################
+
+- name: "packages — Update apt cache"
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  tags: [baseline_ubuntu, packages]
+
+- name: "packages — Install baseline packages"
+  ansible.builtin.apt:
+    name: "{{ baseline_packages }}"
+    state: present
+  tags: [baseline_ubuntu, packages]
