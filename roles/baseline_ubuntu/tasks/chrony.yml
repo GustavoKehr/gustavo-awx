@@ -1,0 +1,39 @@
+---
+#####################################
+# baseline_ubuntu — NTP via chrony
+#####################################
+
+- name: "chrony — Install chrony"
+  ansible.builtin.apt:
+    name: chrony
+    state: present
+  tags: [baseline_ubuntu, chrony]
+
+- name: "chrony — Deploy chrony.conf"
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony/chrony.conf
+    owner: root
+    group: root
+    mode: "0644"
+  register: chrony_conf
+  tags: [baseline_ubuntu, chrony]
+
+- name: "chrony — Enable and start chrony"
+  ansible.builtin.systemd:
+    name: chrony
+    enabled: true
+    state: started
+  tags: [baseline_ubuntu, chrony]
+
+- name: "chrony — Restart if config changed"
+  ansible.builtin.systemd:
+    name: chrony
+    state: restarted
+  when: chrony_conf.changed
+  tags: [baseline_ubuntu, chrony]
+
+- name: "chrony — Force sync on first run"
+  ansible.builtin.command: chronyc makestep
+  changed_when: false
+  tags: [baseline_ubuntu, chrony]

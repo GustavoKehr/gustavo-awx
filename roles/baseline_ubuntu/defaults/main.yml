@@ -1,0 +1,41 @@
+---
+#####################################
+# baseline_ubuntu — defaults
+#####################################
+
+disable_ipv6: true
+disable_ufw: false          # Set true to disable UFW (e.g., DB servers managed by network FW)
+journald_storage: persistent
+
+# NTP servers
+chrony_ntp_servers:
+  - pool.ntp.org
+  - time.google.com
+
+# Baseline packages to install (Ubuntu equivalents of RHEL baseline)
+baseline_packages:
+  - net-tools
+  - bind9-utils
+  - tcpdump
+  - nmap
+  - vim
+  - curl
+  - wget
+  - tree
+  - unzip
+  - lsof
+  - psmisc
+  - sysstat
+  - iptraf-ng
+  - rsync
+  - bash-completion
+  - bzip2
+  - mlocate
+  - ed
+  - perl
+  - chrony
+  - auditd
+  - libpam-pwquality
+  - libpam-faillock
+  - acl
+  - at

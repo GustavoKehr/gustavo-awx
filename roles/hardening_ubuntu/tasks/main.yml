@@ -1,0 +1,585 @@
+---
+#####################################
+# hardening_ubuntu — task dispatcher
+# Ubuntu 22.04 / 24.04
+# Mirrors hardening_security role structure
+#####################################
+
+#####################################
+# 4.0 - Backup date
+#####################################
+- name: "4.0 - Define backup_date"
+  ansible.builtin.set_fact:
+    backup_date: "{{ ansible_date_time.date }}_{{ ansible_date_time.time | regex_replace(':', '') }}"
+  tags: [hardening_ubuntu]
+
+#####################################
+# 4.1 - Password Policy — /etc/login.defs
+#####################################
+- name: "4.1 - Stat /etc/login.defs"
+  ansible.builtin.stat:
+    path: /etc/login.defs
+  register: login_defs_stat
+  tags: [hardening_ubuntu, login_defs]
+
+- name: "4.1 - Ensure PASS_MAX_DAYS {{ pass_max_days }}"
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^\s*PASS_MAX_DAYS\s+'
+    line: "PASS_MAX_DAYS   {{ pass_max_days }}"
+    create: false
+  register: ld_max
+  when: login_defs_stat.stat.exists
+  tags: [hardening_ubuntu, login_defs]
+
+- name: "4.1 - Ensure PASS_MIN_DAYS {{ pass_min_days }}"
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^\s*PASS_MIN_DAYS\s+'
+    line: "PASS_MIN_DAYS   {{ pass_min_days }}"
+    create: false
+  register: ld_min
+  when: login_defs_stat.stat.exists
+  tags: [hardening_ubuntu, login_defs]
+
+- name: "4.1 - Ensure PASS_WARN_AGE {{ pass_warn_age }}"
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^\s*PASS_WARN_AGE\s+'
+    line: "PASS_WARN_AGE   {{ pass_warn_age }}"
+    create: false
+  register: ld_warn
+  when: login_defs_stat.stat.exists
+  tags: [hardening_ubuntu, login_defs]
+
+- name: "4.1 - Ensure PASS_MIN_LEN {{ pass_min_len }}"
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^\s*PASS_MIN_LEN\s+'
+    line: "PASS_MIN_LEN    {{ pass_min_len }}"
+    create: false
+  register: ld_len
+  when: login_defs_stat.stat.exists
+  tags: [hardening_ubuntu, login_defs]
+
+- name: "4.1 - Ensure LOGIN_RETRIES {{ login_retries }}"
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^\s*LOGIN_RETRIES\s+'
+    line: "LOGIN_RETRIES   {{ login_retries }}"
+    create: false
+  when: login_defs_stat.stat.exists
+  tags: [hardening_ubuntu, login_defs]
+
+- name: "4.1 - Ensure LOGIN_TIMEOUT {{ login_timeout }}"
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^\s*LOGIN_TIMEOUT\s+'
+    line: "LOGIN_TIMEOUT   {{ login_timeout }}"
+    create: false
+  when: login_defs_stat.stat.exists
+  tags: [hardening_ubuntu, login_defs]
+
+- name: "4.1 - Ensure ENCRYPT_METHOD yescrypt (Ubuntu 22.04+)"
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^\s*ENCRYPT_METHOD\s+'
+    line: "ENCRYPT_METHOD  yescrypt"
+    create: false
+  register: ld_encrypt
+  when: login_defs_stat.stat.exists
+  tags: [hardening_ubuntu, login_defs]
+
+- name: "4.1 - Backup /etc/login.defs (only if changed)"
+  ansible.builtin.copy:
+    src: /etc/login.defs
+    dest: "/etc/login.defs.{{ backup_date }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - login_defs_stat.stat.exists
+    - ld_max.changed or ld_min.changed or ld_warn.changed or ld_len.changed or ld_encrypt.changed
+  tags: [hardening_ubuntu, login_defs]
+
+#####################################
+# 4.2 SSH Hardening
+#####################################
+
+- name: "4.2 - Stat /etc/ssh/sshd_config"
+  ansible.builtin.stat:
+    path: /etc/ssh/sshd_config
+  register: sshd_conf_stat
+  tags: [hardening_ubuntu, ssh]
+
+- name: "4.2 - Configure SSH hardening options"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^\s*#?\s*{{ item.key }}\b.*'
+    line: "{{ item.key }} {{ item.value }}"
+    create: false
+  loop:
+    - { key: "LoginGraceTime",         value: "0" }
+    - { key: "ClientAliveInterval",    value: "300" }
+    - { key: "ClientAliveCountMax",    value: "3" }
+    - { key: "UseDNS",                 value: "no" }
+    - { key: "PermitRootLogin",        value: "no" }
+    - { key: "PermitEmptyPasswords",   value: "no" }
+    - { key: "X11Forwarding",          value: "no" }
+    - { key: "IgnoreRhosts",           value: "yes" }
+    - { key: "HostbasedAuthentication", value: "no" }
+    - { key: "MaxAuthTries",           value: "4" }
+    - { key: "AllowAgentForwarding",   value: "no" }
+  register: ssh_main
+  when: sshd_conf_stat.stat.exists
+  tags: [hardening_ubuntu, ssh]
+
+- name: "4.2 - Ensure SSH ports"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^\\s*Port\\s+{{ item }}\\b"
+    line: "Port {{ item }}"
+    insertafter: EOF
+    create: false
+  loop: "{{ ssh_ports }}"
+  register: ssh_ports_conf
+  when: sshd_conf_stat.stat.exists
+  tags: [hardening_ubuntu, ssh]
+
+- name: "4.2 - Ensure SSH Banner"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^\s*#?\s*Banner\b'
+    line: "Banner /etc/banner"
+    create: false
+  register: ssh_banner
+  when: sshd_conf_stat.stat.exists
+  tags: [hardening_ubuntu, ssh, banner]
+
+- name: "4.2 - Backup /etc/ssh/sshd_config (only if changed)"
+  ansible.builtin.copy:
+    src: /etc/ssh/sshd_config
+    dest: "/etc/ssh/sshd_config.{{ backup_date }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0600"
+  when:
+    - sshd_conf_stat.stat.exists
+    - ssh_main.changed or ssh_ports_conf.changed or ssh_banner.changed
+  tags: [hardening_ubuntu, ssh]
+
+- name: "4.2 - Validate sshd config (only if changed)"
+  ansible.builtin.command: sshd -t
+  changed_when: false
+  when:
+    - sshd_conf_stat.stat.exists
+    - ssh_main.changed or ssh_ports_conf.changed or ssh_banner.changed
+  tags: [hardening_ubuntu, ssh]
+
+- name: "4.2 - Restart sshd (only if changed)"
+  ansible.builtin.systemd:
+    name: ssh
+    state: restarted
+  when:
+    - sshd_conf_stat.stat.exists
+    - ssh_main.changed or ssh_ports_conf.changed or ssh_banner.changed
+  tags: [hardening_ubuntu, ssh]
+
+#####################################
+# 4.3 Banner + MOTD
+#####################################
+
+- name: "4.3 - Deploy /etc/banner"
+  ansible.builtin.template:
+    src: banner.j2
+    dest: /etc/banner
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [hardening_ubuntu, banner]
+
+- name: "4.3 - Deploy /etc/motd"
+  ansible.builtin.template:
+    src: motd.j2
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [hardening_ubuntu, banner]
+
+#####################################
+# 4.4 PAM — faillock (Ubuntu)
+#####################################
+
+- name: "4.4.1 - Ensure faillock.conf exists"
+  ansible.builtin.stat:
+    path: /etc/security/faillock.conf
+  register: faillock_conf_stat
+  tags: [hardening_ubuntu, pam, faillock]
+
+- name: "4.4.1 - Configure faillock.conf"
+  ansible.builtin.lineinfile:
+    path: /etc/security/faillock.conf
+    regexp: '^\s*#?\s*{{ item.key }}\s*='
+    line: "{{ item.key }} = {{ item.value }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - { key: "deny",        value: "{{ faillock_deny }}" }
+    - { key: "unlock_time", value: "{{ faillock_unlock_time }}" }
+  when: faillock_conf_stat.stat.exists
+  tags: [hardening_ubuntu, pam, faillock]
+
+- name: "4.4.1 - Ensure pam_faillock in common-auth (Ubuntu)"
+  ansible.builtin.blockinfile:
+    path: /etc/pam.d/common-auth
+    marker: "# {mark} ANSIBLE MANAGED — pam_faillock"
+    insertbefore: BOF
+    block: |
+      auth    required        pam_faillock.so preauth
+      auth    [success=1 default=ignore]      pam_unix.so nullok
+      auth    [default=die]   pam_faillock.so authfail deny={{ faillock_deny }} unlock_time={{ faillock_unlock_time }}
+      auth    sufficient      pam_faillock.so authsucc
+  tags: [hardening_ubuntu, pam, faillock]
+
+#####################################
+# 4.4.2 PAM — pwhistory (Ubuntu)
+#####################################
+
+- name: "4.4.2 - Ensure pwhistory.conf exists"
+  ansible.builtin.stat:
+    path: /etc/security/pwhistory.conf
+  register: pwhistory_conf_stat
+  tags: [hardening_ubuntu, pam, pwhistory]
+
+- name: "4.4.2 - Configure pwhistory.conf"
+  ansible.builtin.lineinfile:
+    path: /etc/security/pwhistory.conf
+    regexp: '^\s*#?\s*remember\s*='
+    line: "remember = {{ pwhistory_remember }}"
+    create: false
+  when: pwhistory_conf_stat.stat.exists
+  tags: [hardening_ubuntu, pam, pwhistory]
+
+- name: "4.4.2 - Ensure pam_pwhistory in common-password (Ubuntu)"
+  ansible.builtin.lineinfile:
+    path: /etc/pam.d/common-password
+    regexp: 'pam_pwhistory'
+    line: "password required pam_pwhistory.so remember={{ pwhistory_remember }} use_authtok"
+    insertbefore: 'pam_unix'
+  tags: [hardening_ubuntu, pam, pwhistory]
+
+#####################################
+# 4.4.3 PAM — pwquality (Ubuntu)
+#####################################
+
+- name: "4.4.3 - Stat pwquality.conf"
+  ansible.builtin.stat:
+    path: /etc/security/pwquality.conf
+  register: pwquality_conf_stat
+  tags: [hardening_ubuntu, pam, pwquality]
+
+- name: "4.4.3 - Configure pwquality.conf"
+  ansible.builtin.lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: '^\s*#?\s*{{ item.key }}\s*='
+    line: "{{ item.key }} = {{ item.value }}"
+    create: false
+  loop:
+    - { key: "minlen",          value: "{{ pwquality_minlen }}" }
+    - { key: "dcredit",         value: "{{ pwquality_dcredit }}" }
+    - { key: "ucredit",         value: "{{ pwquality_ucredit }}" }
+    - { key: "lcredit",         value: "{{ pwquality_lcredit }}" }
+    - { key: "ocredit",         value: "{{ pwquality_ocredit }}" }
+    - { key: "minclass",        value: "{{ pwquality_minclass }}" }
+    - { key: "maxrepeat",       value: "{{ pwquality_maxrepeat }}" }
+    - { key: "maxclassrepeat",  value: "{{ pwquality_maxclassrepeat }}" }
+  when: pwquality_conf_stat.stat.exists
+  tags: [hardening_ubuntu, pam, pwquality]
+
+- name: "4.4.3 - Ensure pam_pwquality in common-password"
+  ansible.builtin.lineinfile:
+    path: /etc/pam.d/common-password
+    regexp: 'pam_pwquality'
+    line: "password required pam_pwquality.so retry=3"
+    insertbefore: 'pam_pwhistory|pam_unix'
+  tags: [hardening_ubuntu, pam, pwquality]
+
+#####################################
+# 4.5 Password expiration (root + managed_users)
+#####################################
+
+- name: "4.5 - Set chage for managed users"
+  ansible.builtin.command: "chage -m {{ pass_min_days }} -M {{ pass_max_days }} {{ item }}"
+  changed_when: false
+  loop: "{{ managed_users }}"
+  tags: [hardening_ubuntu, chage]
+
+#####################################
+# 4.6 Sysctl Kernel Hardening
+#####################################
+
+- name: "4.6 - Ensure sysctl hardening file exists"
+  ansible.builtin.file:
+    path: /etc/sysctl.d/99-hardening.conf
+    state: touch
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [hardening_ubuntu, sysctl]
+
+- name: "4.6 - Apply sysctl hardening parameters"
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-hardening.conf
+    reload: true
+  loop:
+    - { key: "kernel.randomize_va_space",                value: "2" }
+    - { key: "kernel.kptr_restrict",                     value: "1" }
+    - { key: "kernel.dmesg_restrict",                    value: "1" }
+    - { key: "kernel.core_uses_pid",                     value: "1" }
+    - { key: "net.ipv4.ip_forward",                      value: "0" }
+    - { key: "net.ipv4.conf.all.rp_filter",              value: "1" }
+    - { key: "net.ipv4.conf.default.rp_filter",          value: "1" }
+    - { key: "net.ipv4.icmp_echo_ignore_broadcasts",     value: "1" }
+    - { key: "net.ipv4.tcp_syncookies",                  value: "1" }
+    - { key: "net.ipv4.conf.all.accept_source_route",    value: "0" }
+    - { key: "net.ipv4.conf.default.accept_source_route", value: "0" }
+    - { key: "net.ipv4.conf.all.accept_redirects",       value: "0" }
+    - { key: "net.ipv4.conf.default.accept_redirects",   value: "0" }
+    - { key: "net.ipv4.conf.all.secure_redirects",       value: "0" }
+    - { key: "net.ipv4.conf.all.send_redirects",         value: "0" }
+    - { key: "net.ipv4.conf.all.log_martians",           value: "1" }
+    - { key: "net.ipv4.conf.default.log_martians",       value: "1" }
+    - { key: "fs.suid_dumpable",                         value: "0" }
+  tags: [hardening_ubuntu, sysctl]
+
+#####################################
+# 4.7 cron.allow / at.allow
+#####################################
+
+- name: "4.7 - Create /etc/cron.allow (root only)"
+  ansible.builtin.copy:
+    content: "root\n"
+    dest: /etc/cron.allow
+    owner: root
+    group: root
+    mode: "0600"
+    force: false
+  tags: [hardening_ubuntu, cron]
+
+- name: "4.7 - Create /etc/at.allow (root only)"
+  ansible.builtin.copy:
+    content: "root\n"
+    dest: /etc/at.allow
+    owner: root
+    group: root
+    mode: "0600"
+    force: false
+  tags: [hardening_ubuntu, cron]
+
+- name: "4.7 - Ensure cron.allow permissions"
+  ansible.builtin.file:
+    path: /etc/cron.allow
+    owner: root
+    group: root
+    mode: "0600"
+  tags: [hardening_ubuntu, cron]
+
+- name: "4.7 - Ensure at.allow permissions"
+  ansible.builtin.file:
+    path: /etc/at.allow
+    owner: root
+    group: root
+    mode: "0600"
+  tags: [hardening_ubuntu, cron]
+
+- name: "4.7 - Secure /etc/crontab"
+  ansible.builtin.file:
+    path: /etc/crontab
+    owner: root
+    group: root
+    mode: "0600"
+  tags: [hardening_ubuntu, cron]
+
+- name: "4.7 - Secure cron directories"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: "0700"
+    state: directory
+  loop:
+    - /etc/cron.d
+    - /etc/cron.daily
+    - /etc/cron.weekly
+    - /etc/cron.monthly
+    - /etc/cron.hourly
+  tags: [hardening_ubuntu, cron]
+
+- name: "4.7 - Secure /var/spool/cron"
+  ansible.builtin.file:
+    path: /var/spool/cron
+    owner: root
+    group: root
+    mode: "0700"
+    state: directory
+  tags: [hardening_ubuntu, cron]
+
+#####################################
+# 4.8 auditd
+#####################################
+
+- name: "4.8 - Install auditd"
+  ansible.builtin.apt:
+    name: auditd
+    state: present
+  tags: [hardening_ubuntu, auditd]
+
+- name: "4.8 - Ensure audit rules directory exists"
+  ansible.builtin.file:
+    path: /etc/audit/rules.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  tags: [hardening_ubuntu, auditd]
+
+- name: "4.8 - Deploy hardening audit rules"
+  ansible.builtin.copy:
+    src: hardening.rules
+    dest: /etc/audit/rules.d/99-hardening.rules
+    owner: root
+    group: root
+    mode: "0640"
+  register: audit_rules
+  tags: [hardening_ubuntu, auditd]
+
+- name: "4.8 - Load audit rules (augenrules)"
+  ansible.builtin.command: augenrules --load
+  changed_when: false
+  when: audit_rules.changed
+  tags: [hardening_ubuntu, auditd]
+
+- name: "4.8 - Enable and start auditd"
+  ansible.builtin.systemd:
+    name: auditd
+    enabled: true
+    state: started
+  tags: [hardening_ubuntu, auditd]
+
+#####################################
+# 4.9 Core dump restrictions
+#####################################
+
+- name: "4.9 - Restrict core dumps in limits.conf"
+  ansible.builtin.blockinfile:
+    path: /etc/security/limits.conf
+    marker: "# {mark} ANSIBLE MANAGED — core dump restrictions"
+    block: |
+      * hard core 0
+      * soft core 0
+  tags: [hardening_ubuntu, coredump]
+
+- name: "4.9 - Disable systemd-coredump storage"
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/coredump.conf
+    regexp: '^\s*#?\s*Storage\s*='
+    line: "Storage=none"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [hardening_ubuntu, coredump]
+
+#####################################
+# 4.10 UTMP / BTMP permissions
+#####################################
+
+- name: "4.10 - Deploy tmpfiles var.conf"
+  ansible.builtin.copy:
+    src: var.conf
+    dest: /etc/tmpfiles.d/var.conf
+    mode: "0644"
+  register: tmpfiles_conf
+  tags: [hardening_ubuntu, tmpfiles]
+
+- name: "4.10 - Apply tmpfiles"
+  ansible.builtin.command: systemd-tmpfiles --create /etc/tmpfiles.d/var.conf
+  changed_when: false
+  when: tmpfiles_conf.changed
+  tags: [hardening_ubuntu, tmpfiles]
+
+- name: "4.10 - Enforce wtmp perms"
+  ansible.builtin.file:
+    path: /var/log/wtmp
+    owner: root
+    group: utmp
+    mode: "0600"
+  tags: [hardening_ubuntu, tmpfiles]
+
+- name: "4.10 - Enforce btmp perms"
+  ansible.builtin.file:
+    path: /var/log/btmp
+    owner: root
+    group: utmp
+    mode: "0600"
+  tags: [hardening_ubuntu, tmpfiles]
+
+#####################################
+# 4.11 Binary permissions
+#####################################
+
+- name: "4.11 - Stat /usr/bin/last"
+  ansible.builtin.stat:
+    path: /usr/bin/last
+  register: last_bin
+  tags: [hardening_ubuntu, perms]
+
+- name: "4.11 - Restrict /usr/bin/last"
+  ansible.builtin.file:
+    path: /usr/bin/last
+    mode: "0700"
+    owner: root
+    group: root
+  when: last_bin.stat.exists
+  tags: [hardening_ubuntu, perms]
+
+#####################################
+# 4.12 AppArmor (Ubuntu — replaces SELinux)
+#####################################
+
+- name: "4.12 - Install apparmor and apparmor-utils"
+  ansible.builtin.apt:
+    name:
+      - apparmor
+      - apparmor-utils
+    state: present
+  tags: [hardening_ubuntu, apparmor]
+
+- name: "4.12 - Enable AppArmor service"
+  ansible.builtin.systemd:
+    name: apparmor
+    enabled: true
+    state: started
+  tags: [hardening_ubuntu, apparmor]
+
+- name: "4.12 - Ensure AppArmor is not disabled in GRUB"
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: 'apparmor=0'
+    state: absent
+  register: apparmor_grub
+  tags: [hardening_ubuntu, apparmor]
+
+- name: "4.12 - Run update-grub if AppArmor GRUB entry removed"
+  ansible.builtin.command: update-grub
+  changed_when: true
+  when: apparmor_grub.changed
+  tags: [hardening_ubuntu, apparmor]

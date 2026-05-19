@@ -1,0 +1,42 @@
+---
+#####################################
+# hardening_ubuntu — defaults
+# Ubuntu 22.04 / 24.04
+#####################################
+
+# login.defs settings
+pass_max_days: 90
+pass_min_days: 7
+pass_warn_age: 14
+pass_min_len: 12
+login_retries: 3
+login_timeout: 60
+
+# SSH ports
+ssh_ports:
+  - 22
+  - 20022
+
+# PAM faillock
+faillock_deny: 4
+faillock_unlock_time: 1800
+
+# PAM pwquality
+pwquality_minlen: 12
+pwquality_dcredit: -1
+pwquality_ucredit: -1
+pwquality_lcredit: -1
+pwquality_ocredit: -1
+pwquality_minclass: 1
+pwquality_maxrepeat: 3
+pwquality_maxclassrepeat: 0
+
+# PAM pwhistory
+pwhistory_remember: 5
+
+# Shell timeout (seconds)
+shell_tmout: 600
+
+# Users whose password expiry should be set (in addition to root)
+managed_users:
+  - root

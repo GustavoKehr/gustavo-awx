@@ -1,0 +1,60 @@
+# ============================================================
+# Linux Security Hardening — auditd rules
+# For: Ubuntu 22.04 / 24.04
+# Used by: hardening_ubuntu role
+# References: RHEL Auditd Guide, CIS Benchmarks
+# ============================================================
+
+# Delete existing rules
+-D
+
+# Buffer size
+-b 8192
+
+# Failure mode: 1=printk, 2=panic
+-f 1
+
+# ---- Identity & Authentication files ----
+-w /etc/passwd       -p wa -k identity_change
+-w /etc/shadow       -p wa -k identity_change
+-w /etc/gshadow      -p wa -k identity_change
+-w /etc/group        -p wa -k identity_change
+-w /etc/security/opasswd -p wa -k identity_change
+
+# ---- Privilege escalation ----
+-w /etc/sudoers      -p wa -k privilege_escalation
+-w /etc/sudoers.d/   -p wa -k privilege_escalation
+
+# ---- SSH configuration ----
+-w /etc/ssh/sshd_config -p wa -k sshd_config_change
+
+# ---- PAM configuration ----
+-w /etc/pam.d/       -p wa -k pam_config_change
+-w /etc/security/    -p wa -k security_config_change
+
+# ---- Cron configuration ----
+-w /etc/cron.allow   -p wa -k cron_config_change
+-w /etc/cron.deny    -p wa -k cron_config_change
+-w /etc/at.allow     -p wa -k cron_config_change
+-w /etc/at.deny      -p wa -k cron_config_change
+-w /etc/crontab      -p wa -k cron_config_change
+-w /etc/cron.d/      -p wa -k cron_config_change
+
+# ---- Kernel module loading ----
+-w /sbin/insmod      -p x -k modules
+-w /sbin/rmmod       -p x -k modules
+-w /sbin/modprobe    -p x -k modules
+-w /usr/sbin/insmod  -p x -k modules
+-w /usr/sbin/rmmod   -p x -k modules
+-w /usr/sbin/modprobe -p x -k modules
+
+# ---- Login policy ----
+-w /etc/login.defs   -p wa -k login_config_change
+
+# ---- AppArmor configuration ----
+-w /etc/apparmor/    -p wa -k apparmor_config_change
+-w /etc/apparmor.d/  -p wa -k apparmor_config_change
+
+# ---- Immutable (must be last) ----
+# Uncomment after confirming rules are correct (prevents runtime changes without reboot):
+# -e 2

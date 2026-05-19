@@ -1,0 +1,28 @@
+---
+#####################################
+# Ubuntu Installation Guide
+# Baseline & Hardening
+# Ubuntu 22.04 / 24.04
+#
+# Mirrors structure of 00_linux_guide.yml
+# See docs/linux_hardening_scripts.md for control details
+#####################################
+
+- name: "Ubuntu Installation Guide — Baseline & Hardening"
+  hosts: "{{ servidores | default('all') }}"
+  serial: 10
+  max_fail_percentage: 10
+
+  roles:
+
+    - role: baseline_ubuntu
+      tags: [baseline_ubuntu]
+
+    - role: shell_environment
+      tags: [shell_environment]
+
+    - role: hardening_ubuntu
+      tags: [hardening_ubuntu]
+
+    - role: monitoring_logs
+      tags: [monitoring_logs]
