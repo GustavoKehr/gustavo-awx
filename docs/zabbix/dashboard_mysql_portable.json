@@ -1,0 +1,3690 @@
+{
+  "dashboard_name": "MySQL DB Monitoring — odbcvm",
+  "pages": [
+    {
+      "name": "InnoDB & Connections",
+      "widgets": [
+        {
+          "type": "item",
+          "name": "",
+          "x": 0,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70622"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Threads Running"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70622",
+              "_resolved_key": "db.odbc.select[custom_threads_running,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Threads Running"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Threads Running"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 4,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70623"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Connected"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70623",
+              "_resolved_key": "db.odbc.select[custom_threads_connected,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Threads Connected"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Connected"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 8,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70625"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Conn Usage %"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70625",
+              "_resolved_key": "db.odbc.select[custom_connection_usage_pct,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Connection Usage %"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Conn Usage %"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 12,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70630"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "BP Hit Rate %"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70630",
+              "_resolved_key": "db.odbc.select[custom_buffer_pool_hit_rate,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Buffer Pool Hit Rate %"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "BP Hit Rate %"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 16,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70894"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Active Trx"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70894",
+              "_resolved_key": "db.odbc.select[custom_active_transactions,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Active Transactions"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Active Trx"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 20,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70638"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Uptime (s)"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70638",
+              "_resolved_key": "db.odbc.select[custom_uptime,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Server Uptime (s)"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Uptime (s)"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 0,
+          "y": 4,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5515"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5515",
+              "_resolved_graph_name": "MySQL: Connection Health"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 0,
+          "y": 11,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5404"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5404",
+              "_resolved_graph_name": "MySQL ODBC: Connections"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 12,
+          "y": 11,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5406"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5406",
+              "_resolved_graph_name": "MySQL ODBC: InnoDB Buffer Pool"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 0,
+          "y": 18,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5518"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5518",
+              "_resolved_graph_name": "MySQL: Locks & Transactions"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 12,
+          "y": 18,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5453"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5453",
+              "_resolved_graph_name": "MySQL ODBC: Transactions & Locks"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 0,
+          "y": 25,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5407"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5407",
+              "_resolved_graph_name": "MySQL ODBC: InnoDB Contention"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 12,
+          "y": 25,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5452"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5452",
+              "_resolved_graph_name": "MySQL ODBC: InnoDB Dirty & Log"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 12,
+          "y": 4,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5522"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5522",
+              "_resolved_graph_name": "MySQL: InnoDB Buffer Pool Detail"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Queries & Security",
+      "widgets": [
+        {
+          "type": "item",
+          "name": "",
+          "x": 0,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70905"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "SELECTs"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70905",
+              "_resolved_key": "db.odbc.select[custom_com_select,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Com Select"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "SELECTs"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 4,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70626"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Slow Queries"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70626",
+              "_resolved_key": "db.odbc.select[custom_slow_queries,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Slow Queries Total"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Slow Queries"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 8,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70637"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Full Scans"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70637",
+              "_resolved_key": "db.odbc.select[custom_select_scan,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Full Table Scans"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Full Scans"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 12,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70628"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Deadlocks"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70628",
+              "_resolved_key": "db.odbc.select[custom_innodb_deadlocks,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: InnoDB Deadlocks"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Deadlocks"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 16,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70635"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Long Queries"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70635",
+              "_resolved_key": "db.odbc.select[custom_long_running_queries,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Long Running Queries"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Long Queries"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 20,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70899"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "No-Pass Users"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70899",
+              "_resolved_key": "db.odbc.select[custom_users_no_password,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Users Without Password"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "No-Pass Users"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 0,
+          "y": 4,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5516"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5516",
+              "_resolved_graph_name": "MySQL: Query Performance"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 12,
+          "y": 4,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5454"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5454",
+              "_resolved_graph_name": "MySQL ODBC: DML Operations"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 0,
+          "y": 11,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5405"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5405",
+              "_resolved_graph_name": "MySQL ODBC: Query Rates"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 12,
+          "y": 11,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5408"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5408",
+              "_resolved_graph_name": "MySQL ODBC: Temp Tables & Open Objects"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 0,
+          "y": 18,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5519"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5519",
+              "_resolved_graph_name": "MySQL: Security Metrics"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 12,
+          "y": 18,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5456"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5456",
+              "_resolved_graph_name": "MySQL ODBC: Connections & Security"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 0,
+          "y": 25,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5517"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5517",
+              "_resolved_graph_name": "MySQL: Network Traffic"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 12,
+          "y": 25,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5455"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5455",
+              "_resolved_graph_name": "MySQL ODBC: Network Traffic"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Disk & Replication",
+      "widgets": [
+        {
+          "type": "item",
+          "name": "",
+          "x": 0,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70880"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "/data Free %"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70880",
+              "_resolved_key": "vfs.fs.size[/data,pfree]",
+              "_resolved_name": "Disk: /data Free %"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "/data Free %"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 4,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70878"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "/data Free"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70878",
+              "_resolved_key": "vfs.fs.size[/data,free]",
+              "_resolved_name": "Disk: /data Free Space"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "/data Free"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 8,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70879"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "/data Used"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70879",
+              "_resolved_key": "vfs.fs.size[/data,used]",
+              "_resolved_name": "Disk: /data Used Space"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "/data Used"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 12,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70881"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Inode Free %"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70881",
+              "_resolved_key": "vfs.fs.inode[/data,pfree]",
+              "_resolved_name": "Disk: /data Inode Free %"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Inode Free %"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 16,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70634"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "DB Size (MB)"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70634",
+              "_resolved_key": "db.odbc.select[custom_total_db_size_mb,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Total DB Size (MB)"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "DB Size (MB)"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 20,
+          "y": 0,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70904"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "User Tables"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70904",
+              "_resolved_key": "db.odbc.select[custom_total_tables,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Total Tables (user DBs)"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "User Tables"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 0,
+          "y": 4,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5465"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5465",
+              "_resolved_graph_name": "MySQL ODBC: /data Disk Space"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 12,
+          "y": 4,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5520"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5520",
+              "_resolved_graph_name": "MySQL: /data Disk Usage"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 0,
+          "y": 11,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5466"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5466",
+              "_resolved_graph_name": "MySQL ODBC: /data Disk IOPS"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "name": "",
+          "x": 12,
+          "y": 11,
+          "width": 12,
+          "height": 7,
+          "fields_raw": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5467"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "6",
+              "name": "graphid",
+              "value": "5467",
+              "_resolved_graph_name": "MySQL ODBC: /data Disk Throughput"
+            },
+            {
+              "type": "0",
+              "name": "source_type",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "show_legend",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 0,
+          "y": 18,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70556"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "IO Running"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70556",
+              "_resolved_key": "mysql.slave_io_running[\"slave\"]",
+              "_resolved_name": "Replication Slave IO Running"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "IO Running"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 4,
+          "y": 18,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70555"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "SQL Running"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70555",
+              "_resolved_key": "mysql.slave_sql_running[\"slave\"]",
+              "_resolved_name": "Replication Slave SQL Running"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "SQL Running"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 8,
+          "y": 18,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70557"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Lag (s)"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70557",
+              "_resolved_key": "mysql.seconds_behind_master[\"slave\"]",
+              "_resolved_name": "Replication Seconds Behind Master"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Lag (s)"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 12,
+          "y": 18,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70903"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Schemas"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70903",
+              "_resolved_key": "db.odbc.select[custom_user_schema_count,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: User Schema Count"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Schemas"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 16,
+          "y": 18,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70902"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Fragmentation"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70902",
+              "_resolved_key": "db.odbc.select[custom_total_fragmentation_mb,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Total Fragmentation (MB)"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Fragmentation"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 20,
+          "y": 18,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70895"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Long Trx"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70895",
+              "_resolved_key": "db.odbc.select[custom_long_transactions,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: Long Transactions (>5min)"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Long Trx"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 0,
+          "y": 22,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70644"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "mysql"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70644",
+              "_resolved_key": "db.odbc.select[mysql_size,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Size of database mysql"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "mysql"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 4,
+          "y": 22,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70620"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "perf_schema"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70620",
+              "_resolved_key": "db.odbc.select[performance_schema_size,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Size of database performance_schema"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "perf_schema"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 8,
+          "y": 22,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70645"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "sys"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70645",
+              "_resolved_key": "db.odbc.select[sys_size,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Size of database sys"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "sys"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 12,
+          "y": 22,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70917"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "ecommerce"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70917",
+              "_resolved_key": "db.odbc.select[ecommerce_db_size,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Size of database ecommerce_db"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "ecommerce"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 16,
+          "y": 22,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70893"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Redo Log B"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70893",
+              "_resolved_key": "db.odbc.select[custom_innodb_os_log_written,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Custom: InnoDB OS Log Written (bytes)"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Redo Log B"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "item",
+          "name": "",
+          "x": 20,
+          "y": 22,
+          "width": 4,
+          "height": 4,
+          "fields_raw": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70916"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Binlog"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ],
+          "fields_resolved": [
+            {
+              "type": "4",
+              "name": "itemid",
+              "value": "70916",
+              "_resolved_key": "db.odbc.select[custom_binlog_enabled,\"{$MYSQL.DSN}\"]",
+              "_resolved_name": "Binlog: Enabled"
+            },
+            {
+              "type": "1",
+              "name": "description",
+              "value": "Binlog"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "show",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "decimal_places",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "units_show",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "bold",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "override_color",
+              "value": "FFFFFF"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

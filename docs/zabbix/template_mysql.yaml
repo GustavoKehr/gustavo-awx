@@ -5,7 +5,7 @@ zabbix_export:
   - uuid: 7de539ec308c430384146264372e9b96
     name: Templates
   templates:
-  - name: MySQL Comprehensive Monitoring
+  - name: MySQL Monitoring
     templates:
     - name: MySQL by ODBC
     groups:
@@ -477,219 +477,724 @@ zabbix_export:
     - macro: '{$MYSQL.USER}'
       value: zbx_odbc
     dashboards:
-    - uuid: d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9
+    - uuid: f2bbb7b77bba4ab8b4bcfb4eb10d45ca
       name: MySQL Monitoring
       pages:
-      - name: Connections & Queries
+      - name: Connections & InnoDB
         widgets:
-        - type: graph
-          width: '36'
-          height: '5'
-          fields:
-          - type: GRAPH
-            name: graphid.0
-            value:
-              host: mysql-comprehensive-monitoring
-              name: 'MySQL ODBC: Connections'
-          - type: STRING
-            name: reference
-            value: AAAAA
-        - type: graph
-          'y': '5'
-          width: '36'
-          height: '5'
-          fields:
-          - type: GRAPH
-            name: graphid.0
-            value:
-              host: mysql-comprehensive-monitoring
-              name: 'MySQL ODBC: Query Rates'
-          - type: STRING
-            name: reference
-            value: AAAAB
-        - type: graph
-          'y': '10'
-          width: '36'
-          height: '5'
-          fields:
-          - type: GRAPH
-            name: graphid.0
-            value:
-              host: mysql-comprehensive-monitoring
-              name: 'MySQL ODBC: DML Operations'
-          - type: STRING
-            name: reference
-            value: AAAAC
-        - type: graph
-          'y': '15'
-          width: '36'
-          height: '5'
-          fields:
-          - type: GRAPH
-            name: graphid.0
-            value:
-              host: mysql-comprehensive-monitoring
-              name: 'MySQL ODBC: Network Traffic'
-          - type: STRING
-            name: reference
-            value: AAAAD
-      - name: InnoDB & Transactions
+          - type: item
+            x: '0'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_threads_running,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Threads Running'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: '1A7C11'
+          - type: item
+            x: '6'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_threads_connected,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Connected'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: '1B6AC9'
+          - type: item
+            x: '12'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_connection_usage_pct,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Conn Usage %'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'E05A00'
+          - type: item
+            x: '18'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_buffer_pool_hit_rate,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'BP Hit Rate %'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: '1A7C11'
+          - type: item
+            x: '24'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_active_transactions,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Active Trx'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: '6E3FAE'
+          - type: item
+            x: '30'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_innodb_deadlocks,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Deadlocks'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'AA0000'
+          - type: graph
+            y: '4'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL ODBC: Connections'
+              - type: STRING
+                name: reference
+                value: AAAAA
+          - type: graph
+            y: '9'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL ODBC: InnoDB Buffer Pool'
+              - type: STRING
+                name: reference
+                value: AAAAB
+          - type: graph
+            y: '14'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL ODBC: InnoDB Contention'
+              - type: STRING
+                name: reference
+                value: AAAAC
+          - type: graph
+            y: '19'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL ODBC: Transactions & Locks'
+              - type: STRING
+                name: reference
+                value: AAAAD
+          - type: graph
+            y: '24'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL ODBC: InnoDB Dirty & Log'
+              - type: STRING
+                name: reference
+                value: AAAAE
+          - type: graph
+            y: '29'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL ODBC: InnoDB Pending I/O'
+              - type: STRING
+                name: reference
+                value: AAAAF
+      - name: Queries & Network
         widgets:
-        - type: graph
-          width: '36'
-          height: '5'
-          fields:
-          - type: GRAPH
-            name: graphid.0
-            value:
-              host: mysql-comprehensive-monitoring
-              name: 'MySQL ODBC: InnoDB Buffer Pool'
-          - type: STRING
-            name: reference
-            value: AAAAE
-        - type: graph
-          'y': '5'
-          width: '36'
-          height: '5'
-          fields:
-          - type: GRAPH
-            name: graphid.0
-            value:
-              host: mysql-comprehensive-monitoring
-              name: 'MySQL ODBC: InnoDB Contention'
-          - type: STRING
-            name: reference
-            value: AAAAF
-        - type: graph
-          'y': '10'
-          width: '36'
-          height: '5'
-          fields:
-          - type: GRAPH
-            name: graphid.0
-            value:
-              host: mysql-comprehensive-monitoring
-              name: 'MySQL ODBC: Transactions & Locks'
-          - type: STRING
-            name: reference
-            value: AAAAG
-        - type: graph
-          'y': '15'
-          width: '36'
-          height: '5'
-          fields:
-          - type: GRAPH
-            name: graphid.0
-            value:
-              host: mysql-comprehensive-monitoring
-              name: 'MySQL ODBC: InnoDB Dirty & Log'
-          - type: STRING
-            name: reference
-            value: AAAAH
-        - type: graph
-          'y': '20'
-          width: '36'
-          height: '5'
-          fields:
-          - type: GRAPH
-            name: graphid.0
-            value:
-              host: mysql-comprehensive-monitoring
-              name: 'MySQL ODBC: InnoDB Pending I/O'
-          - type: STRING
-            name: reference
-            value: AAAAI
+          - type: item
+            x: '0'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_slow_queries,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Slow Queries'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'AA0000'
+          - type: item
+            x: '6'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_long_running_queries,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Long Queries'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'E05A00'
+          - type: item
+            x: '12'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_select_scan,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Full Scans'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'E05A00'
+          - type: item
+            x: '18'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_com_select,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Com Select'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: '1B6AC9'
+          - type: item
+            x: '24'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_uptime,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Uptime (s)'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: '1A7C11'
+          - type: item
+            x: '30'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_handler_read_rnd,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'No-Index Reads'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: '6E3FAE'
+          - type: graph
+            y: '4'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL ODBC: Query Rates'
+              - type: STRING
+                name: reference
+                value: AAAAG
+          - type: graph
+            y: '9'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL ODBC: DML Operations'
+              - type: STRING
+                name: reference
+                value: AAAAH
+          - type: graph
+            y: '14'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL ODBC: Network Traffic'
+              - type: STRING
+                name: reference
+                value: AAAAI
+          - type: graph
+            y: '19'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL ODBC: Connections & Security'
+              - type: STRING
+                name: reference
+                value: AAAAJ
+          - type: graph
+            y: '24'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL: Query Performance'
+              - type: STRING
+                name: reference
+                value: AAAAK
+          - type: graph
+            y: '29'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL: Connection Health'
+              - type: STRING
+                name: reference
+                value: AAAAL
       - name: Storage & Security
         widgets:
-        - type: graph
-          width: '36'
-          height: '5'
-          fields:
-          - type: GRAPH
-            name: graphid.0
-            value:
-              host: mysql-comprehensive-monitoring
-              name: 'MySQL ODBC: Temp Tables & Open Objects'
-          - type: STRING
-            name: reference
-            value: AAAAJ
-        - type: graph
-          'y': '5'
-          width: '36'
-          height: '5'
-          fields:
-          - type: GRAPH
-            name: graphid.0
-            value:
-              host: mysql-comprehensive-monitoring
-              name: 'MySQL ODBC: Connections & Security'
-          - type: STRING
-            name: reference
-            value: AAAAK
+          - type: item
+            x: '0'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_total_db_size_mb,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'DB Size (MB)'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: '1B6AC9'
+          - type: item
+            x: '6'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_total_fragmentation_mb,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Fragmentation'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'E05A00'
+          - type: item
+            x: '12'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_user_schema_count,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Schemas'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: '1A7C11'
+          - type: item
+            x: '18'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_total_tables,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Total Tables'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: '1A7C11'
+          - type: item
+            x: '24'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_users_no_password,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'No-Pwd Users'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'AA0000'
+          - type: item
+            x: '30'
+            width: '6'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: mysql-monitoring
+                  key: 'db.odbc.select[custom_binlog_enabled,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Binlog'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: '1A7C11'
+          - type: graph
+            y: '4'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL ODBC: Temp Tables & Open Objects'
+              - type: STRING
+                name: reference
+                value: AAAAM
+          - type: graph
+            y: '9'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL: DB Overview'
+              - type: STRING
+                name: reference
+                value: AAAAN
+          - type: graph
+            y: '14'
+            width: '36'
+            height: '5'
+            fields:
+              - type: GRAPH
+                name: graphid.0
+                value:
+                  host: mysql-monitoring
+                  name: 'MySQL: Security Overview'
+              - type: STRING
+                name: reference
+                value: AAAAO
     uuid: e470c1ea80784d1f93e5385b44b24605
-    template: mysql-comprehensive-monitoring
+    template: mysql-monitoring
   graphs:
   - name: 'MySQL ODBC: Connections'
     graph_items:
     - drawtype: GRADIENT_LINE
       color: EE0000
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_threads_running,"{$MYSQL.DSN}"]
     - sortorder: '1'
       color: 0000EE
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_threads_connected,"{$MYSQL.DSN}"]
     - sortorder: '2'
       color: AAAAAA
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_max_connections,"{$MYSQL.DSN}"]
     - sortorder: '3'
       color: FF8800
       yaxisside: RIGHT
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_connection_usage_pct,"{$MYSQL.DSN}"]
     uuid: 2c4d0491c5444891b2025b29fbb272e7
   - name: 'MySQL ODBC: Connections & Security'
     graph_items:
     - color: E74C3C
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_max_used_connections,"{$MYSQL.DSN}"]
     - sortorder: '1'
       color: F39C12
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_aborted_clients,"{$MYSQL.DSN}"]
     - sortorder: '2'
       color: E74C3C
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_aborted_connects,"{$MYSQL.DSN}"]
     uuid: e532c4b71b374d90b7145b3a541c76b2
   - name: 'MySQL ODBC: DML Operations'
     graph_items:
     - color: 3498DB
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_com_select,"{$MYSQL.DSN}"]
     - sortorder: '1'
       color: 27AE60
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_com_insert,"{$MYSQL.DSN}"]
     - sortorder: '2'
       color: F39C12
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_com_update,"{$MYSQL.DSN}"]
     - sortorder: '3'
       color: E74C3C
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_com_delete,"{$MYSQL.DSN}"]
     uuid: a92df8fc6a914586bd9afe67b17e49d1
   - name: 'MySQL ODBC: InnoDB Buffer Pool'
@@ -697,12 +1202,12 @@ zabbix_export:
     - drawtype: GRADIENT_LINE
       color: 00BB00
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_buffer_pool_hit_rate,"{$MYSQL.DSN}"]
     - sortorder: '1'
       color: 0000EE
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_buffer_pool_free_pct,"{$MYSQL.DSN}"]
     uuid: be317276bfc74766a59045d005181745
   - name: 'MySQL ODBC: InnoDB Contention'
@@ -710,36 +1215,36 @@ zabbix_export:
     - drawtype: GRADIENT_LINE
       color: EE0000
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_innodb_deadlocks,"{$MYSQL.DSN}"]
     - sortorder: '1'
       color: FF8800
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_innodb_row_lock_waits,"{$MYSQL.DSN}"]
     - sortorder: '2'
       color: EECC00
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_table_locks_waited,"{$MYSQL.DSN}"]
     uuid: b144e4b230cc4a329bccd42dc34537c5
   - name: 'MySQL ODBC: InnoDB Dirty & Log'
     graph_items:
     - color: FF5733
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_innodb_dirty_pages_pct,"{$MYSQL.DSN}"]
     - sortorder: '1'
       color: 3498DB
       yaxisside: RIGHT
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_innodb_log_writes,"{$MYSQL.DSN}"]
     - sortorder: '2'
       color: 27AE60
       yaxisside: RIGHT
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_innodb_os_log_written,"{$MYSQL.DSN}"]
     uuid: 845f12b84d6a49a8b56cec3f81ae93f5
   - name: 'MySQL ODBC: InnoDB Pending I/O'
@@ -747,42 +1252,42 @@ zabbix_export:
     - drawtype: GRADIENT_LINE
       color: 0000EE
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_innodb_pending_reads,"{$MYSQL.DSN}"]
     - sortorder: '1'
       color: EE0000
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_innodb_pending_writes,"{$MYSQL.DSN}"]
     uuid: bd8440bb045d498e95574bbb91848f75
   - name: 'MySQL ODBC: Network Traffic'
     graph_items:
     - color: 27AE60
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_bytes_received,"{$MYSQL.DSN}"]
     - sortorder: '1'
       color: 3498DB
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_bytes_sent,"{$MYSQL.DSN}"]
     uuid: 40e88523b3424fcc9077254171e403cf
   - name: 'MySQL ODBC: Query Rates'
     graph_items:
     - color: 0000EE
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_questions,"{$MYSQL.DSN}"]
     - sortorder: '1'
       drawtype: GRADIENT_LINE
       color: FF8800
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_slow_queries,"{$MYSQL.DSN}"]
     - sortorder: '2'
       color: EE0000
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_select_scan,"{$MYSQL.DSN}"]
     uuid: 845b18daf3804e5faa94a5fc2a578071
   - name: 'MySQL ODBC: Temp Tables & Open Objects'
@@ -790,38 +1295,131 @@ zabbix_export:
     - drawtype: GRADIENT_LINE
       color: EE0000
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_tmp_disk_tables,"{$MYSQL.DSN}"]
     - sortorder: '1'
       color: 0000EE
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_open_tables,"{$MYSQL.DSN}"]
     uuid: d302985a74a24e63a81578fbac463e5d
   - name: 'MySQL ODBC: Transactions & Locks'
     graph_items:
     - color: 3498DB
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_active_transactions,"{$MYSQL.DSN}"]
     - sortorder: '1'
       color: E74C3C
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_long_transactions,"{$MYSQL.DSN}"]
     - sortorder: '2'
       color: F39C12
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_idle_in_transaction,"{$MYSQL.DSN}"]
     - sortorder: '3'
       color: 9B59B6
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_current_row_lock_waits,"{$MYSQL.DSN}"]
     - sortorder: '4'
       color: 1ABC9C
       item:
-        host: mysql-comprehensive-monitoring
+        host: mysql-monitoring
         key: db.odbc.select[custom_metadata_lock_waits,"{$MYSQL.DSN}"]
     uuid: 9429de5297074c12a1958a7a848fd989
+  - name: 'MySQL: Connection Health'
+    graph_items:
+    - color: EE0000
+      drawtype: GRADIENT_LINE
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_threads_running,"{$MYSQL.DSN}"]
+    - sortorder: '1'
+      color: 0000EE
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_threads_connected,"{$MYSQL.DSN}"]
+    - sortorder: '2'
+      color: FF8800
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_max_used_connections,"{$MYSQL.DSN}"]
+    - sortorder: '3'
+      color: 00BB00
+      yaxisside: RIGHT
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_connection_usage_pct,"{$MYSQL.DSN}"]
+    uuid: bb23f22ae4e34724bc894be0b1b50cb0
+  - name: 'MySQL: Query Performance'
+    graph_items:
+    - color: 3498DB
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_questions,"{$MYSQL.DSN}"]
+    - sortorder: '1'
+      color: EE0000
+      drawtype: GRADIENT_LINE
+      yaxisside: RIGHT
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_slow_queries,"{$MYSQL.DSN}"]
+    - sortorder: '2'
+      color: FF8800
+      yaxisside: RIGHT
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_long_running_queries,"{$MYSQL.DSN}"]
+    - sortorder: '3'
+      color: 9B59B6
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_select_scan,"{$MYSQL.DSN}"]
+    uuid: da5ba74ccfdd4b309c2ff04cad10828c
+  - name: 'MySQL: DB Overview'
+    graph_items:
+    - color: 27AE60
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_total_db_size_mb,"{$MYSQL.DSN}"]
+    - sortorder: '1'
+      color: E74C3C
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_total_fragmentation_mb,"{$MYSQL.DSN}"]
+    - sortorder: '2'
+      color: 3498DB
+      yaxisside: RIGHT
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_user_schema_count,"{$MYSQL.DSN}"]
+    - sortorder: '3'
+      color: F39C12
+      yaxisside: RIGHT
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_total_tables,"{$MYSQL.DSN}"]
+    uuid: 2befb8b990494b8bb6b2cf1101dbe644
+  - name: 'MySQL: Security Overview'
+    graph_items:
+    - color: EE0000
+      drawtype: GRADIENT_LINE
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_users_no_password,"{$MYSQL.DSN}"]
+    - sortorder: '1'
+      color: FF8800
+      yaxisside: RIGHT
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_aborted_clients,"{$MYSQL.DSN}"]
+    - sortorder: '2'
+      color: E74C3C
+      yaxisside: RIGHT
+      item:
+        host: mysql-monitoring
+        key: db.odbc.select[custom_aborted_connects,"{$MYSQL.DSN}"]
+    uuid: d12a2859583e49cd83a63da34137904d

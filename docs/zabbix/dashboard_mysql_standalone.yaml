@@ -1,0 +1,611 @@
+zabbix_export:
+  version: '7.0'
+  dashboards:
+  - uuid: 7025d0bed8ac40948bcabf8410eb000e
+    name: MySQL Monitoring
+    display_period: '30'
+    auto_start: 'YES'
+    pages:
+    - name: 'Connections & InnoDB'
+      widgets:
+      - type: item
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_threads_running,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'Threads Running'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: '1A7C11'
+      - type: item
+        x: '6'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_threads_connected,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'Connected'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: '1B6AC9'
+      - type: item
+        x: '12'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_connection_usage_pct,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'Conn Usage %'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: 'E05A00'
+      - type: item
+        x: '18'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_buffer_pool_hit_rate,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'BP Hit Rate %'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: '1A7C11'
+      - type: item
+        x: '24'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_active_transactions,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'Active Trx'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: '6E3FAE'
+      - type: item
+        x: '30'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_innodb_deadlocks,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'Deadlocks'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: 'AA0000'
+      - type: graph
+        y: '4'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL ODBC: Connections'
+      - type: graph
+        y: '9'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL ODBC: InnoDB Buffer Pool'
+      - type: graph
+        y: '14'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL ODBC: InnoDB Contention'
+      - type: graph
+        y: '19'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL ODBC: Transactions & Locks'
+      - type: graph
+        y: '24'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL ODBC: InnoDB Dirty & Log'
+      - type: graph
+        y: '29'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL ODBC: InnoDB Pending I/O'
+    - name: 'Queries & Network'
+      widgets:
+      - type: item
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_slow_queries,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'Slow Queries'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: 'AA0000'
+      - type: item
+        x: '6'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_long_running_queries,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'Long Queries'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: 'E05A00'
+      - type: item
+        x: '12'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_select_scan,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'Full Scans'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: 'E05A00'
+      - type: item
+        x: '18'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_com_select,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'Com Select'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: '1B6AC9'
+      - type: item
+        x: '24'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_uptime,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'Uptime (s)'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: '1A7C11'
+      - type: item
+        x: '30'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_handler_read_rnd,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'No-Index Reads'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: '6E3FAE'
+      - type: graph
+        y: '4'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL ODBC: Query Rates'
+      - type: graph
+        y: '9'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL ODBC: DML Operations'
+      - type: graph
+        y: '14'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL ODBC: Network Traffic'
+      - type: graph
+        y: '19'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL ODBC: Connections & Security'
+      - type: graph
+        y: '24'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL: Query Performance'
+      - type: graph
+        y: '29'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL: Connection Health'
+    - name: 'Storage & Security'
+      widgets:
+      - type: item
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_total_db_size_mb,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'DB Size (MB)'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: '1B6AC9'
+      - type: item
+        x: '6'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_total_fragmentation_mb,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'Fragmentation'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: 'E05A00'
+      - type: item
+        x: '12'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_user_schema_count,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'Schemas'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: '1A7C11'
+      - type: item
+        x: '18'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_total_tables,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'Total Tables'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: '1A7C11'
+      - type: item
+        x: '24'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_users_no_password,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'No-Pwd Users'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: 'AA0000'
+      - type: item
+        x: '30'
+        width: '6'
+        height: '4'
+        fields:
+        - type: ITEM
+          name: itemid.0
+          value:
+            host: mysqlvm
+            key: 'db.odbc.select[custom_binlog_enabled,"{$MYSQL.DSN}"]'
+        - type: STRING
+          name: description
+          value: 'Binlog'
+        - type: INTEGER
+          name: show
+          value: '1'
+        - type: INTEGER
+          name: show
+          value: '2'
+        - type: INTEGER
+          name: bold
+          value: '1'
+        - type: STRING
+          name: override_color
+          value: '1A7C11'
+      - type: graph
+        y: '4'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL ODBC: Temp Tables & Open Objects'
+      - type: graph
+        y: '9'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL: DB Overview'
+      - type: graph
+        y: '14'
+        width: '36'
+        height: '5'
+        fields:
+        - type: GRAPH
+          name: graphid.0
+          value:
+            host: mysqlvm
+            name: 'MySQL: Security Overview'

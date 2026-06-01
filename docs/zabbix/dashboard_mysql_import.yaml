@@ -1,0 +1,1278 @@
+zabbix_export:
+  version: '7.0'
+  dashboards:
+  - uuid: f2cf65c31d1d48e0b8d9f932aa8a6a29
+    name: 'MySQL DB Monitoring'
+    display_period: '30'
+    auto_start: 'YES'
+    pages:
+      - name: 'InnoDB & Connections'
+        widgets:
+          - type: item
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_threads_running,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Threads Running'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '4'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_threads_connected,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Connected'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '8'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_connection_usage_pct,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Conn Usage %'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '12'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_buffer_pool_hit_rate,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'BP Hit Rate %'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '16'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_active_transactions,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Active Trx'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '20'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_uptime,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Uptime (s)'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: graph
+            y: '4'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL: Connection Health'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            y: '11'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL ODBC: Connections'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            x: '12'
+            y: '11'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL ODBC: InnoDB Buffer Pool'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            y: '18'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL: Locks & Transactions'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            x: '12'
+            y: '18'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL ODBC: Transactions & Locks'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            y: '25'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL ODBC: InnoDB Contention'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            x: '12'
+            y: '25'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL ODBC: InnoDB Dirty & Log'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            x: '12'
+            y: '4'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL: InnoDB Buffer Pool Detail'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+      - name: 'Queries & Security'
+        widgets:
+          - type: item
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_com_select,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'SELECTs'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '4'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_slow_queries,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Slow Queries'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '8'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_select_scan,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Full Scans'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '12'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_innodb_deadlocks,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Deadlocks'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '16'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_long_running_queries,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Long Queries'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '20'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_users_no_password,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'No-Pass Users'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: graph
+            y: '4'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL: Query Performance'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            x: '12'
+            y: '4'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL ODBC: DML Operations'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            y: '11'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL ODBC: Query Rates'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            x: '12'
+            y: '11'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL ODBC: Temp Tables & Open Objects'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            y: '18'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL: Security Metrics'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            x: '12'
+            y: '18'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL ODBC: Connections & Security'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            y: '25'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL: Network Traffic'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            x: '12'
+            y: '25'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL ODBC: Network Traffic'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+      - name: 'Disk & Replication'
+        widgets:
+          - type: item
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'vfs.fs.size[/data,pfree]'
+              - type: STRING
+                name: description
+                value: '/data Free %'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '4'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'vfs.fs.size[/data,free]'
+              - type: STRING
+                name: description
+                value: '/data Free'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '8'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'vfs.fs.size[/data,used]'
+              - type: STRING
+                name: description
+                value: '/data Used'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '12'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'vfs.fs.inode[/data,pfree]'
+              - type: STRING
+                name: description
+                value: 'Inode Free %'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '16'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_total_db_size_mb,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'DB Size (MB)'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '20'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_total_tables,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'User Tables'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: graph
+            y: '4'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL ODBC: /data Disk Space'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            x: '12'
+            y: '4'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL: /data Disk Usage'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            y: '11'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL ODBC: /data Disk IOPS'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: graph
+            x: '12'
+            y: '11'
+            width: '12'
+            height: '7'
+            fields:
+              - type: 6
+                name: graphid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  name: 'MySQL ODBC: /data Disk Throughput'
+              - type: INTEGER
+                name: source_type
+                value: '0'
+              - type: INTEGER
+                name: show_legend
+                value: '1'
+          - type: item
+            y: '18'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'mysql.slave_io_running["slave"]'
+              - type: STRING
+                name: description
+                value: 'IO Running'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '4'
+            y: '18'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'mysql.slave_sql_running["slave"]'
+              - type: STRING
+                name: description
+                value: 'SQL Running'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '8'
+            y: '18'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'mysql.seconds_behind_master["slave"]'
+              - type: STRING
+                name: description
+                value: 'Lag (s)'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '12'
+            y: '18'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_user_schema_count,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Schemas'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '16'
+            y: '18'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_total_fragmentation_mb,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Fragmentation'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '20'
+            y: '18'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_long_transactions,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Long Trx'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            y: '22'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[mysql_size,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'mysql'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '4'
+            y: '22'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[performance_schema_size,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'perf_schema'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '8'
+            y: '22'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[sys_size,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'sys'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '12'
+            y: '22'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[ecommerce_db_size,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'ecommerce'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '16'
+            y: '22'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_innodb_os_log_written,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Redo Log B'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'
+          - type: item
+            x: '20'
+            y: '22'
+            width: '4'
+            height: '4'
+            fields:
+              - type: ITEM
+                name: itemid.0
+                value:
+                  host: YOUR_MYSQL_HOST
+                  key: 'db.odbc.select[custom_binlog_enabled,"{$MYSQL.DSN}"]'
+              - type: STRING
+                name: description
+                value: 'Binlog'
+              - type: INTEGER
+                name: show
+                value: '1'
+              - type: INTEGER
+                name: show
+                value: '2'
+              - type: INTEGER
+                name: decimal_places
+                value: '2'
+              - type: INTEGER
+                name: units_show
+                value: '1'
+              - type: INTEGER
+                name: bold
+                value: '1'
+              - type: STRING
+                name: override_color
+                value: 'FFFFFF'

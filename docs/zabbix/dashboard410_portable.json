@@ -1,0 +1,1269 @@
+﻿{
+    "pages":  [
+                  {
+                      "widgets":  [
+                                      {
+                                          "y":  "0",
+                                          "width":  "9",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "MySQL Status",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Status",
+                                                                               "key_":  "db.odbc.select[ping,\"{$MYSQL.DSN}\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70492",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "7",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Version",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Version",
+                                                                               "key_":  "db.odbc.select[version,\"{$MYSQL.DSN}\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70493",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "9",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "8",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Uptime",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Uptime",
+                                                                               "key_":  "mysql.uptime"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70538",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "16",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "12",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Long Queries",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Custom: Long Running Queries",
+                                                                               "key_":  "db.odbc.select[custom_long_running_queries,\"{$MYSQL.DSN}\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70635",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "24",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "4",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Deadlocks",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Custom: InnoDB Deadlocks",
+                                                                               "key_":  "db.odbc.select[custom_innodb_deadlocks,\"{$MYSQL.DSN}\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70628",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "53",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "4",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Active Trx",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Custom: Active Transactions",
+                                                                               "key_":  "db.odbc.select[custom_active_transactions,\"{$MYSQL.DSN}\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70894",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "57",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "2",
+                                          "width":  "6",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Threads Running",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Custom: Threads Running",
+                                                                               "key_":  "db.odbc.select[custom_threads_running,\"{$MYSQL.DSN}\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70622",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "2",
+                                          "width":  "6",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Threads Connected",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Custom: Threads Connected",
+                                                                               "key_":  "db.odbc.select[custom_threads_connected,\"{$MYSQL.DSN}\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70623",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "6",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "2",
+                                          "width":  "6",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Conn Usage %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Custom: Connection Usage %",
+                                                                               "key_":  "db.odbc.select[custom_connection_usage_pct,\"{$MYSQL.DSN}\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70625",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "12",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "2",
+                                          "width":  "6",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Max Used Conns",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Custom: Max Used Connections",
+                                                                               "key_":  "db.odbc.select[custom_max_used_connections,\"{$MYSQL.DSN}\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70901",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "18",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "6",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "BP Hit %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Custom: Buffer Pool Hit Rate %",
+                                                                               "key_":  "db.odbc.select[custom_buffer_pool_hit_rate,\"{$MYSQL.DSN}\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70630",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "66",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "5",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "BP Free %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Custom: Buffer Pool Free %",
+                                                                               "key_":  "db.odbc.select[custom_buffer_pool_free_pct,\"{$MYSQL.DSN}\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70631",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "61",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "12",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Dirty Pages %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Custom: InnoDB Dirty Pages %",
+                                                                               "key_":  "db.odbc.select[custom_innodb_dirty_pages_pct,\"{$MYSQL.DSN}\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70891",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "36",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "5",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Slow Queries",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Custom: Slow Queries Total",
+                                                                               "key_":  "db.odbc.select[custom_slow_queries,\"{$MYSQL.DSN}\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70626",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "48",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "14",
+                                          "width":  "37",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "70622",
+                                                                                                  "color":  "EE0000",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70623",
+                                                                                                  "color":  "0000EE",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70624",
+                                                                                                  "color":  "AAAAAA",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70625",
+                                                                                                  "color":  "FF8800",
+                                                                                                  "sortorder":  "3",
+                                                                                                  "yaxisside":  "1"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "MySQL ODBC: Connections"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5404",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "5",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "10",
+                                          "width":  "35",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "70627",
+                                                                                                  "color":  "0000EE",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70626",
+                                                                                                  "color":  "FF8800",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70637",
+                                                                                                  "color":  "EE0000",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "MySQL ODBC: Query Rates"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5405",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "5",
+                                          "x":  "37",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "19",
+                                          "width":  "37",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "70630",
+                                                                                                  "color":  "00BB00",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70631",
+                                                                                                  "color":  "0000EE",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "MySQL ODBC: InnoDB Buffer Pool"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5406",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "5",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "15",
+                                          "width":  "35",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "70628",
+                                                                                                  "color":  "EE0000",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70629",
+                                                                                                  "color":  "FF8800",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70633",
+                                                                                                  "color":  "EECC00",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "MySQL ODBC: InnoDB Contention"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5407",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "5",
+                                          "x":  "37",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "24",
+                                          "width":  "37",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "70894",
+                                                                                                  "color":  "3498DB",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70895",
+                                                                                                  "color":  "E74C3C",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70896",
+                                                                                                  "color":  "F39C12",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70897",
+                                                                                                  "color":  "9B59B6",
+                                                                                                  "sortorder":  "3",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70898",
+                                                                                                  "color":  "1ABC9C",
+                                                                                                  "sortorder":  "4",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "MySQL ODBC: Transactions \u0026 Locks"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5453",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "5",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "20",
+                                          "width":  "35",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "70905",
+                                                                                                  "color":  "3498DB",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70906",
+                                                                                                  "color":  "27AE60",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70907",
+                                                                                                  "color":  "F39C12",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70908",
+                                                                                                  "color":  "E74C3C",
+                                                                                                  "sortorder":  "3",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "MySQL ODBC: DML Operations"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5454",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "5",
+                                          "x":  "37",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "29",
+                                          "width":  "37",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "70891",
+                                                                                                  "color":  "FF5733",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70892",
+                                                                                                  "color":  "3498DB",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "1"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70893",
+                                                                                                  "color":  "27AE60",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "1"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "MySQL ODBC: InnoDB Dirty \u0026 Log"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5452",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "5",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "25",
+                                          "width":  "35",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "70910",
+                                                                                                  "color":  "27AE60",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70911",
+                                                                                                  "color":  "3498DB",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "MySQL ODBC: Network Traffic"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5455",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "5",
+                                          "x":  "37",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "34",
+                                          "width":  "37",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "70632",
+                                                                                                  "color":  "EE0000",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70639",
+                                                                                                  "color":  "0000EE",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "MySQL ODBC: Temp Tables \u0026 Open Objects"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5408",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "5",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "30",
+                                          "width":  "35",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "70640",
+                                                                                                  "color":  "0000EE",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70641",
+                                                                                                  "color":  "EE0000",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "MySQL ODBC: InnoDB Pending I/O"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5409",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "5",
+                                          "x":  "37",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "39",
+                                          "width":  "72",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "70901",
+                                                                                                  "color":  "E74C3C",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70900",
+                                                                                                  "color":  "F39C12",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70636",
+                                                                                                  "color":  "E74C3C",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "MySQL ODBC: Connections \u0026 Security"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5456",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "5",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "44",
+                                          "width":  "72",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show_lines",
+                                                             "value":  "20",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "host":  "odbcvm"
+                                                                           },
+                                                             "name":  "hostids.0",
+                                                             "value":  "10789",
+                                                             "type":  "3"
+                                                         }
+                                                     ],
+                                          "name":  "Active Problems - odbcvm",
+                                          "type":  "problems",
+                                          "height":  "5",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "7",
+                                          "width":  "10",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "/data Free %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Disk: /data Free %",
+                                                                               "key_":  "vfs.fs.size[/data,pfree]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70880",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "3",
+                                          "x":  "37",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "7",
+                                          "width":  "9",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "/data Free Bytes",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Disk: /data Free Space",
+                                                                               "key_":  "vfs.fs.size[/data,free]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70878",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "3",
+                                          "x":  "47",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "7",
+                                          "width":  "9",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "/data Used Bytes",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Disk: /data Used Space",
+                                                                               "key_":  "vfs.fs.size[/data,used]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70879",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "3",
+                                          "x":  "56",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "7",
+                                          "width":  "7",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Inode Free %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Disk: /data Inode Free %",
+                                                                               "key_":  "vfs.fs.inode[/data,pfree]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "70881",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "3",
+                                          "x":  "65",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "2",
+                                          "width":  "35",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "70879",
+                                                                                                  "color":  "E74C3C",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70878",
+                                                                                                  "color":  "27AE60",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "MySQL ODBC: /data Disk Space"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5465",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "5",
+                                          "x":  "37",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "9",
+                                          "width":  "37",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "70990",
+                                                                                                  "color":  "3498DB",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "70991",
+                                                                                                  "color":  "E74C3C",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "MySQL ODBC: /data Disk IOPS"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5466",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "5",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "4",
+                                          "width":  "37",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "ds.0.hosts.0",
+                                                             "value":  "odbcvm",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "ds.0.items.0",
+                                                             "value":  "Disk: /data Used Space",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "ds.0.color_palette",
+                                                             "value":  "0",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "ds.0.fill",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "ds.0.axisy",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "lefty",
+                                                             "value":  "0",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "reference",
+                                                             "value":  "ZDPZX",
+                                                             "type":  "1"
+                                                         }
+                                                     ],
+                                          "name":  "/data disk Usage",
+                                          "type":  "svggraph",
+                                          "height":  "5",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      }
+                                  ],
+                      "name":  "MySQL Monitoring"
+                  }
+              ],
+    "display_period":  "30",
+    "name":  "MySQL - ODBC",
+    "auto_start":  "1"
+}

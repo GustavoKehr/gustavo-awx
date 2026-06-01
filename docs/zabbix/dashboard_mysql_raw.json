@@ -1,0 +1,2129 @@
+[
+  {
+    "dashboardid": "412",
+    "name": "MySQL DB Monitoring — odbcvm",
+    "userid": "1",
+    "private": "1",
+    "display_period": "30",
+    "auto_start": "1",
+    "uuid": "",
+    "pages": [
+      {
+        "dashboard_pageid": "20653",
+        "name": "InnoDB & Connections",
+        "display_period": "0",
+        "widgets": [
+          {
+            "widgetid": "79237",
+            "type": "item",
+            "name": "",
+            "x": "0",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70622"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Threads Running"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79238",
+            "type": "item",
+            "name": "",
+            "x": "4",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70623"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Connected"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79239",
+            "type": "item",
+            "name": "",
+            "x": "8",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70625"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Conn Usage %"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79240",
+            "type": "item",
+            "name": "",
+            "x": "12",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70630"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "BP Hit Rate %"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79241",
+            "type": "item",
+            "name": "",
+            "x": "16",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70894"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Active Trx"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79242",
+            "type": "item",
+            "name": "",
+            "x": "20",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70638"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Uptime (s)"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79243",
+            "type": "graph",
+            "name": "",
+            "x": "0",
+            "y": "4",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5515"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79244",
+            "type": "graph",
+            "name": "",
+            "x": "0",
+            "y": "11",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5404"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79245",
+            "type": "graph",
+            "name": "",
+            "x": "12",
+            "y": "11",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5406"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79246",
+            "type": "graph",
+            "name": "",
+            "x": "0",
+            "y": "18",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5518"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79247",
+            "type": "graph",
+            "name": "",
+            "x": "12",
+            "y": "18",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5453"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79248",
+            "type": "graph",
+            "name": "",
+            "x": "0",
+            "y": "25",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5407"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79249",
+            "type": "graph",
+            "name": "",
+            "x": "12",
+            "y": "25",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5452"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79287",
+            "type": "graph",
+            "name": "",
+            "x": "12",
+            "y": "4",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5522"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "dashboard_pageid": "20654",
+        "name": "Queries & Security",
+        "display_period": "0",
+        "widgets": [
+          {
+            "widgetid": "79250",
+            "type": "item",
+            "name": "",
+            "x": "0",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70905"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "SELECTs"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79251",
+            "type": "item",
+            "name": "",
+            "x": "4",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70626"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Slow Queries"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79252",
+            "type": "item",
+            "name": "",
+            "x": "8",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70637"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Full Scans"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79253",
+            "type": "item",
+            "name": "",
+            "x": "12",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70628"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Deadlocks"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79254",
+            "type": "item",
+            "name": "",
+            "x": "16",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70635"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Long Queries"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79255",
+            "type": "item",
+            "name": "",
+            "x": "20",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70899"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "No-Pass Users"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79256",
+            "type": "graph",
+            "name": "",
+            "x": "0",
+            "y": "4",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5516"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79257",
+            "type": "graph",
+            "name": "",
+            "x": "12",
+            "y": "4",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5454"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79258",
+            "type": "graph",
+            "name": "",
+            "x": "0",
+            "y": "11",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5405"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79259",
+            "type": "graph",
+            "name": "",
+            "x": "12",
+            "y": "11",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5408"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79260",
+            "type": "graph",
+            "name": "",
+            "x": "0",
+            "y": "18",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5519"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79261",
+            "type": "graph",
+            "name": "",
+            "x": "12",
+            "y": "18",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5456"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79262",
+            "type": "graph",
+            "name": "",
+            "x": "0",
+            "y": "25",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5517"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79263",
+            "type": "graph",
+            "name": "",
+            "x": "12",
+            "y": "25",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5455"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "dashboard_pageid": "20655",
+        "name": "Disk & Replication",
+        "display_period": "0",
+        "widgets": [
+          {
+            "widgetid": "79264",
+            "type": "item",
+            "name": "",
+            "x": "0",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70880"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "/data Free %"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79265",
+            "type": "item",
+            "name": "",
+            "x": "4",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70878"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "/data Free"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79266",
+            "type": "item",
+            "name": "",
+            "x": "8",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70879"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "/data Used"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79267",
+            "type": "item",
+            "name": "",
+            "x": "12",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70881"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Inode Free %"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79268",
+            "type": "item",
+            "name": "",
+            "x": "16",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70634"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "DB Size (MB)"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79269",
+            "type": "item",
+            "name": "",
+            "x": "20",
+            "y": "0",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70904"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "User Tables"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79270",
+            "type": "graph",
+            "name": "",
+            "x": "0",
+            "y": "4",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5465"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79271",
+            "type": "graph",
+            "name": "",
+            "x": "12",
+            "y": "4",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5520"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79272",
+            "type": "graph",
+            "name": "",
+            "x": "0",
+            "y": "11",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5466"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79273",
+            "type": "graph",
+            "name": "",
+            "x": "12",
+            "y": "11",
+            "width": "12",
+            "height": "7",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "6",
+                "name": "graphid",
+                "value": "5467"
+              },
+              {
+                "type": "0",
+                "name": "source_type",
+                "value": "0"
+              },
+              {
+                "type": "0",
+                "name": "show_legend",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "widgetid": "79274",
+            "type": "item",
+            "name": "",
+            "x": "0",
+            "y": "18",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70556"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "IO Running"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79275",
+            "type": "item",
+            "name": "",
+            "x": "4",
+            "y": "18",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70555"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "SQL Running"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79276",
+            "type": "item",
+            "name": "",
+            "x": "8",
+            "y": "18",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70557"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Lag (s)"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79277",
+            "type": "item",
+            "name": "",
+            "x": "12",
+            "y": "18",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70903"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Schemas"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79278",
+            "type": "item",
+            "name": "",
+            "x": "16",
+            "y": "18",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70902"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Fragmentation"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79279",
+            "type": "item",
+            "name": "",
+            "x": "20",
+            "y": "18",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70895"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Long Trx"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79280",
+            "type": "item",
+            "name": "",
+            "x": "0",
+            "y": "22",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70644"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "mysql"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79281",
+            "type": "item",
+            "name": "",
+            "x": "4",
+            "y": "22",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70620"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "perf_schema"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79282",
+            "type": "item",
+            "name": "",
+            "x": "8",
+            "y": "22",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70645"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "sys"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79283",
+            "type": "item",
+            "name": "",
+            "x": "12",
+            "y": "22",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70917"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "ecommerce"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79284",
+            "type": "item",
+            "name": "",
+            "x": "16",
+            "y": "22",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70893"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Redo Log B"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          },
+          {
+            "widgetid": "79285",
+            "type": "item",
+            "name": "",
+            "x": "20",
+            "y": "22",
+            "width": "4",
+            "height": "4",
+            "view_mode": "0",
+            "fields": [
+              {
+                "type": "4",
+                "name": "itemid",
+                "value": "70916"
+              },
+              {
+                "type": "1",
+                "name": "description",
+                "value": "Binlog"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "show",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "decimal_places",
+                "value": "2"
+              },
+              {
+                "type": "0",
+                "name": "units_show",
+                "value": "1"
+              },
+              {
+                "type": "0",
+                "name": "bold",
+                "value": "1"
+              },
+              {
+                "type": "1",
+                "name": "override_color",
+                "value": "FFFFFF"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

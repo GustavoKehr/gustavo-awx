@@ -1,0 +1,1791 @@
+﻿{
+    "pages":  [
+                  {
+                      "widgets":  [
+                                      {
+                                          "y":  "0",
+                                          "width":  "14",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Instance Status",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Instance status",
+                                                                               "key_":  "oracle.instance_status"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71073",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "10",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Uptime (s)",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Uptime",
+                                                                               "key_":  "oracle.uptime"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71074",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "14",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "9",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Version",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Version",
+                                                                               "key_":  "oracle.version"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71075",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "24",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "6",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Sessions",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Session count",
+                                                                               "key_":  "oracle.session_count"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71050",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "33",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "6",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Processes",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Number of processes",
+                                                                               "key_":  "oracle.processes_count"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71042",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "39",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "6",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "SQL Resp (s)",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "SQL service response time",
+                                                                               "key_":  "oracle.service_response_time"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71046",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "2",
+                                          "x":  "45",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "2",
+                                          "width":  "37",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71015",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71032",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: Cache Hit Ratios"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5471",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "9",
+                                          "width":  "37",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71050",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71047",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71051",
+                                                                                                  "color":  "00611C",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71048",
+                                                                                                  "color":  "F7941D",
+                                                                                                  "sortorder":  "3",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71052",
+                                                                                                  "color":  "FC6EA3",
+                                                                                                  "sortorder":  "4",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: Sessions"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5478",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "9",
+                                          "width":  "34",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71061",
+                                                                                                  "color":  "27AE60",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71032",
+                                                                                                  "color":  "F39C12",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "1"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71015",
+                                                                                                  "color":  "3498DB",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "1"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71018",
+                                                                                                  "color":  "9B59B6",
+                                                                                                  "sortorder":  "3",
+                                                                                                  "yaxisside":  "1"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: Shared Pool \u0026 Library Cache"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5512",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "37",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "16",
+                                          "width":  "37",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71057",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71058",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71060",
+                                                                                                  "color":  "00611C",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71059",
+                                                                                                  "color":  "F7941D",
+                                                                                                  "sortorder":  "3",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71056",
+                                                                                                  "color":  "FC6EA3",
+                                                                                                  "sortorder":  "4",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71055",
+                                                                                                  "color":  "6C59DC",
+                                                                                                  "sortorder":  "5",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: SGA Memory Usage"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5479",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "16",
+                                          "width":  "34",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71064",
+                                                                                                  "color":  "3498DB",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71066",
+                                                                                                  "color":  "E74C3C",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71065",
+                                                                                                  "color":  "27AE60",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71036",
+                                                                                                  "color":  "F39C12",
+                                                                                                  "sortorder":  "3",
+                                                                                                  "yaxisside":  "1"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: PGA Detail"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5513",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "37",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "23",
+                                          "width":  "37",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71038",
+                                                                                                  "color":  "3498DB",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71040",
+                                                                                                  "color":  "E74C3C",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71039",
+                                                                                                  "color":  "85C1E9",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "1"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71041",
+                                                                                                  "color":  "F1948A",
+                                                                                                  "sortorder":  "3",
+                                                                                                  "yaxisside":  "1"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: I/O Performance"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5511",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "23",
+                                          "width":  "35",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71040",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71038",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: Physical Read\\Write Rate, Bytes"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5475",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "37",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "2",
+                                          "width":  "35",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71019",
+                                                                                                  "color":  "27AE60",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71020",
+                                                                                                  "color":  "E74C3C",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: CPU vs Wait Ratio"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5521",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "37",
+                                          "view_mode":  "0"
+                                      }
+                                  ],
+                      "name":  "Health \u0026 Performance"
+                  },
+                  {
+                      "widgets":  [
+                                      {
+                                          "y":  "0",
+                                          "width":  "10",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Active Users",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Active user sessions",
+                                                                               "key_":  "oracle.session_active_user"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71048",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "4",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "10",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Active BG",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Active background sessions",
+                                                                               "key_":  "oracle.session_active_background"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71047",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "4",
+                                          "x":  "10",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "8",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Locked Sessions",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Sessions locked over {$ORACLE.SESSION.LOCK.MAX.TIME}s",
+                                                                               "key_":  "oracle.session_long_time_locked"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71054",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "4",
+                                          "x":  "20",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "8",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Lock Rate %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Sessions lock rate",
+                                                                               "key_":  "oracle.session_lock_rate"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71053",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "4",
+                                          "x":  "28",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "9",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "Concurrency %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "Sessions concurrency",
+                                                                               "key_":  "oracle.session_concurrency_rate"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71049",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "4",
+                                          "x":  "36",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "4",
+                                          "width":  "36",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71048",
+                                                                                                  "color":  "27AE60",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71047",
+                                                                                                  "color":  "3498DB",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71051",
+                                                                                                  "color":  "95A5A6",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71049",
+                                                                                                  "color":  "E74C3C",
+                                                                                                  "sortorder":  "3",
+                                                                                                  "yaxisside":  "1"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71053",
+                                                                                                  "color":  "F39C12",
+                                                                                                  "sortorder":  "4",
+                                                                                                  "yaxisside":  "1"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: Session Detail"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5509",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "4",
+                                          "width":  "36",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71046",
+                                                                                                  "color":  "3498DB",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71033",
+                                                                                                  "color":  "F39C12",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "1"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71068",
+                                                                                                  "color":  "E74C3C",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "1"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: SQL Performance"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5508",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "36",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "11",
+                                          "width":  "36",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71024",
+                                                                                                  "color":  "E74C3C",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71023",
+                                                                                                  "color":  "F39C12",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71034",
+                                                                                                  "color":  "3498DB",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71045",
+                                                                                                  "color":  "27AE60",
+                                                                                                  "sortorder":  "3",
+                                                                                                  "yaxisside":  "1"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: Waits \u0026 Enqueues"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5514",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "11",
+                                          "width":  "36",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71035",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71023",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: Sort Operations"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5473",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "36",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "18",
+                                          "width":  "36",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71030",
+                                                                                                  "color":  "27AE60",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71044",
+                                                                                                  "color":  "E74C3C",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "1"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71025",
+                                                                                                  "color":  "3498DB",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "1"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: FRA \u0026 Redo"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5510",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "18",
+                                          "width":  "36",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71021",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71022",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: Datafiles"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5472",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "36",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "25",
+                                          "width":  "36",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71041",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71039",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: Physical Read\\Write Rate"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5476",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "25",
+                                          "width":  "36",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71042",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71043",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "Oracle: Processes"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5477",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "36",
+                                          "view_mode":  "0"
+                                      }
+                                  ],
+                      "name":  "Sessions \u0026 Waits"
+                  },
+                  {
+                      "widgets":  [
+                                      {
+                                          "y":  "0",
+                                          "width":  "12",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "SYSTEM\nUsage %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "decimal_places",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "\u0027DB\u0027 TBS \u0027SYSTEM\u0027: Tablespace usage, percent",
+                                                                               "key_":  "oracle.tbs_used_file_pct[\"0\",\"SYSTEM\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71220",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "4",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "10",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "SYSAUX\nUsage %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "decimal_places",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "\u0027DB\u0027 TBS \u0027SYSAUX\u0027: Tablespace usage, percent",
+                                                                               "key_":  "oracle.tbs_used_file_pct[\"0\",\"SYSAUX\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71229",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "4",
+                                          "x":  "12",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "7",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "UNDOTBS1\nUsage %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "decimal_places",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "\u0027DB\u0027 TBS \u0027UNDOTBS1\u0027: Tablespace usage, percent",
+                                                                               "key_":  "oracle.tbs_used_file_pct[\"0\",\"UNDOTBS1\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71238",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "4",
+                                          "x":  "22",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "7",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "TEMP\nUsage %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "decimal_places",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "\u0027DB\u0027 TBS \u0027TEMP\u0027: Tablespace usage, percent",
+                                                                               "key_":  "oracle.tbs_used_file_pct[\"0\",\"TEMP\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71247",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "4",
+                                          "x":  "29",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "9",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "USERS\nUsage %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "decimal_places",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "\u0027DB\u0027 TBS \u0027USERS\u0027: Tablespace usage, percent",
+                                                                               "key_":  "oracle.tbs_used_file_pct[\"0\",\"USERS\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71256",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "4",
+                                          "x":  "36",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "8",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "TS_LINKPARK_DAT01\nUsage %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "decimal_places",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "\u0027DB\u0027 TBS \u0027TS_LINKPARK_DAT01\u0027: Tablespace usage, percent",
+                                                                               "key_":  "oracle.tbs_used_file_pct[\"0\",\"TS_LINKPARK_DAT01\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71283",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "4",
+                                          "x":  "45",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "9",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "TS_LINKPARK_IDX01\nUsage %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "decimal_places",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "\u0027DB\u0027 TBS \u0027TS_LINKPARK_IDX01\u0027: Tablespace usage, percent",
+                                                                               "key_":  "oracle.tbs_used_file_pct[\"0\",\"TS_LINKPARK_IDX01\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71292",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "4",
+                                          "x":  "53",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "0",
+                                          "width":  "10",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "description",
+                                                             "value":  "TS_AUDIT_DAT01\nUsage %",
+                                                             "type":  "1"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "decimal_places",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  {
+                                                                               "iname":  "\u0027DB\u0027 TBS \u0027TS_AUDIT_DAT01\u0027: Tablespace usage, percent",
+                                                                               "key_":  "oracle.tbs_used_file_pct[\"0\",\"TS_AUDIT_DAT01\"]"
+                                                                           },
+                                                             "name":  "itemid.0",
+                                                             "value":  "71265",
+                                                             "type":  "4"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.0",
+                                                             "value":  "1",
+                                                             "type":  "0"
+                                                         },
+                                                         {
+                                                             "_resolved":  null,
+                                                             "name":  "show.1",
+                                                             "value":  "2",
+                                                             "type":  "0"
+                                                         }
+                                                     ],
+                                          "name":  "",
+                                          "type":  "item",
+                                          "height":  "4",
+                                          "x":  "62",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "4",
+                                          "width":  "40",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71234",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71232",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71230",
+                                                                                                  "color":  "00611C",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "\u0027DB\u0027 TBS \u0027SYSAUX\u0027: Tablespace \u0027SYSAUX\u0027"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5500",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "\u0027SYSAUX\u0027",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "4",
+                                          "width":  "32",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71225",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71223",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71221",
+                                                                                                  "color":  "00611C",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "\u0027DB\u0027 TBS \u0027SYSTEM\u0027: Tablespace \u0027SYSTEM\u0027"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5499",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "\u0027SYSTEM\u0027",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "40",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "11",
+                                          "width":  "40",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71252",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71250",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71248",
+                                                                                                  "color":  "00611C",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "\u0027DB\u0027 TBS \u0027TEMP\u0027: Tablespace \u0027TEMP\u0027"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5502",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "\u0027TEMP\u0027",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "11",
+                                          "width":  "32",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71270",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71268",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71266",
+                                                                                                  "color":  "00611C",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "\u0027DB\u0027 TBS \u0027TS_AUDIT_DAT01\u0027: Tablespace \u0027TS_AUDIT_DAT01\u0027"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5504",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "\u0027TS_AUDIT_DAT01\u0027",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "40",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "18",
+                                          "width":  "40",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71288",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71286",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71284",
+                                                                                                  "color":  "00611C",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "\u0027DB\u0027 TBS \u0027TS_LINKPARK_DAT01\u0027: Tablespace \u0027TS_LINKPARK_DAT01\u0027"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5506",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "\u0027TS_LINKPARK_DAT01\u0027",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "18",
+                                          "width":  "32",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71297",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71295",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71293",
+                                                                                                  "color":  "00611C",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "\u0027DB\u0027 TBS \u0027TS_LINKPARK_IDX01\u0027: Tablespace \u0027TS_LINKPARK_IDX01\u0027"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5507",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "\u0027TS_LINKPARK_IDX01\u0027",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "40",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "25",
+                                          "width":  "40",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71279",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71277",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71275",
+                                                                                                  "color":  "00611C",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "\u0027DB\u0027 TBS \u0027TS_PERFSTAT_DAT01\u0027: Tablespace \u0027TS_PERFSTAT_DAT01\u0027"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5505",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "\u0027TS_PERFSTAT_DAT01\u0027",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "25",
+                                          "width":  "32",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71243",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71241",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71239",
+                                                                                                  "color":  "00611C",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "\u0027DB\u0027 TBS \u0027UNDOTBS1\u0027: Tablespace \u0027UNDOTBS1\u0027"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5501",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "\u0027UNDOTBS1\u0027",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "40",
+                                          "view_mode":  "0"
+                                      },
+                                      {
+                                          "y":  "32",
+                                          "width":  "72",
+                                          "fields":  [
+                                                         {
+                                                             "_resolved":  {
+                                                                               "gitems":  [
+                                                                                              {
+                                                                                                  "itemid":  "71261",
+                                                                                                  "color":  "199C0D",
+                                                                                                  "sortorder":  "0",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71259",
+                                                                                                  "color":  "F63100",
+                                                                                                  "sortorder":  "1",
+                                                                                                  "yaxisside":  "0"
+                                                                                              },
+                                                                                              {
+                                                                                                  "itemid":  "71257",
+                                                                                                  "color":  "00611C",
+                                                                                                  "sortorder":  "2",
+                                                                                                  "yaxisside":  "0"
+                                                                                              }
+                                                                                          ],
+                                                                               "gname":  "\u0027DB\u0027 TBS \u0027USERS\u0027: Tablespace \u0027USERS\u0027"
+                                                                           },
+                                                             "name":  "graphid.0",
+                                                             "value":  "5503",
+                                                             "type":  "6"
+                                                         }
+                                                     ],
+                                          "name":  "\u0027USERS\u0027",
+                                          "type":  "graph",
+                                          "height":  "7",
+                                          "x":  "0",
+                                          "view_mode":  "0"
+                                      }
+                                  ],
+                      "name":  "Tablespaces"
+                  }
+              ],
+    "display_period":  "30",
+    "name":  "Oracle DB Monitoring — LINKPARK",
+    "auto_start":  "1"
+}
