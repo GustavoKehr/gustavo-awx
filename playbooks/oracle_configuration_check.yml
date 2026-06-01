@@ -30,7 +30,7 @@
       tags: always
 
   tasks:
-    - name: "Phase 0 — Install OS Watcher (transfer + extract from awxvm if not present)"
+    - name: "Phase 0 — Install OS Watcher (copy from controller to target if not present)"
       ansible.builtin.include_role:
         name: oracle_install
         tasks_from: 08_oswatcher.yml
