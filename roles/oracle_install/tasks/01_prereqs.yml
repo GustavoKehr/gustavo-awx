@@ -129,17 +129,19 @@
   tags: oracle_prereqs
 
 - name: "PREREQS | Copy libnsl libraries to target (missing on RHEL9 minimal)"
-  ansible.builtin.shell: |
-    rsync -a \
-      -e "ssh -i ~/.ssh/id_user_aap -o StrictHostKeyChecking=no" \
-      --rsync-path="sudo rsync" \
-      /opt/oracle/libnsl_libs/ \
-      user_aap@{{ ansible_host }}:/usr/lib64/
-    ssh -i ~/.ssh/id_user_aap -o StrictHostKeyChecking=no \
-      user_aap@{{ ansible_host }} "sudo ldconfig"
-  delegate_to: awxvm
-  become: false
+  ansible.posix.synchronize:
+    src: "{{ oracle_software_src }}/libnsl_libs/"
+    dest: /usr/lib64/
+    rsync_path: "sudo rsync"
+    mode: push
   when: _libnsl_stat.stdout == "absent"
+  tags: oracle_prereqs
+
+- name: "PREREQS | Run ldconfig after libnsl copy"
+  ansible.builtin.command: ldconfig
+  become: true
+  when: _libnsl_stat.stdout == "absent"
+  changed_when: true
   tags: oracle_prereqs
 
 - name: "PREREQS | Create 4GB swapfile if no swap present (prevents OOM during install)"

@@ -5,10 +5,11 @@ oracle_base: "/oracle/{{ oracle_sid }}"
 oracle_home: "{{ oracle_base }}/19.0.0"
 oracle_scripts_dir: "{{ oracle_base }}/scripts/db_creation/{{ oracle_sid }}"
 
-# --- Software source (on AWX VM) ---
-# oracle_software_src: installer zip + preinstall RPM (/opt/oracle)
-# oracle_patches_src:  OPatch / RU / post-install patches (/opt/patches)
-oracle_software_src: "/opt/oracle"
+# --- Software source (on Ansible controller / EE) ---
+# Paths are absolute on the controller (EE container) where the EE has these mounted.
+# oracle_software_src: installer zip + preinstall RPM + libnsl_libs/ + oswatcher tar
+# oracle_patches_src:  OPatch / RU / post-install patches
+oracle_software_src: "/opt/oracle/software"
 oracle_patches_src: "/opt/patches"
 oracle_software_dst: "/home/oracle/software"
 oracle_installer_zip: "LINUX.X64_193000_db_home.zip"
@@ -97,7 +98,7 @@ ts_sid_idx_datafiles: 1
 create_initial_db: true
 
 # --- OS Watcher ---
-# Tar file must be present at oracle_software_src (/opt/oracle) on awxvm.
+# Tar file must be present at oracle_software_src on the controller (EE).
 oracle_oswatcher_tar: "oswbb840.tar"
 oracle_osw_path: "/home/oracle/oswbb"
 oracle_osw_interval: 30
