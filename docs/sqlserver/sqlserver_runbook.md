@@ -43,6 +43,7 @@ ansible_host: 192.168.137.157
 ansible_connection: ssh
 ansible_shell_type: powershell
 ansible_user: user_aap
+win_disk_number: 1          # REQUIRED: disk index for data volume (usually 1)
 ```
 
 ---
@@ -77,13 +78,41 @@ ansible_user: user_aap
 
 | Tag | Phase | Description |
 |---|---|---|
-| `storage` | Phase 1 | Initialize disk, create E: partition (NTFS 64K, SQL_DATA label) |
+| `storage` | Phase 1 | Initialize disk, create E: partition (NTFS 64K, SQL_DATA label) via diskpart |
 | `security` | Phase 2 | Windows Firewall + IPsec rules |
-| `sql_pre` | Phase 3 | Download ISO/SSMS from repo, mount ISO |
-| `sql_install` | Phase 4 | Silent SQL Server install from ISO |
-| `sql_post` | Phase 5 | Initial database creation |
+| `sql_pre` | Phase 3 | Download ISO/SSMS from repo, mount ISO — REQUIRED before sql_install |
+| `sql_install` | Phase 4 | Silent SQL Server 2025 install from ISO, SSMS install |
+| `sql_post` | Phase 5 | Enable mixed auth, create initial database (sqldb), cleanup |
 | `sql_users` | Phase 6 | User management (optional) |
 | `db_patches` | Phase 7 | Patch discovery (never auto-applies) |
+
+**Full deploy:** `job_tags: storage,sql_pre,sql_install,sql_post`
+
+**Post-config only (SQL Server already installed):** `job_tags: sql_post`
+
+> **Note:** `sql_pre` must always be included with `sql_install` — it mounts the ISO and registers `disk_iso_mount` variable used by the install task.
+
+### Required API Launch Parameters
+
+```json
+{
+  "job_tags": "storage,sql_pre,sql_install,sql_post",
+  "limit": "sqlservervm",
+  "extra_vars": {
+    "sql_sa_password": "SqlAdmin@2025!",
+    "sql_login_name": "sa_deploy",
+    "sql_login_type": "sql",
+    "sql_login_password": "Deploy@1234!",
+    "sql_login_state": "present",
+    "sql_login_default_db": "master",
+    "sql_target_database": "master",
+    "sql_revoke_access": "false",
+    "sql_manage_database_user": "false",
+    "db_patches_enabled": "false",
+    "sql_manage_users_enabled": "false"
+  }
+}
+```
 
 ---
 
@@ -106,23 +135,89 @@ ssh root@192.168.137.145 "qm stop 103 --timeout 60 && qm start 103"
 
 ---
 
-### E: Partition Already in Use
+### E: Drive Letter Stolen by Virtual CD-ROM
 
-**Symptom:** `The requested access path is already in use` on partition creation.
+**Symptom:** `Cannot find drive. A drive with the name 'E' does not exist.` in pre-req folder creation.
 
-**Root cause:** CD-ROM/DVD virtual drive was using drive letter E:.
+**Root cause (multi-layer):**
 
-**Fix applied (June 2026):** `storage_setup` role now detects CD-ROM on E: and reassigns it to X: before creating the data partition. Idempotent on re-runs.
+1. **Ansible module context vs shell context**: `win_shell` tasks run in interactive SSH session. Ansible modules (`win_file`, `win_get_url`, `win_acl`) run in a NonInteractive PowerShell process. Drive letters set via `Add-PartitionAccessPath` in the interactive session are NOT visible to the NonInteractive module runner.
+
+2. **CD-ROM PnP re-detection**: Even after `Disable-PnpDevice`, Windows PnP re-enables the virtual CD-ROM between Ansible task executions and reassigns E: from MountedDevices registry.
+
+**Fix applied (June 2026):**
+- All drive letter assignments now use `diskpart` which writes directly to the Windows storage stack — visible to ALL process contexts immediately.
+- `storage_setup` role uses `diskpart assign letter=E` with partition number.
+- `sql_pre_reqs` role has a guard task that repeats CD-ROM removal and E: re-assignment at start.
+- ISO was ejected from Proxmox VM config (`qm set 103 --ide1 none,media=cdrom`) to prevent CD-ROM from being re-registered.
+
+**diskpart approach:**
+```powershell
+$diskNum = 1
+$partNum = (Get-Partition -DiskNumber $diskNum | Where-Object {$_.Type -eq "Basic"}).PartitionNumber
+$null = & mountvol E: /D 2>&1     # remove any current E: assignment
+"select disk $diskNum`r`nselect partition $partNum`r`nassign letter=E`r`nexit" | diskpart
+```
 
 ---
 
-### Format Task Fails (win_format module)
+### Ansible Parse Error in win_shell Block
 
-**Symptom:** `Unhandled exception: Size Not Supported` on NTFS 64K format.
+**Symptom:** `ERROR! failed at splitting arguments, either an unbalanced jinja2 block or quotes`
 
-**Root cause:** `community.windows.win_format` module bug with `allocation_unit_size: 65536`.
+**Root cause:** Several PowerShell patterns inside `win_shell: |` YAML block scalars confuse Ansible 2.15's argument tokenizer:
+- Backslash before closing quote: `"E:\"` or `'E:\'`
+- Multi-line PowerShell pipelines with `|` at end of line
+- Single-quoted PS strings like `'SQL_DATA'` combined with `{{ }}` Jinja2 in same script
 
-**Fix applied (June 2026):** Replaced with `win_shell` PowerShell `Format-Volume`. Idempotent (skips if already labeled SQL_DATA).
+**Fix applied (June 2026):**
+- All `E:\` path strings use `[char]92` concatenation: `"E:" + [string][char]92`
+- Multi-line pipelines collapsed to single lines
+- All single-quoted PS strings (`'NTFS'`, `'SQL_DATA'`, `'Basic'`) converted to double-quoted
+- Em dash comments removed from script bodies
+
+---
+
+### SQL Server Install Task Skipped (no tags)
+
+**Symptom:** `sqlcmd.exe` not found after install phase; install task not visible in job output.
+
+**Root cause:** `sql_install/tasks/main.yml` task "Instalacao silenciosa do SQL Server 2025" had no `tags:` directive. When running with `--tags sql_install`, tasks without tags are skipped.
+
+**Fix applied (June 2026):** Added `tags: [sql_install, sql_execute]` to the SQL Server install task.
+
+---
+
+### `disk_iso_mount` Undefined in sql_install
+
+**Symptom:** `'disk_iso_mount' is undefined` when running `sql_install` tag without `sql_pre`.
+
+**Root cause:** `disk_iso_mount` is registered in `sql_pre_reqs` task "monta imagem". If `sql_pre` is not included in job tags, this variable is never set.
+
+**Fix:** Always include `sql_pre` in job tags when running `sql_install`:
+```
+job_tags: sql_pre,sql_install,sql_post
+```
+
+---
+
+### ISO Already Mounted Error
+
+**Symptom:** `Unable to retrieve drive letter from mounted image` on remount.
+
+**Root cause:** `community.windows.win_disk_image state: present` fails when the ISO is already mounted from a previous failed run (it cannot return the drive letter of an already-attached image).
+
+**Fix applied (June 2026):** Added `state: absent` (unmount) task before the mount task. The unmount uses `ignore_errors: true` so it succeeds even if the ISO is not mounted.
+
+---
+
+### Recursive Template Error on create_initial_db
+
+**Symptom:** `recursive loop detected in template string: {{ create_initial_db | default(true) | bool }}`
+
+**Root cause:** `deploy_sqlserver.yml` FASE 5 had `vars: create_initial_db: "{{ create_initial_db | default(true) | bool }}"` — self-referential template causes Ansible 2.15 infinite recursion.
+
+**Fix applied (June 2026):** Removed the `vars:` block. Role `defaults/main.yml` already has `create_initial_db: true`.
 
 ---
 
