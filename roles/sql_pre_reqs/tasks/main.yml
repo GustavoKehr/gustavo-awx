@@ -36,13 +36,24 @@
     profiles: [Domain, Private, Public]
   tags: [sql_pre, firewall_disable]
 
-- name: "cria pasta temporaria"
+- name: "cria pasta temporaria C"
   ansible.windows.win_file:
-    path: "{{ item }}"
+    path: 'C:\ansible_temp'
     state: directory
-  loop:
-    - 'C:\ansible_temp'
-    - 'E:\temp_install'
+  tags: [sql_pre, folders]
+
+- name: "cria pasta temporaria E"
+  ansible.windows.win_shell: |
+    $eRoot = "E:" + [string][char]92
+    $tempPath = $eRoot + "temp_install"
+    if (-not (Test-Path $tempPath)) {
+        New-Item -Path $tempPath -ItemType Directory | Out-Null
+        Write-Output "Created $tempPath"
+    } else {
+        Write-Output "SKIP: $tempPath already exists"
+    }
+  changed_when: "'SKIP:' not in e_temp_result.stdout"
+  register: e_temp_result
   tags: [sql_pre, folders]
 
 - name: "gerar ConfigurationFile.ini a partir do template"
