@@ -2,7 +2,6 @@
 - name: "garantir E: montado antes do pre-reqs"
   ansible.windows.win_shell: |
     $diskNum = {{ win_disk_number | int }}
-    $eRoot = "E:" + [string][char]92
     $cdromVols = Get-WmiObject Win32_Volume | Where-Object { $_.DriveType -in @(5,2) -and $_.DriveLetter }
     foreach ($vol in $cdromVols) {
         $null = & mountvol $vol.DriveLetter /D 2>&1
@@ -20,9 +19,11 @@
     $allParts = Get-Partition -DiskNumber $diskNum -ErrorAction SilentlyContinue
     $dataPart = $allParts | Where-Object {$_.Type -eq "Basic"} | Select-Object -First 1
     if ($dataPart) {
-        $dataPart | Remove-PartitionAccessPath -AccessPath $eRoot -ErrorAction SilentlyContinue
-        $dataPart | Add-PartitionAccessPath -AccessPath $eRoot
-        Write-Output "Remounted E on disk $diskNum for pre-reqs"
+        $partNum = $dataPart.PartitionNumber
+        $null = & mountvol E: /D 2>&1
+        $dpScript = "select disk $diskNum`r`nselect partition $partNum`r`nassign letter=E`r`nexit"
+        $dpScript | diskpart | Out-Null
+        Write-Output "Remounted E on disk $diskNum via diskpart"
     } else {
         Write-Error "Cannot find data partition on disk $diskNum"
         exit 1

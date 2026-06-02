@@ -38,26 +38,26 @@
 - name: "criar volume no disco {{ win_disk_number }} como E"
   ansible.windows.win_shell: |
     $diskNum = {{ win_disk_number | int }}
-    $eRoot = "E:" + [string][char]92
     $existingVol = Get-Volume -DriveLetter E -ErrorAction SilentlyContinue
     if ($existingVol) {
         $existingPart = Get-Partition -DriveLetter E -ErrorAction SilentlyContinue
         if ($existingPart -and ($existingPart.DiskNumber -eq $diskNum)) {
-            Write-Output "SKIP: E already mounted on disk $diskNum"
+            Write-Output "SKIP: E already on disk $diskNum"
             exit 0
         }
     }
     $allParts = Get-Partition -DiskNumber $diskNum -ErrorAction SilentlyContinue
     $dataPart = $allParts | Where-Object {$_.Type -eq "Basic"} | Select-Object -First 1
-    if ($dataPart) {
-        $dataPart | Remove-PartitionAccessPath -AccessPath $eRoot -ErrorAction SilentlyContinue
-        $dataPart | Add-PartitionAccessPath -AccessPath $eRoot
-        Write-Output "Mounted existing partition as E on disk $diskNum"
-        exit 0
+    if (-not $dataPart) {
+        $dataPart = New-Partition -DiskNumber $diskNum -UseMaximumSize
+        Write-Output "Created new partition on disk $diskNum"
     }
-    $newPart = New-Partition -DiskNumber $diskNum -UseMaximumSize
-    $newPart | Add-PartitionAccessPath -AccessPath $eRoot
-    Write-Output "Created new partition and mounted as E on disk $diskNum"
+    $partNum = $dataPart.PartitionNumber
+    $null = & mountvol E: /D 2>&1
+    $dpScript = "select disk $diskNum`r`nselect partition $partNum`r`nassign letter=E`r`nexit"
+    $dpResult = $dpScript | diskpart
+    Write-Output "diskpart result: $dpResult"
+    Write-Output "Assigned E to disk $diskNum partition $partNum via diskpart"
   register: disk_part
   changed_when: "'SKIP:' not in disk_part.stdout"
   tags: [storage, storage_partition]
@@ -65,7 +65,6 @@
 - name: "formatar com NTFS 64K no disco de dados"
   ansible.windows.win_shell: |
     $diskNum = {{ win_disk_number | int }}
-    $eRoot = "E:" + [string][char]92
     $allParts = Get-Partition -DiskNumber $diskNum -ErrorAction SilentlyContinue
     $dataPart = $allParts | Where-Object {$_.Type -eq "Basic"} | Select-Object -First 1
     if (-not $dataPart) {
@@ -79,17 +78,22 @@
     }
     $dataVol = $dataPart | Get-Volume -ErrorAction SilentlyContinue
     if ($dataVol -and $dataVol.FileSystem -eq "NTFS" -and $dataVol.FileSystemLabel -eq "SQL_DATA") {
-        Write-Output "SQL_DATA partition exists but E not mounted - remounting"
-        $dataPart | Remove-PartitionAccessPath -AccessPath $eRoot -ErrorAction SilentlyContinue
-        $dataPart | Add-PartitionAccessPath -AccessPath $eRoot
-        Write-Output "Remounted E on disk $diskNum"
+        Write-Output "SQL_DATA partition exists but E not mounted - remounting via diskpart"
+        $partNum = $dataPart.PartitionNumber
+        $null = & mountvol E: /D 2>&1
+        $dpScript = "select disk $diskNum`r`nselect partition $partNum`r`nassign letter=E`r`nexit"
+        $dpResult = $dpScript | diskpart
+        Write-Output "diskpart remount: $dpResult"
         exit 0
     }
     $dataPart | Format-Volume -FileSystem NTFS -AllocationUnitSize 65536 -NewFileSystemLabel "SQL_DATA" -Confirm:$false -Force | Out-Null
     Write-Output "Formatted disk $diskNum partition as NTFS 64K SQL_DATA"
-    $dataPart | Remove-PartitionAccessPath -AccessPath $eRoot -ErrorAction SilentlyContinue
-    $dataPart | Add-PartitionAccessPath -AccessPath $eRoot
-    Write-Output "Mounted E after format"
+    $partNum = $dataPart.PartitionNumber
+    $null = & mountvol E: /D 2>&1
+    $dpScript = "select disk $diskNum`r`nselect partition $partNum`r`nassign letter=E`r`nexit"
+    $dpResult = $dpScript | diskpart
+    Write-Output "diskpart after format: $dpResult"
+    Write-Output "Mounted E after format via diskpart"
   changed_when: "'SKIP:' not in (format_result.stdout | default(''))"
   register: format_result
   tags: [storage, storage_format]
@@ -97,17 +101,18 @@
 - name: "criar pasta da instalacao do SQL no E"
   ansible.windows.win_shell: |
     $diskNum = {{ win_disk_number | int }}
-    $eRoot = "E:" + [string][char]92
-    $sqlRoot = $eRoot + "SQLServer_Root"
+    $sqlRoot = "E:" + [string][char]92 + "SQLServer_Root"
     $eVol = Get-Volume -DriveLetter E -ErrorAction SilentlyContinue
     if (-not $eVol -or $eVol.FileSystemLabel -ne "SQL_DATA") {
         Write-Output "E not ready - force-remounting data partition"
         $allParts = Get-Partition -DiskNumber $diskNum
         $dataPart = $allParts | Where-Object {$_.Type -eq "Basic"} | Select-Object -First 1
         if ($dataPart) {
-            $dataPart | Remove-PartitionAccessPath -AccessPath $eRoot -ErrorAction SilentlyContinue
-            $dataPart | Add-PartitionAccessPath -AccessPath $eRoot
-            Write-Output "Force-remounted E on disk $diskNum"
+            $partNum = $dataPart.PartitionNumber
+            $null = & mountvol E: /D 2>&1
+            $dpScript = "select disk $diskNum`r`nselect partition $partNum`r`nassign letter=E`r`nexit"
+            $dpScript | diskpart | Out-Null
+            Write-Output "Force-remounted E on disk $diskNum via diskpart"
         } else {
             Write-Error "Cannot find data partition on disk $diskNum"
             exit 1
