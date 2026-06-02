@@ -46,9 +46,10 @@
 - name: "formatar com NTFS 64K no disco de dados"
   ansible.windows.win_shell: |
     $diskNum = {{ win_disk_number | int }}
-    # Find the data partition by disk number — never rely on drive letter here
+    # Find data partition by disk number (never rely on drive letter for detection)
     $dataPart = Get-Partition -DiskNumber $diskNum -ErrorAction SilentlyContinue |
-                Where-Object { $_.Type -eq 'Basic' }
+                Where-Object { $_.Type -eq 'Basic' } |
+                Select-Object -First 1
     if (-not $dataPart) {
         Write-Error "No Basic partition found on disk $diskNum"
         exit 1
@@ -56,7 +57,20 @@
     # Check label via partition reference (immune to drive letter being stolen)
     $vol = $dataPart | Get-Volume -ErrorAction SilentlyContinue
     if ($vol -and $vol.FileSystem -eq 'NTFS' -and $vol.FileSystemLabel -eq 'SQL_DATA') {
-        Write-Output "SKIP: already formatted as NTFS SQL_DATA"
+        # Verify E: is still our disk (may have been stolen by CD-ROM on rerun)
+        $eCheck = Get-Partition -DriveLetter E -ErrorAction SilentlyContinue
+        if ($eCheck -and $eCheck.DiskNumber -eq $diskNum) {
+            Write-Output "SKIP: already formatted as NTFS SQL_DATA and E: is correct"
+            exit 0
+        }
+        # E: is missing or wrong disk — reassign without reformatting
+        $cdrom = Get-WmiObject Win32_Volume | Where-Object { $_.DriveLetter -eq 'E:' -and $_.DriveType -in @(5,2) }
+        if ($cdrom) {
+            $cdrom | Set-WmiInstance -Arguments @{DriveLetter='X:'} | Out-Null
+            Write-Output "Reassigned CD/removable from E: to X: (label already SQL_DATA)"
+        }
+        $dataPart | Set-Partition -NewDriveLetter E
+        Write-Output "Reassigned E: to data partition (label was already SQL_DATA)"
         exit 0
     }
     # Move CD-ROM off E: before format (defensive — may have reclaimed it)
@@ -69,16 +83,24 @@
     $dataPart | Format-Volume -FileSystem NTFS -AllocationUnitSize 65536 `
         -NewFileSystemLabel 'SQL_DATA' -Confirm:$false -Force | Out-Null
     Write-Output "Formatted data partition on disk $diskNum as NTFS 64K SQL_DATA"
-    # After format Windows may drop the drive letter; re-assign E: if lost
-    $cdrom = Get-WmiObject Win32_Volume | Where-Object { $_.DriveLetter -eq 'E:' -and $_.DriveType -in @(5,2) }
-    if ($cdrom) {
-        $cdrom | Set-WmiInstance -Arguments @{DriveLetter='X:'} | Out-Null
-        Write-Output "Post-format: Reassigned CD/removable from E: to X:"
-    }
-    $freshPart = Get-Partition -DiskNumber $diskNum | Where-Object { $_.Type -eq 'Basic' }
-    if ($freshPart -and -not $freshPart.DriveLetter) {
-        $freshPart | Set-Partition -NewDriveLetter E
-        Write-Output "Post-format: Re-assigned E: to data partition on disk $diskNum"
+    # Post-format: verify E: is still our data partition (CD-ROM can steal it during dismount)
+    $eCheck = Get-Partition -DriveLetter E -ErrorAction SilentlyContinue
+    if (-not $eCheck -or $eCheck.DiskNumber -ne $diskNum) {
+        Write-Output "Post-format: E: lost or wrong disk — reassigning"
+        $cdrom = Get-WmiObject Win32_Volume | Where-Object { $_.DriveLetter -eq 'E:' -and $_.DriveType -in @(5,2) }
+        if ($cdrom) {
+            $cdrom | Set-WmiInstance -Arguments @{DriveLetter='X:'} | Out-Null
+            Write-Output "Post-format: Evicted CD/removable from E: to X:"
+        }
+        $freshPart = Get-Partition -DiskNumber $diskNum |
+                     Where-Object { $_.Type -eq 'Basic' } |
+                     Select-Object -First 1
+        if ($freshPart) {
+            $freshPart | Set-Partition -NewDriveLetter E
+            Write-Output "Post-format: Re-assigned E: to data partition on disk $diskNum"
+        }
+    } else {
+        Write-Output "Post-format: E: correctly assigned to disk $diskNum"
     }
   changed_when: "'SKIP:' not in (format_result.stdout | default(''))"
   register: format_result
