@@ -54,39 +54,41 @@
         Write-Error "No Basic partition found on disk $diskNum"
         exit 1
     }
-    # Check label via partition reference (immune to drive letter being stolen)
-    $vol = $dataPart | Get-Volume -ErrorAction SilentlyContinue
-    if ($vol -and $vol.FileSystem -eq 'NTFS' -and $vol.FileSystemLabel -eq 'SQL_DATA') {
-        # Verify E: is still our disk (may have been stolen by CD-ROM on rerun)
-        $eCheck = Get-Partition -DriveLetter E -ErrorAction SilentlyContinue
-        if ($eCheck -and $eCheck.DiskNumber -eq $diskNum) {
-            Write-Output "SKIP: already formatted as NTFS SQL_DATA and E: is correct"
-            exit 0
-        }
-        # E: is missing or wrong disk — reassign without reformatting
+    # Use Get-Volume -DriveLetter (actual filesystem mount) not Get-Partition (metadata only)
+    # This correctly detects whether E: is truly accessible as our data volume
+    $eVol = Get-Volume -DriveLetter E -ErrorAction SilentlyContinue
+    if ($eVol -and $eVol.FileSystem -eq 'NTFS' -and $eVol.FileSystemLabel -eq 'SQL_DATA') {
+        Write-Output "SKIP: E: is accessible as NTFS SQL_DATA volume"
+        exit 0
+    }
+    # E: is not our data volume — check if label is right but drive letter is gone
+    $dataVol = $dataPart | Get-Volume -ErrorAction SilentlyContinue
+    if ($dataVol -and $dataVol.FileSystem -eq 'NTFS' -and $dataVol.FileSystemLabel -eq 'SQL_DATA') {
+        # Formatted correctly but E: lost (likely CD-ROM stole it) — re-assign without format
+        Write-Output "Data partition is SQL_DATA but E: lost — reassigning"
         $cdrom = Get-WmiObject Win32_Volume | Where-Object { $_.DriveLetter -eq 'E:' -and $_.DriveType -in @(5,2) }
         if ($cdrom) {
             $cdrom | Set-WmiInstance -Arguments @{DriveLetter='X:'} | Out-Null
-            Write-Output "Reassigned CD/removable from E: to X: (label already SQL_DATA)"
+            Write-Output "Evicted CD/removable from E: to X:"
         }
         $dataPart | Set-Partition -NewDriveLetter E
-        Write-Output "Reassigned E: to data partition (label was already SQL_DATA)"
+        Write-Output "Re-assigned E: to data partition on disk $diskNum"
         exit 0
     }
-    # Move CD-ROM off E: before format (defensive — may have reclaimed it)
+    # Partition needs formatting — move CD-ROM off E: first
     $cdrom = Get-WmiObject Win32_Volume | Where-Object { $_.DriveLetter -eq 'E:' -and $_.DriveType -in @(5,2) }
     if ($cdrom) {
         $cdrom | Set-WmiInstance -Arguments @{DriveLetter='X:'} | Out-Null
         Write-Output "Pre-format: Reassigned CD/removable from E: to X:"
     }
-    # Format by partition object — avoids drive-letter dependency during dismount
+    # Format by partition object — immune to drive-letter being grabbed during dismount
     $dataPart | Format-Volume -FileSystem NTFS -AllocationUnitSize 65536 `
         -NewFileSystemLabel 'SQL_DATA' -Confirm:$false -Force | Out-Null
     Write-Output "Formatted data partition on disk $diskNum as NTFS 64K SQL_DATA"
-    # Post-format: verify E: is still our data partition (CD-ROM can steal it during dismount)
-    $eCheck = Get-Partition -DriveLetter E -ErrorAction SilentlyContinue
-    if (-not $eCheck -or $eCheck.DiskNumber -ne $diskNum) {
-        Write-Output "Post-format: E: lost or wrong disk — reassigning"
+    # Post-format: use Get-Volume (not Get-Partition) to verify E: is truly accessible
+    $eVol2 = Get-Volume -DriveLetter E -ErrorAction SilentlyContinue
+    if (-not $eVol2 -or $eVol2.FileSystemLabel -ne 'SQL_DATA') {
+        Write-Output "Post-format: E: not accessible as SQL_DATA — reassigning"
         $cdrom = Get-WmiObject Win32_Volume | Where-Object { $_.DriveLetter -eq 'E:' -and $_.DriveType -in @(5,2) }
         if ($cdrom) {
             $cdrom | Set-WmiInstance -Arguments @{DriveLetter='X:'} | Out-Null
@@ -100,16 +102,42 @@
             Write-Output "Post-format: Re-assigned E: to data partition on disk $diskNum"
         }
     } else {
-        Write-Output "Post-format: E: correctly assigned to disk $diskNum"
+        Write-Output "Post-format: E: accessible as SQL_DATA"
     }
   changed_when: "'SKIP:' not in (format_result.stdout | default(''))"
   register: format_result
   tags: [storage, storage_format]
 
 - name: "criar pasta da instalacao do SQL no E"
-  ansible.windows.win_file:
-    path: 'E:\SQLServer_Root'
-    state: directory
+  ansible.windows.win_shell: |
+    $diskNum = {{ win_disk_number | int }}
+    # Final guard: ensure E: is truly accessible before creating folder
+    $eVol = Get-Volume -DriveLetter E -ErrorAction SilentlyContinue
+    if (-not $eVol -or $eVol.FileSystemLabel -ne 'SQL_DATA') {
+        Write-Output "E: not ready — recovering drive letter"
+        $cdrom = Get-WmiObject Win32_Volume | Where-Object { $_.DriveLetter -eq 'E:' -and $_.DriveType -in @(5,2) }
+        if ($cdrom) {
+            $cdrom | Set-WmiInstance -Arguments @{DriveLetter='X:'} | Out-Null
+            Write-Output "Evicted CD/removable from E: to X:"
+        }
+        $dataPart = Get-Partition -DiskNumber $diskNum | Where-Object { $_.Type -eq 'Basic' } | Select-Object -First 1
+        if ($dataPart) {
+            $dataPart | Set-Partition -NewDriveLetter E
+            Write-Output "Recovered E: on disk $diskNum"
+        } else {
+            Write-Error "Cannot find data partition on disk $diskNum"
+            exit 1
+        }
+    }
+    # Create folder (idempotent)
+    if (-not (Test-Path 'E:\SQLServer_Root')) {
+        New-Item -Path 'E:\SQLServer_Root' -ItemType Directory | Out-Null
+        Write-Output "Created E:\SQLServer_Root"
+    } else {
+        Write-Output "SKIP: E:\SQLServer_Root already exists"
+    }
+  changed_when: "'SKIP:' not in folder_result.stdout"
+  register: folder_result
   tags: [storage, storage_folders]
 
 - name: "Dar permissão ao Network Service (Ele já existe e o SQL precisa dele)"
