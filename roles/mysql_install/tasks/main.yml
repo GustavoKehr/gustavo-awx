@@ -60,6 +60,21 @@
   no_log: true
   tags: [mysql, mysql_install, mysql_hardening, mysql_root]
 
+- name: "Write /root/.my.cnf so subsequent tasks authenticate after password is set"
+  ansible.builtin.copy:
+    dest: /root/.my.cnf
+    content: |
+      [client]
+      user=root
+      password={{ mysql_root_password }}
+      socket={{ mysql_login_unix_socket[ansible_os_family] }}
+    owner: root
+    group: root
+    mode: "0600"
+  when: mysql_root_password | length > 0
+  no_log: true
+  tags: [mysql, mysql_install, mysql_hardening, mysql_root]
+
 - name: "Remove anonymous MySQL users"
   community.mysql.mysql_user:
     name: ""
