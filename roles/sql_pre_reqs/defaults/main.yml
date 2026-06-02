@@ -1,0 +1,6 @@
+---
+# Base URL for the internal repository server hosting SQL Server installer files.
+# Override via survey var sql_repo_base_url for production environments.
+# Files expected at:  <sql_repo_base_url>/sqlserver/SQLServer2025-x64-ENU.iso
+#                     <sql_repo_base_url>/sqlserver/SSMS-Setup-ENU.exe
+sql_repo_base_url: "http://192.168.137.148:8080"

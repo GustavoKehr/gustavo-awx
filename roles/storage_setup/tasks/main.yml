@@ -31,11 +31,15 @@
   tags: [storage, storage_partition]
 
 - name: "formatar com NTFS 64K no disco E"
-  community.windows.win_format:
-    drive_letter: E
-    file_system: ntfs
-    new_label: 'SQL_DATA'
-    allocation_unit_size: 65536
+  ansible.windows.win_shell: |
+    $vol = Get-Volume -DriveLetter E -ErrorAction SilentlyContinue
+    if ($vol -and $vol.FileSystemLabel -eq 'SQL_DATA') {
+        Write-Output "SKIP: already formatted as SQL_DATA"
+        exit 0
+    }
+    Format-Volume -DriveLetter E -FileSystem NTFS -AllocationUnitSize 65536 `
+        -NewFileSystemLabel 'SQL_DATA' -Confirm:$false -Force | Out-Null
+    Write-Output "Formatted E: as NTFS 64K SQL_DATA"
   when: disk_part.changed
   tags: [storage, storage_format]
 

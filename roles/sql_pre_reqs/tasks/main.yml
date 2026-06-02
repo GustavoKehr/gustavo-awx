@@ -20,16 +20,16 @@
     dest: 'C:\ansible_temp\ConfigurationFile.ini'
   tags: [sql_pre, sql_config]
 
-- name: baixa ISO do SQL Server 2025"
+- name: "baixa ISO do SQL Server 2025"
   ansible.windows.win_get_url:
-    url: "http://192.168.137.158:8080/sqlserver/SQLServer2025-x64-ENU.iso"
+    url: "{{ sql_repo_base_url }}/sqlserver/SQLServer2025-x64-ENU.iso"
     dest: 'E:\temp_install\SQLServer2025-x64-ENU.iso'
     timeout: 1200
   tags: [sql_pre, sql_download]
 
 - name: "baixa o SSMS"
   ansible.windows.win_get_url:
-    url: "http://192.168.137.158:8080/sqlserver/SSMS-Setup-ENU.exe"
+    url: "{{ sql_repo_base_url }}/sqlserver/SSMS-Setup-ENU.exe"
     dest: 'E:\temp_install\SSMS-Setup-ENU.exe'
     timeout: 600
   tags: [sql_pre, ssms_download]
