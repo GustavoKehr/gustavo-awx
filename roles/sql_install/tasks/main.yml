@@ -1,5 +1,5 @@
 ---
-- name: "Instalação silenciosa do SQL Server 2025"
+- name: "Instalacao silenciosa do SQL Server 2025"
   ansible.windows.win_package:
     path: "{{ disk_iso_mount.mount_paths[0] }}setup.exe"
     arguments: >
@@ -8,9 +8,7 @@
       /IAcceptSQLServerLicenseTerms
       /Quiet
     state: present
-  become: yes
-  become_method: runas
-  become_user: "{{ ansible_user }}"
+  tags: [sql_install, sql_execute]
 
 - name: "instalacao silenciosa do SSMS"
   ansible.windows.win_package:
