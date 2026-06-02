@@ -50,14 +50,14 @@
     if ($dataPart) {
         # Partition exists — mount it at E: using Add-PartitionAccessPath (force actual mount)
         # First remove any existing access path to avoid "already exists" errors
-        $dataPart | Remove-PartitionAccessPath -AccessPath "E:\" -ErrorAction SilentlyContinue
-        $dataPart | Add-PartitionAccessPath -AccessPath "E:\"
+        $dataPart | Remove-PartitionAccessPath -AccessPath 'E:\' -ErrorAction SilentlyContinue
+        $dataPart | Add-PartitionAccessPath -AccessPath 'E:\'
         Write-Output "Mounted existing partition as E: on disk $diskNum (Add-PartitionAccessPath)"
         exit 0
     }
     # No partition — create one and mount at E:
     $newPart = New-Partition -DiskNumber $diskNum -UseMaximumSize
-    $newPart | Add-PartitionAccessPath -AccessPath "E:\"
+    $newPart | Add-PartitionAccessPath -AccessPath 'E:\'
     Write-Output "Created new partition and mounted as E: on disk $diskNum"
   register: disk_part
   changed_when: "'SKIP:' not in disk_part.stdout"
@@ -84,8 +84,8 @@
     $dataVol = $dataPart | Get-Volume -ErrorAction SilentlyContinue
     if ($dataVol -and $dataVol.FileSystem -eq 'NTFS' -and $dataVol.FileSystemLabel -eq 'SQL_DATA') {
         Write-Output "SQL_DATA partition exists but E: not mounted — remounting"
-        $dataPart | Remove-PartitionAccessPath -AccessPath "E:\" -ErrorAction SilentlyContinue
-        $dataPart | Add-PartitionAccessPath -AccessPath "E:\"
+        $dataPart | Remove-PartitionAccessPath -AccessPath 'E:\' -ErrorAction SilentlyContinue
+        $dataPart | Add-PartitionAccessPath -AccessPath 'E:\'
         Write-Output "Remounted E: on disk $diskNum"
         exit 0
     }
@@ -94,8 +94,8 @@
         -NewFileSystemLabel 'SQL_DATA' -Confirm:$false -Force | Out-Null
     Write-Output "Formatted disk $diskNum partition as NTFS 64K SQL_DATA"
     # Ensure E: is mounted after format
-    $dataPart | Remove-PartitionAccessPath -AccessPath "E:\" -ErrorAction SilentlyContinue
-    $dataPart | Add-PartitionAccessPath -AccessPath "E:\"
+    $dataPart | Remove-PartitionAccessPath -AccessPath 'E:\' -ErrorAction SilentlyContinue
+    $dataPart | Add-PartitionAccessPath -AccessPath 'E:\'
     Write-Output "Mounted E: after format"
   changed_when: "'SKIP:' not in (format_result.stdout | default(''))"
   register: format_result
@@ -110,8 +110,8 @@
         Write-Output "E: not ready — force-remounting data partition"
         $dataPart = Get-Partition -DiskNumber $diskNum | Where-Object { $_.Type -eq 'Basic' } | Select-Object -First 1
         if ($dataPart) {
-            $dataPart | Remove-PartitionAccessPath -AccessPath "E:\" -ErrorAction SilentlyContinue
-            $dataPart | Add-PartitionAccessPath -AccessPath "E:\"
+            $dataPart | Remove-PartitionAccessPath -AccessPath 'E:\' -ErrorAction SilentlyContinue
+            $dataPart | Add-PartitionAccessPath -AccessPath 'E:\'
             Write-Output "Force-remounted E: on disk $diskNum"
         } else {
             Write-Error "Cannot find data partition on disk $diskNum"
