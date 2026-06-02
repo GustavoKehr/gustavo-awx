@@ -10,22 +10,35 @@
 
 - name: "criar volume no disco {{ win_disk_number }} como E"
   ansible.windows.win_shell: |
+    $diskNum = {{ win_disk_number | int }}
     # Check if E: already exists on the target disk (idempotent re-run)
-    $targetDisk = Get-Disk -Number {{ win_disk_number | int }} -ErrorAction SilentlyContinue
     $existingPart = Get-Partition -DriveLetter E -ErrorAction SilentlyContinue
-    if ($existingPart -and $existingPart.DiskNumber -eq {{ win_disk_number | int }}) {
-        Write-Output "SKIP: E: already exists on disk {{ win_disk_number }}"
+    if ($existingPart -and $existingPart.DiskNumber -eq $diskNum) {
+        Write-Output "SKIP: E: already exists on disk $diskNum"
         exit 0
     }
-    # If E: is used by a CD-ROM/removable drive, reassign it first
+    # If disk already has a data partition with no letter, assign E: to it
+    $diskParts = Get-Partition -DiskNumber $diskNum -ErrorAction SilentlyContinue |
+                 Where-Object { $_.Type -eq 'Basic' -and -not $_.DriveLetter }
+    if ($diskParts) {
+        # If E: is taken by CD-ROM/removable, move it first
+        $cdrom = Get-WmiObject Win32_Volume | Where-Object { $_.DriveLetter -eq 'E:' -and $_.DriveType -in @(5,2) }
+        if ($cdrom) {
+            $cdrom | Set-WmiInstance -Arguments @{DriveLetter='X:'} | Out-Null
+            Write-Output "Reassigned CD/removable from E: to X:"
+        }
+        $diskParts[0] | Set-Partition -NewDriveLetter E
+        Write-Output "Assigned E: to existing partition on disk $diskNum"
+        exit 0
+    }
+    # No partition on disk — reassign CD-ROM if needed, then create partition
     $cdrom = Get-WmiObject Win32_Volume | Where-Object { $_.DriveLetter -eq 'E:' -and $_.DriveType -in @(5,2) }
     if ($cdrom) {
         $cdrom | Set-WmiInstance -Arguments @{DriveLetter='X:'} | Out-Null
         Write-Output "Reassigned CD/removable from E: to X:"
     }
-    # Create partition using all available space
-    $part = New-Partition -DiskNumber {{ win_disk_number | int }} -UseMaximumSize -DriveLetter E
-    Write-Output "Created partition E: on disk {{ win_disk_number }}"
+    New-Partition -DiskNumber $diskNum -UseMaximumSize -DriveLetter E | Out-Null
+    Write-Output "Created new partition E: on disk $diskNum"
   register: disk_part
   changed_when: "'SKIP:' not in disk_part.stdout"
   tags: [storage, storage_partition]

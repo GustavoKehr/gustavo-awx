@@ -1,17 +1,170 @@
-# SQL Server — Runbook Operacional AWX
+# SQL Server — AWX Operational Runbook
 
-Guia prático para executar operações de gestão de usuários SQL Server via AWX Job Templates.
-
-> **Para iniciantes:** Este runbook contém os passos exatos para criar, modificar e remover logins e usuários no SQL Server usando o AWX.
+Reference for SQL Server deploy and user management via AWX Job Templates.
 
 ---
 
-## Pré-requisitos
+## Deploy Prerequisites
 
-1. **SQL Server instalado** no host Windows alvo
-2. **AWX sincronizado** com o repositório GitHub
-3. **Credencial Machine** para Windows (WinRM) configurada
-4. **Job Template** configurado com survey correto
+Before running the SQL Server deploy job template (JT 10 — "SQL Server - DB Provisioning"):
+
+### 1. Windows VM Requirements
+
+| Requirement | Detail |
+|---|---|
+| OS | Windows Server 2022 |
+| RAM | ≥4 GB (2 GB minimum, 4+ recommended for SQL Server) |
+| Disk 0 | System drive (C:) |
+| Disk 1 | Raw/uninitialized disk (≥100 GB) — role formats as E: |
+| SSH | OpenSSH Server installed and running |
+| User | `user_aap` with password `$RFVbgt5` and administrator rights |
+| Firewall | SSH port 22 allowed (or Windows Firewall disabled) |
+
+### 2. Repository Server Requirements
+
+The deploy downloads SQL Server ISO and SSMS from an internal HTTP server.
+
+| File | Path on Repo Server |
+|---|---|
+| SQL Server 2025 ISO | `/sqlserver/SQLServer2025-x64-ENU.iso` |
+| SSMS Installer | `/sqlserver/SSMS-Setup-ENU.exe` |
+
+Default repo URL: `http://192.168.137.148:8080` (repositoryvm).
+Override via survey var `sql_repo_base_url` for production.
+
+> **Lab note:** The Proxmox `repositoryvm` (192.168.137.148) runs a Python HTTP server on port 8080.
+> Start it with: `cd /opt && python3 -m http.server 8080`
+
+### 3. AWX Inventory
+
+`sqlservervm` must be defined in the Windows inventory (AWX inventory ID 2) with:
+```yaml
+ansible_host: 192.168.137.157
+ansible_connection: ssh
+ansible_shell_type: powershell
+ansible_user: user_aap
+```
+
+---
+
+## Deploy Job Template (JT 10)
+
+| Field | Value |
+|---|---|
+| **Name** | `SQL Server - DB Provisioning` |
+| **Playbook** | `playbooks/deploy_sqlserver.yml` |
+| **Inventory** | `SQL Server` (inventory ID 2) |
+| **Credentials** | `user_aap` (password auth) |
+| **Limit** | `sqlservervm` |
+
+### Survey Variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `sql_sa_password` | No | — | SA account password |
+| `win_disk_number` | No | — | Disk index for E: drive (integer, typically 1) |
+| `sql_login_name` | Yes | — | Login to create/manage |
+| `sql_login_type` | Yes | `sql` | Login type: `sql` or `windows` |
+| `sql_login_password` | Yes | — | Login password |
+| `sql_login_state` | Yes | `present` | `present` or `absent` |
+| `sql_login_default_db` | Yes | `master` | Default database |
+| `sql_target_database` | Yes | — | Database for user mapping |
+| `sql_revoke_access` | Yes | `false` | Revoke roles if true |
+| `sql_manage_database_user` | Yes | `true` | Create DB user mapping |
+| `db_patches_enabled` | Yes | `false` | Run patch discovery |
+
+### Deploy Phases (Tags)
+
+| Tag | Phase | Description |
+|---|---|---|
+| `storage` | Phase 1 | Initialize disk, create E: partition (NTFS 64K, SQL_DATA label) |
+| `security` | Phase 2 | Windows Firewall + IPsec rules |
+| `sql_pre` | Phase 3 | Download ISO/SSMS from repo, mount ISO |
+| `sql_install` | Phase 4 | Silent SQL Server install from ISO |
+| `sql_post` | Phase 5 | Initial database creation |
+| `sql_users` | Phase 6 | User management (optional) |
+| `db_patches` | Phase 7 | Patch discovery (never auto-applies) |
+
+---
+
+## Known Issues & Troubleshooting
+
+### Windows SSH Instability
+
+**Symptom:** `Connection timed out during banner exchange`
+
+**Cause:** Windows OpenSSH service crashes or becomes unresponsive. More common with 2GB RAM.
+
+**Fix:**
+```bash
+# Restart VM via Proxmox (clean shutdown + start):
+ssh root@192.168.137.145 "qm stop 103 --timeout 60 && qm start 103"
+# Wait ~2min for Windows boot, then retry the AWX job
+```
+
+**Production recommendation:** Increase VM RAM to ≥4 GB. Consider WinRM instead of SSH.
+
+---
+
+### E: Partition Already in Use
+
+**Symptom:** `The requested access path is already in use` on partition creation.
+
+**Root cause:** CD-ROM/DVD virtual drive was using drive letter E:.
+
+**Fix applied (June 2026):** `storage_setup` role now detects CD-ROM on E: and reassigns it to X: before creating the data partition. Idempotent on re-runs.
+
+---
+
+### Format Task Fails (win_format module)
+
+**Symptom:** `Unhandled exception: Size Not Supported` on NTFS 64K format.
+
+**Root cause:** `community.windows.win_format` module bug with `allocation_unit_size: 65536`.
+
+**Fix applied (June 2026):** Replaced with `win_shell` PowerShell `Format-Volume`. Idempotent (skips if already labeled SQL_DATA).
+
+---
+
+### ISO Not Found
+
+**Symptom:** `win_get_url` fails downloading ISO.
+
+**Check:**
+```bash
+curl -s http://192.168.137.148:8080/sqlserver/
+# Should list SQLServer2025-x64-ENU.iso and SSMS-Setup-ENU.exe
+```
+
+If empty: start the HTTP server on repositoryvm and ensure files are at `/opt/sqlserver/`.
+
+---
+
+## User Management Job Template
+
+| Campo AWX | Valor |
+|---|---|
+| **Name** | `SQLSERVER \| Manage Users` |
+| **Playbook** | `playbooks/manage_sqlserver_users.yml` |
+| **Inventory** | `SQL Server` |
+| **Credentials** | `user_aap` |
+| **Extra Variables** | `sql_manage_users_enabled: true` |
+
+---
+
+## Tag Map (User Management)
+
+| Tag | O que executa |
+|---|---|
+| `sql_users` | Ciclo completo de gestão de usuários |
+| `sql_users_validate` | Validação de variáveis |
+| `sql_login` | Criação/atualização do server login |
+| `sql_db_user` | Criação do database user |
+| `sql_grants` | Concessão de database roles |
+| `sql_revoke` | Revogação de database roles |
+| `sql_ipsec` | Adição de filtros IPsec |
+| `sql_remove_user` | Remoção do login |
+| `db_patches` | Descoberta de patches |
 
 ---
 
