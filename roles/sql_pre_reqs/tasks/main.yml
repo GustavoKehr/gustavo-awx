@@ -7,8 +7,9 @@
     foreach ($vol in $cdromVols) {
         $null = & mountvol $vol.DriveLetter /D 2>&1
     }
-    $cdromDevs = Get-PnpDevice -Class CDROM -Status OK -ErrorAction SilentlyContinue
+    $cdromDevs = Get-PnpDevice -Class CDROM -ErrorAction SilentlyContinue
     foreach ($dev in $cdromDevs) {
+        Remove-PnpDevice -InstanceId $dev.InstanceId -Confirm:$false -ErrorAction SilentlyContinue
         Disable-PnpDevice -InstanceId $dev.InstanceId -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
     }
     $eVol = Get-Volume -DriveLetter E -ErrorAction SilentlyContinue

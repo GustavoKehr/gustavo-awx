@@ -1,20 +1,27 @@
 ---
-- name: "remover letra E: do CD-ROM e desativar dispositivo"
+- name: "remover CD-ROM e liberar letra E:"
   ansible.windows.win_shell: |
     $cdromVols = Get-WmiObject Win32_Volume | Where-Object { $_.DriveType -in @(5,2) -and $_.DriveLetter }
     foreach ($vol in $cdromVols) {
         $letter = $vol.DriveLetter
         $null = & mountvol $letter /D 2>&1
-        Write-Output "Removed $letter from CD-ROM MountedDevices via mountvol /D"
+        Write-Output "Removed $letter from MountedDevices via mountvol /D"
     }
-    $cdromDevs = Get-PnpDevice -Class CDROM -Status OK -ErrorAction SilentlyContinue
+    $cdromDevs = Get-PnpDevice -Class CDROM -ErrorAction SilentlyContinue
     if (-not $cdromDevs) {
-        Write-Output "CD-ROM letter cleanup done"
+        Write-Output "No CD-ROM devices found"
         exit 0
     }
     foreach ($dev in $cdromDevs) {
-        Disable-PnpDevice -InstanceId $dev.InstanceId -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
-        Write-Output "Disabled: $($dev.FriendlyName)"
+        Remove-PnpDevice -InstanceId $dev.InstanceId -Confirm:$false -ErrorAction SilentlyContinue
+        Write-Output "Removed PnP device: $($dev.FriendlyName)"
+    }
+    $check = Get-PnpDevice -Class CDROM -ErrorAction SilentlyContinue
+    if ($check) {
+        foreach ($dev in $check) {
+            Disable-PnpDevice -InstanceId $dev.InstanceId -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+            Write-Output "Disabled (fallback): $($dev.FriendlyName)"
+        }
     }
   changed_when: true
   tags: [storage, storage_partition]
