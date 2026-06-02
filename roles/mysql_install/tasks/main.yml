@@ -54,6 +54,8 @@
     host: localhost
     password: "{{ mysql_root_password }}"
     login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
     check_implicit_admin: true
     state: present
   when: mysql_root_password | length > 0
