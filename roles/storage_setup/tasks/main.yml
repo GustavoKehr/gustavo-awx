@@ -43,16 +43,43 @@
   changed_when: "'SKIP:' not in disk_part.stdout"
   tags: [storage, storage_partition]
 
-- name: "formatar com NTFS 64K no disco E"
+- name: "formatar com NTFS 64K no disco de dados"
   ansible.windows.win_shell: |
-    $vol = Get-Volume -DriveLetter E -ErrorAction SilentlyContinue
+    $diskNum = {{ win_disk_number | int }}
+    # Find the data partition by disk number — never rely on drive letter here
+    $dataPart = Get-Partition -DiskNumber $diskNum -ErrorAction SilentlyContinue |
+                Where-Object { $_.Type -eq 'Basic' }
+    if (-not $dataPart) {
+        Write-Error "No Basic partition found on disk $diskNum"
+        exit 1
+    }
+    # Check label via partition reference (immune to drive letter being stolen)
+    $vol = $dataPart | Get-Volume -ErrorAction SilentlyContinue
     if ($vol -and $vol.FileSystem -eq 'NTFS' -and $vol.FileSystemLabel -eq 'SQL_DATA') {
         Write-Output "SKIP: already formatted as NTFS SQL_DATA"
         exit 0
     }
-    Format-Volume -DriveLetter E -FileSystem NTFS -AllocationUnitSize 65536 `
+    # Move CD-ROM off E: before format (defensive — may have reclaimed it)
+    $cdrom = Get-WmiObject Win32_Volume | Where-Object { $_.DriveLetter -eq 'E:' -and $_.DriveType -in @(5,2) }
+    if ($cdrom) {
+        $cdrom | Set-WmiInstance -Arguments @{DriveLetter='X:'} | Out-Null
+        Write-Output "Pre-format: Reassigned CD/removable from E: to X:"
+    }
+    # Format by partition object — avoids drive-letter dependency during dismount
+    $dataPart | Format-Volume -FileSystem NTFS -AllocationUnitSize 65536 `
         -NewFileSystemLabel 'SQL_DATA' -Confirm:$false -Force | Out-Null
-    Write-Output "Formatted E: as NTFS 64K SQL_DATA"
+    Write-Output "Formatted data partition on disk $diskNum as NTFS 64K SQL_DATA"
+    # After format Windows may drop the drive letter; re-assign E: if lost
+    $cdrom = Get-WmiObject Win32_Volume | Where-Object { $_.DriveLetter -eq 'E:' -and $_.DriveType -in @(5,2) }
+    if ($cdrom) {
+        $cdrom | Set-WmiInstance -Arguments @{DriveLetter='X:'} | Out-Null
+        Write-Output "Post-format: Reassigned CD/removable from E: to X:"
+    }
+    $freshPart = Get-Partition -DiskNumber $diskNum | Where-Object { $_.Type -eq 'Basic' }
+    if ($freshPart -and -not $freshPart.DriveLetter) {
+        $freshPart | Set-Partition -NewDriveLetter E
+        Write-Output "Post-format: Re-assigned E: to data partition on disk $diskNum"
+    }
   changed_when: "'SKIP:' not in (format_result.stdout | default(''))"
   register: format_result
   tags: [storage, storage_format]
