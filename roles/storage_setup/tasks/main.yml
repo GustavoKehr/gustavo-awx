@@ -33,14 +33,15 @@
 - name: "formatar com NTFS 64K no disco E"
   ansible.windows.win_shell: |
     $vol = Get-Volume -DriveLetter E -ErrorAction SilentlyContinue
-    if ($vol -and $vol.FileSystemLabel -eq 'SQL_DATA') {
-        Write-Output "SKIP: already formatted as SQL_DATA"
+    if ($vol -and $vol.FileSystem -eq 'NTFS' -and $vol.FileSystemLabel -eq 'SQL_DATA') {
+        Write-Output "SKIP: already formatted as NTFS SQL_DATA"
         exit 0
     }
     Format-Volume -DriveLetter E -FileSystem NTFS -AllocationUnitSize 65536 `
         -NewFileSystemLabel 'SQL_DATA' -Confirm:$false -Force | Out-Null
     Write-Output "Formatted E: as NTFS 64K SQL_DATA"
-  when: disk_part.changed
+  changed_when: "'SKIP:' not in (format_result.stdout | default(''))"
+  register: format_result
   tags: [storage, storage_format]
 
 - name: "criar pasta da instalacao do SQL no E"
