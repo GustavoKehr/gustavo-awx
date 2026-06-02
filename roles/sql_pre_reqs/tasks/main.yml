@@ -1,4 +1,34 @@
 ---
+- name: "garantir E: montado antes do pre-reqs"
+  ansible.windows.win_shell: |
+    $diskNum = {{ win_disk_number | int }}
+    $eRoot = "E:" + [string][char]92
+    $cdromVols = Get-WmiObject Win32_Volume | Where-Object { $_.DriveType -in @(5,2) -and $_.DriveLetter }
+    foreach ($vol in $cdromVols) {
+        $null = & mountvol $vol.DriveLetter /D 2>&1
+    }
+    $cdromDevs = Get-PnpDevice -Class CDROM -Status OK -ErrorAction SilentlyContinue
+    foreach ($dev in $cdromDevs) {
+        Disable-PnpDevice -InstanceId $dev.InstanceId -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+    }
+    $eVol = Get-Volume -DriveLetter E -ErrorAction SilentlyContinue
+    if ($eVol -and $eVol.FileSystemLabel -eq "SQL_DATA") {
+        Write-Output "E is ready SQL_DATA"
+        exit 0
+    }
+    $allParts = Get-Partition -DiskNumber $diskNum -ErrorAction SilentlyContinue
+    $dataPart = $allParts | Where-Object {$_.Type -eq "Basic"} | Select-Object -First 1
+    if ($dataPart) {
+        $dataPart | Remove-PartitionAccessPath -AccessPath $eRoot -ErrorAction SilentlyContinue
+        $dataPart | Add-PartitionAccessPath -AccessPath $eRoot
+        Write-Output "Remounted E on disk $diskNum for pre-reqs"
+    } else {
+        Write-Error "Cannot find data partition on disk $diskNum"
+        exit 1
+    }
+  changed_when: false
+  tags: [sql_pre, storage_guard]
+
 - name: "desativar FW do windows"
   community.windows.win_firewall:
     state: disabled
