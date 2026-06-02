@@ -1,0 +1,4 @@
+---
+# Disk number for the SQL data volume (0 = first disk, 1 = second disk, etc.)
+# Set this per-host in AWX inventory host variables.
+win_disk_number: 1
