@@ -1,4 +1,21 @@
 ---
+- name: "desativar CD-ROM virtual para nao interferir com letra E:"
+  ansible.windows.win_shell: |
+    # Disable all CD-ROM/optical devices so Windows stops auto-assigning them E:
+    # SQL Server ISO is downloaded via HTTP — virtual CD-ROM not needed
+    $cdromDevs = Get-PnpDevice -Class CDROM -Status OK -ErrorAction SilentlyContinue
+    if (-not $cdromDevs) {
+        Write-Output "SKIP: no active CD-ROM devices found"
+        exit 0
+    }
+    foreach ($dev in $cdromDevs) {
+        Disable-PnpDevice -InstanceId $dev.InstanceId -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+        Write-Output "Disabled CD-ROM: $($dev.FriendlyName)"
+    }
+  changed_when: "'SKIP:' not in cdrom_disable.stdout"
+  register: cdrom_disable
+  tags: [storage, storage_partition]
+
 - name: "inicializa disco como GPT"
   ansible.windows.win_shell: |
     $disk = Get-Disk -Number {{ win_disk_number | int }}
