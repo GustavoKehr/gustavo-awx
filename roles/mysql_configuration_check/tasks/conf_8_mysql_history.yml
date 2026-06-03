@@ -1,38 +1,63 @@
 ---
 # 8 - Disable .mysql_history — prevent command history exposure
-# PASS: .mysql_history is /dev/null symlink OR MYSQL_HISTFILE=/dev/null in profile
-# FAIL: .mysql_history file exists and accumulates commands
+# PASS: .mysql_history is /dev/null symlink OR home dir doesn't exist (no risk)
+# FAIL: .mysql_history file exists as real file and accumulates commands
 # FIX: Remove file, create symlink → /dev/null, set MYSQL_HISTFILE in .bash_profile
+# NOTE: Uses getent to resolve actual home dir (mysql user home = /var/lib/mysql on RHEL)
+
+- name: "8 - [CHECK] Get actual home directories via getent"
+  ansible.builtin.command: "getent passwd {{ item }}"
+  register: _mysql_8_getent
+  loop: "{{ mysql_no_history_users }}"
+  changed_when: false
+  failed_when: false
+  tags: [mysql_configuration_check, conf, conf_8]
+
+- name: "8 - [CHECK] Build user→homedir map"
+  ansible.builtin.set_fact:
+    _mysql_8_homedirs: >-
+      {{ _mysql_8_homedirs | default({}) | combine(
+        { item.item: (item.stdout.split(':')[5] | default('')) }
+        if item.rc == 0 and item.stdout != ''
+        else {}
+      ) }}
+  loop: "{{ _mysql_8_getent.results }}"
+  tags: [mysql_configuration_check, conf, conf_8]
 
 - name: "8 - [CHECK] Check .mysql_history state for each user"
   ansible.builtin.stat:
-    path: "/{{ 'root' if item == 'root' else 'home/' ~ item }}/.mysql_history"
+    path: "{{ _mysql_8_homedirs[item] }}/.mysql_history"
   register: _mysql_8_stat
   loop: "{{ mysql_no_history_users }}"
+  when: _mysql_8_homedirs[item] | default('') != ''
   tags: [mysql_configuration_check, conf, conf_8]
 
 - name: "8 - [CHECK] Evaluate compliance"
   ansible.builtin.set_fact:
     _mysql_8_compliant: >-
-      {{ _mysql_8_stat.results | selectattr('stat.exists', 'equalto', true)
+      {{ _mysql_8_stat.results
+         | selectattr('stat', 'defined')
+         | selectattr('stat.exists', 'equalto', true)
          | selectattr('stat.islnk', 'equalto', false) | list | length == 0 }}
   tags: [mysql_configuration_check, conf, conf_8]
 
 - name: "8 - [FIX] Remove existing .mysql_history files (non-symlinks)"
   ansible.builtin.file:
-    path: "/{{ 'root' if item.item == 'root' else 'home/' ~ item.item }}/.mysql_history"
+    path: "{{ _mysql_8_homedirs[item.item] }}/.mysql_history"
     state: absent
   loop: "{{ _mysql_8_stat.results }}"
   when:
     - not _mysql_8_compliant
     - mysql_configuration_check_remediate | bool
+    - item.stat is defined
     - item.stat.exists | default(false)
     - not (item.stat.islnk | default(false))
+    - _mysql_8_homedirs[item.item] | default('') != ''
   tags: [mysql_configuration_check, conf, conf_8]
 
 - name: "8 - [FIX] Create .mysql_history → /dev/null symlink"
   ansible.builtin.file:
-    path: "/{{ 'root' if item == 'root' else 'home/' ~ item }}/.mysql_history"
+    path: "{{ _mysql_8_homedirs[item] }}/.mysql_history"
     src: /dev/null
     state: link
   loop: "{{ mysql_no_history_users }}"
@@ -40,11 +65,12 @@
   when:
     - not _mysql_8_compliant
     - mysql_configuration_check_remediate | bool
+    - _mysql_8_homedirs[item] | default('') != ''
   tags: [mysql_configuration_check, conf, conf_8]
 
 - name: "8 - [FIX] Set MYSQL_HISTFILE=/dev/null in .bash_profile"
   ansible.builtin.lineinfile:
-    path: "/{{ 'root' if item == 'root' else 'home/' ~ item }}/.bash_profile"
+    path: "{{ _mysql_8_homedirs[item] }}/.bash_profile"
     regexp: '^export MYSQL_HISTFILE='
     line: "export MYSQL_HISTFILE=/dev/null"
     create: true
@@ -54,6 +80,7 @@
   when:
     - not _mysql_8_compliant
     - mysql_configuration_check_remediate | bool
+    - _mysql_8_homedirs[item] | default('') != ''
   tags: [mysql_configuration_check, conf, conf_8]
 
 - name: "8 - [REPORT] Store result"
@@ -64,5 +91,6 @@
         'status': 'PASS' if _mysql_8_compliant else 'FAIL',
         'fixed': (_mysql_8_fix is defined and _mysql_8_fix.changed) | bool,
         'note': 'Users: ' ~ (mysql_no_history_users | join(', '))
+                ~ ' | Homes: ' ~ (_mysql_8_homedirs | default({}) | to_json)
       }] }}
   tags: [mysql_configuration_check, conf, conf_8]
