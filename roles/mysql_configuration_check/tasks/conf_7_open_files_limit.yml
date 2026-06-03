@@ -1,0 +1,65 @@
+---
+# 7 - open_files_limit >= 65536
+# PASS: >= 65536
+# FAIL: < 65536 — can cause "too many open files" errors under load
+# NOTE: Requires DB restart
+
+- name: "7 - [CHECK] Get open_files_limit"
+  community.mysql.mysql_query:
+    query: "SHOW GLOBAL VARIABLES LIKE 'open_files_limit'"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_7_raw
+  changed_when: false
+  tags: [mysql_configuration_check, conf, conf_7]
+
+- name: "7 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_7_current: "{{ _mysql_7_raw.query_result[0][0]['Value'] | default('0') | int }}"
+    _mysql_7_compliant: "{{ (_mysql_7_raw.query_result[0][0]['Value'] | default('0') | int) >= (mysql_open_files_limit_min | int) }}"
+  tags: [mysql_configuration_check, conf, conf_7]
+
+- name: "7 - [FIX] Set open_files_limit in config file (requires restart)"
+  ansible.builtin.lineinfile:
+    path: "{{ mysql_config_file[ansible_os_family] }}"
+    regexp: '^open_files_limit\s*='
+    line: "open_files_limit = {{ mysql_open_files_limit_target }}"
+    insertafter: "^\\[mysqld\\]"
+    backup: true
+  register: _mysql_7_fix
+  when:
+    - not _mysql_7_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, conf, conf_7]
+
+- name: "7 - [FIX] Ensure OS ulimit supports the value (add to /etc/security/limits.conf)"
+  ansible.builtin.blockinfile:
+    path: /etc/security/limits.conf
+    marker: "# {mark} ANSIBLE MANAGED — mysql open_files_limit"
+    block: |
+      mysql soft nofile {{ mysql_open_files_limit_target }}
+      mysql hard nofile {{ mysql_open_files_limit_target }}
+  when:
+    - not _mysql_7_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, conf, conf_7]
+
+- name: "7 - [FIX] Flag restart needed"
+  ansible.builtin.set_fact:
+    _mysql_restart_needed: true
+  when:
+    - _mysql_7_fix is defined
+    - _mysql_7_fix is changed
+  tags: [mysql_configuration_check, conf, conf_7]
+
+- name: "7 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '7', 'name': 'open_files_limit (>= 65536)',
+        'status': 'PASS' if _mysql_7_compliant else 'FAIL',
+        'fixed': (_mysql_7_fix is defined and _mysql_7_fix is changed) | bool,
+        'note': 'Current: ' ~ _mysql_7_current ~ ' — Restart required'
+      }] }}
+  tags: [mysql_configuration_check, conf, conf_7]

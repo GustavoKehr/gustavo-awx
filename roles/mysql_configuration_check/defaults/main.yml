@@ -1,0 +1,73 @@
+---
+# Connection (inherits from mysql_install defaults — override if running standalone)
+mysql_config_file:
+  RedHat: /etc/my.cnf
+  Debian: /etc/mysql/mysql.conf.d/mysqld.cnf
+
+mysql_service_name:
+  RedHat: mysqld
+  Debian: mysql
+
+mysql_login_unix_socket:
+  RedHat: /var/lib/mysql/mysql.sock
+  Debian: /var/run/mysqld/mysqld.sock
+
+mysql_root_password: ""   # leave empty to rely on /root/.my.cnf (set by deploy)
+
+# Remediation control
+mysql_configuration_check_remediate: true       # set false to CHECK-only (no fixes applied)
+mysql_configuration_check_allow_restart: true   # set false to skip DB restart even if params need it
+mysql_generate_report: true                     # set false to suppress HTML report
+
+# 1 - skip_show_database
+mysql_skip_show_database: "ON"
+
+# 2 - validate_password
+mysql_validate_password_length: 8
+mysql_validate_password_number_count: 1
+mysql_validate_password_special_char_count: 1
+
+# 4 - innodb_log_file_size (bytes boundaries)
+mysql_innodb_log_file_size_min: 536870912    # 512 MB
+mysql_innodb_log_file_size_max: 1073741824   # 1024 MB
+mysql_innodb_log_file_size_target: "512M"
+
+# 5 - innodb_io_capacity
+mysql_innodb_io_capacity_min: 1000
+mysql_innodb_io_capacity_target: 1000
+
+# 6 - I/O threads
+mysql_io_threads_min: 8
+
+# 7 - open_files_limit
+mysql_open_files_limit_min: 65536
+mysql_open_files_limit_target: 65536
+
+# 8 - mysql history — list of OS users to disable history for
+mysql_no_history_users:
+  - root
+  - mysql
+
+# 9 - swappiness
+mysql_swappiness_target: 1
+
+# 12 - max_connect_errors
+mysql_max_connect_errors_min: 10000
+mysql_max_connect_errors_target: 10000
+
+# 13 - slow log
+mysql_slow_query_log_target: 1
+mysql_long_query_time_min: 1
+mysql_long_query_time_max: 3
+mysql_long_query_time_target: 3
+
+# 15 - innodb_buffer_pool_size (% of total RAM)
+mysql_buffer_pool_pct_min: 50
+mysql_buffer_pool_pct_max: 70
+mysql_buffer_pool_pct_target: 60
+
+# 16 - table_open_cache
+mysql_table_open_cache_multiplier: 5    # must be >= max_connections * this
+
+# 17 - innodb_print_all_deadlocks
+mysql_innodb_print_all_deadlocks_target: 1

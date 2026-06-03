@@ -1,0 +1,53 @@
+---
+# 1 - skip_show_database = ON
+# PASS: skip_show_database = ON
+# FAIL: OFF — any user can enumerate all databases
+# NOTE: Requires DB restart to activate (static parameter)
+
+- name: "1 - [CHECK] Get skip_show_database"
+  community.mysql.mysql_query:
+    query: "SHOW GLOBAL VARIABLES LIKE 'skip_show_database'"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_1_raw
+  changed_when: false
+  tags: [mysql_configuration_check, conf, conf_1]
+
+- name: "1 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_1_current: "{{ (_mysql_1_raw.query_result[0][0]['Value'] | default('OFF')) | upper }}"
+    _mysql_1_compliant: "{{ (_mysql_1_raw.query_result[0][0]['Value'] | default('OFF') | upper) == 'ON' }}"
+  tags: [mysql_configuration_check, conf, conf_1]
+
+- name: "1 - [FIX] Set skip_show_database in config file (restart required)"
+  ansible.builtin.lineinfile:
+    path: "{{ mysql_config_file[ansible_os_family] }}"
+    regexp: '^skip.show.database'
+    line: "skip_show_database = ON"
+    insertafter: "^\\[mysqld\\]"
+    backup: true
+  register: _mysql_1_fix
+  when:
+    - not _mysql_1_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, conf, conf_1]
+
+- name: "1 - [FIX] Flag restart needed"
+  ansible.builtin.set_fact:
+    _mysql_restart_needed: true
+  when:
+    - _mysql_1_fix is defined
+    - _mysql_1_fix is changed
+  tags: [mysql_configuration_check, conf, conf_1]
+
+- name: "1 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '1', 'name': 'skip_show_database',
+        'status': 'PASS' if _mysql_1_compliant else 'FAIL',
+        'fixed': (_mysql_1_fix is defined and _mysql_1_fix is changed) | bool,
+        'note': 'Restart required to activate'
+      }] }}
+  tags: [mysql_configuration_check, conf, conf_1]

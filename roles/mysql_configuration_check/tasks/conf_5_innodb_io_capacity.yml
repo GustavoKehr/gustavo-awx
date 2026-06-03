@@ -1,0 +1,58 @@
+---
+# 5 - innodb_io_capacity >= 1000
+# PASS: >= 1000
+# FAIL: < 1000 (default 200) — InnoDB background I/O throttled
+# NOTE: Online-settable + persist
+
+- name: "5 - [CHECK] Get innodb_io_capacity"
+  community.mysql.mysql_query:
+    query: "SHOW GLOBAL VARIABLES LIKE 'innodb_io_capacity'"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_5_raw
+  changed_when: false
+  tags: [mysql_configuration_check, conf, conf_5]
+
+- name: "5 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_5_current: "{{ _mysql_5_raw.query_result[0][0]['Value'] | default('0') | int }}"
+    _mysql_5_compliant: "{{ (_mysql_5_raw.query_result[0][0]['Value'] | default('0') | int) >= (mysql_innodb_io_capacity_min | int) }}"
+  tags: [mysql_configuration_check, conf, conf_5]
+
+- name: "5 - [FIX] Set innodb_io_capacity online"
+  community.mysql.mysql_variables:
+    variable: innodb_io_capacity
+    value: "{{ mysql_innodb_io_capacity_target }}"
+    mode: persist
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_5_fix_online
+  when:
+    - not _mysql_5_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, conf, conf_5]
+
+- name: "5 - [FIX] Persist innodb_io_capacity in config file"
+  ansible.builtin.lineinfile:
+    path: "{{ mysql_config_file[ansible_os_family] }}"
+    regexp: '^innodb_io_capacity\s*='
+    line: "innodb_io_capacity = {{ mysql_innodb_io_capacity_target }}"
+    insertafter: "^\\[mysqld\\]"
+  register: _mysql_5_fix
+  when:
+    - not _mysql_5_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, conf, conf_5]
+
+- name: "5 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '5', 'name': 'innodb_io_capacity (>= 1000)',
+        'status': 'PASS' if _mysql_5_compliant else 'FAIL',
+        'fixed': (_mysql_5_fix is defined and _mysql_5_fix is changed) | bool,
+        'note': 'Current: ' ~ _mysql_5_current
+      }] }}
+  tags: [mysql_configuration_check, conf, conf_5]

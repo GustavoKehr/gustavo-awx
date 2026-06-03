@@ -1,0 +1,69 @@
+---
+# 16 - table_open_cache >= max_connections * 5
+# PASS: table_open_cache >= max_connections * 5
+# FAIL: too low — Opened_tables counter rises; frequent open/close overhead
+
+- name: "16 - [CHECK] Get table_open_cache and max_connections"
+  community.mysql.mysql_query:
+    query: "SHOW GLOBAL VARIABLES WHERE Variable_name IN ('table_open_cache','max_connections')"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_16_raw
+  changed_when: false
+  tags: [mysql_configuration_check, perf, perf_16]
+
+- name: "16 - [CHECK] Parse and evaluate"
+  ansible.builtin.set_fact:
+    _mysql_16_vars: >-
+      {{ dict(_mysql_16_raw.query_result[0]
+         | map(attribute='Variable_name') | zip(
+           _mysql_16_raw.query_result[0] | map(attribute='Value'))) }}
+  tags: [mysql_configuration_check, perf, perf_16]
+
+- name: "16 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_16_current:    "{{ _mysql_16_vars.get('table_open_cache', '0') | int }}"
+    _mysql_16_max_conn:   "{{ _mysql_16_vars.get('max_connections', '0') | int }}"
+    _mysql_16_min_needed: "{{ (_mysql_16_vars.get('max_connections', '0') | int) * (mysql_table_open_cache_multiplier | int) }}"
+    _mysql_16_compliant: >-
+      {{ (_mysql_16_vars.get('table_open_cache', '0') | int)
+         >= ((_mysql_16_vars.get('max_connections', '0') | int) * (mysql_table_open_cache_multiplier | int)) }}
+  tags: [mysql_configuration_check, perf, perf_16]
+
+- name: "16 - [FIX] Set table_open_cache online"
+  community.mysql.mysql_variables:
+    variable: table_open_cache
+    value: "{{ _mysql_16_min_needed }}"
+    mode: persist
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  when:
+    - not _mysql_16_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, perf, perf_16]
+
+- name: "16 - [FIX] Persist table_open_cache in config file"
+  ansible.builtin.lineinfile:
+    path: "{{ mysql_config_file[ansible_os_family] }}"
+    regexp: '^table_open_cache\s*='
+    line: "table_open_cache = {{ _mysql_16_min_needed }}"
+    insertafter: "^\\[mysqld\\]"
+  register: _mysql_16_fix
+  when:
+    - not _mysql_16_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, perf, perf_16]
+
+- name: "16 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '16', 'name': 'table_open_cache (>= max_connections × 5)',
+        'status': 'PASS' if _mysql_16_compliant else 'FAIL',
+        'fixed': (_mysql_16_fix is defined and _mysql_16_fix is changed) | bool,
+        'note': 'current=' ~ _mysql_16_current ~ ' max_conn=' ~ _mysql_16_max_conn
+                ~ ' min_needed=' ~ _mysql_16_min_needed
+      }] }}
+  tags: [mysql_configuration_check, perf, perf_16]

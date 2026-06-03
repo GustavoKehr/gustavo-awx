@@ -1,0 +1,70 @@
+---
+# 15 - innodb_buffer_pool_size = 50–70% of physical RAM
+# PASS: within range
+# FAIL: too low → poor cache hit ratio; too high → OS memory pressure / chunk overflow
+# NOTE: Online-settable in MySQL 5.7.5+ — uses SET PERSIST
+
+- name: "15 - [CHECK] Get innodb_buffer_pool_size and RAM"
+  community.mysql.mysql_query:
+    query: "SHOW GLOBAL VARIABLES LIKE 'innodb_buffer_pool_size'"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_15_raw
+  changed_when: false
+  tags: [mysql_configuration_check, perf, perf_15]
+
+- name: "15 - [CHECK] Compute target and compliance"
+  ansible.builtin.set_fact:
+    _mysql_15_current:    "{{ _mysql_15_raw.query_result[0][0]['Value'] | default('0') | int }}"
+    _mysql_15_total_ram:  "{{ ansible_memtotal_mb | int * 1048576 }}"
+    _mysql_15_min_target: "{{ (ansible_memtotal_mb | int * 1048576 * mysql_buffer_pool_pct_min | int // 100) }}"
+    _mysql_15_max_target: "{{ (ansible_memtotal_mb | int * 1048576 * mysql_buffer_pool_pct_max | int // 100) }}"
+    _mysql_15_set_target: "{{ (ansible_memtotal_mb | int * 1048576 * mysql_buffer_pool_pct_target | int // 100) }}"
+  tags: [mysql_configuration_check, perf, perf_15]
+
+- name: "15 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_15_compliant: >-
+      {{ (_mysql_15_current | int) >= (_mysql_15_min_target | int)
+         and (_mysql_15_current | int) <= (_mysql_15_max_target | int) }}
+  tags: [mysql_configuration_check, perf, perf_15]
+
+- name: "15 - [FIX] Set innodb_buffer_pool_size online (MySQL 5.7.5+)"
+  community.mysql.mysql_variables:
+    variable: innodb_buffer_pool_size
+    value: "{{ _mysql_15_set_target }}"
+    mode: persist
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  when:
+    - not _mysql_15_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, perf, perf_15]
+
+- name: "15 - [FIX] Persist buffer pool in config file"
+  ansible.builtin.lineinfile:
+    path: "{{ mysql_config_file[ansible_os_family] }}"
+    regexp: '^innodb_buffer_pool_size\s*='
+    line: "innodb_buffer_pool_size = {{ _mysql_15_set_target }}"
+    insertafter: "^\\[mysqld\\]"
+  register: _mysql_15_fix
+  when:
+    - not _mysql_15_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, perf, perf_15]
+
+- name: "15 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '15', 'name': 'innodb_buffer_pool_size (50–70% RAM)',
+        'status': 'PASS' if _mysql_15_compliant else 'FAIL',
+        'fixed': (_mysql_15_fix is defined and _mysql_15_fix is changed) | bool,
+        'note': 'Current: ' ~ (_mysql_15_current | int // 1073741824) ~ ' GB / RAM: '
+                ~ ansible_memtotal_mb ~ ' MB — Target: '
+                ~ (_mysql_15_set_target | int // 1073741824) ~ ' GB ('
+                ~ mysql_buffer_pool_pct_target ~ '%)'
+      }] }}
+  tags: [mysql_configuration_check, perf, perf_15]

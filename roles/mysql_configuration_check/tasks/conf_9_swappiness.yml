@@ -1,0 +1,48 @@
+---
+# 9 - vm.swappiness = 1
+# PASS: vm.swappiness = 1
+# FAIL: any other value — 0 disables swap entirely (risky on low-memory systems), > 1 causes premature swap
+# NOTE: kernel >= 2.6.32-303: use 1 (not 0) to ensure minimum swap but avoid OOM
+
+- name: "9 - [CHECK] Get current vm.swappiness"
+  ansible.builtin.command: sysctl -n vm.swappiness
+  register: _mysql_9_raw
+  changed_when: false
+  tags: [mysql_configuration_check, conf, conf_9]
+
+- name: "9 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_9_current: "{{ _mysql_9_raw.stdout | trim | int }}"
+    _mysql_9_compliant: "{{ (_mysql_9_raw.stdout | trim | int) == (mysql_swappiness_target | int) }}"
+  tags: [mysql_configuration_check, conf, conf_9]
+
+- name: "9 - [FIX] Set vm.swappiness at runtime"
+  ansible.builtin.command: "sysctl -w vm.swappiness={{ mysql_swappiness_target }}"
+  register: _mysql_9_fix_runtime
+  when:
+    - not _mysql_9_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, conf, conf_9]
+
+- name: "9 - [FIX] Persist vm.swappiness in /etc/sysctl.conf"
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^vm\.swappiness\s*='
+    line: "vm.swappiness = {{ mysql_swappiness_target }}"
+    create: true
+  register: _mysql_9_fix
+  when:
+    - not _mysql_9_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, conf, conf_9]
+
+- name: "9 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '9', 'name': 'vm.swappiness = 1',
+        'status': 'PASS' if _mysql_9_compliant else 'FAIL',
+        'fixed': (_mysql_9_fix is defined and _mysql_9_fix is changed) | bool,
+        'note': 'Current: ' ~ _mysql_9_current
+      }] }}
+  tags: [mysql_configuration_check, conf, conf_9]

@@ -1,0 +1,58 @@
+---
+# 4 - innodb_log_file_size — 512 MB <= value <= 1024 MB
+# PASS: 536870912 <= innodb_log_file_size <= 1073741824
+# FAIL: outside range — too small → excess I/O flushes; too big → slow recovery
+# NOTE: Requires DB restart
+
+- name: "4 - [CHECK] Get innodb_log_file_size"
+  community.mysql.mysql_query:
+    query: "SHOW GLOBAL VARIABLES LIKE 'innodb_log_file_size'"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_4_raw
+  changed_when: false
+  tags: [mysql_configuration_check, conf, conf_4]
+
+- name: "4 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_4_current: "{{ _mysql_4_raw.query_result[0][0]['Value'] | default('0') | int }}"
+    _mysql_4_compliant: >-
+      {{ (_mysql_4_raw.query_result[0][0]['Value'] | default('0') | int)
+         >= (mysql_innodb_log_file_size_min | int)
+         and
+         (_mysql_4_raw.query_result[0][0]['Value'] | default('0') | int)
+         <= (mysql_innodb_log_file_size_max | int) }}
+  tags: [mysql_configuration_check, conf, conf_4]
+
+- name: "4 - [FIX] Set innodb_log_file_size in config file (requires restart)"
+  ansible.builtin.lineinfile:
+    path: "{{ mysql_config_file[ansible_os_family] }}"
+    regexp: '^innodb_log_file_size\s*='
+    line: "innodb_log_file_size = {{ mysql_innodb_log_file_size_target }}"
+    insertafter: "^\\[mysqld\\]"
+    backup: true
+  register: _mysql_4_fix
+  when:
+    - not _mysql_4_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, conf, conf_4]
+
+- name: "4 - [FIX] Flag restart needed"
+  ansible.builtin.set_fact:
+    _mysql_restart_needed: true
+  when:
+    - _mysql_4_fix is defined
+    - _mysql_4_fix is changed
+  tags: [mysql_configuration_check, conf, conf_4]
+
+- name: "4 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '4', 'name': 'innodb_log_file_size (512M–1024M)',
+        'status': 'PASS' if _mysql_4_compliant else 'FAIL',
+        'fixed': (_mysql_4_fix is defined and _mysql_4_fix is changed) | bool,
+        'note': 'Current: ' ~ (_mysql_4_current | int // 1048576) ~ ' MB — Restart required'
+      }] }}
+  tags: [mysql_configuration_check, conf, conf_4]

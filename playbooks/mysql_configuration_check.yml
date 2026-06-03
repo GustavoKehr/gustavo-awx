@@ -1,0 +1,75 @@
+---
+# MySQL Configuration Check & Auto-Remediation
+# Runs 19 checks across 3 categories: Configuration, Defect & Error, Performance & Capacity
+# Auto-fixes all items not marked "Não automatizar" in the reference doc
+# Generates HTML report at /tmp/mysql_config_check_<host>_<date>.html
+#
+# AWX survey vars (all optional — defaults apply):
+#   mysql_configuration_check_remediate: true   # false = check-only, no changes
+#   mysql_configuration_check_allow_restart: true  # false = skip restart even if needed
+#   mysql_generate_report: true
+#   mysql_root_password: ""  # leave empty if /root/.my.cnf is set (deploy sets it)
+#
+# Tags:
+#   mysql_configuration_check   — all checks
+#   conf                        — Configuration section only
+#   err                         — Defect & Error section only
+#   perf                        — Performance & Capacity section only
+#   conf_1 … conf_9, conf_6b    — individual Configuration checks
+#   err_10, err_11, err_12, err_12b  — individual Error checks
+#   perf_13 … perf_17           — individual Performance checks
+
+- name: "MySQL Configuration Check & Security Audit"
+  hosts: "{{ target_hosts | default('all') }}"
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: "PRE | Verify MySQL is running"
+      ansible.builtin.service_facts:
+      tags: always
+
+    - name: "PRE | Abort if MySQL service not found"
+      ansible.builtin.fail:
+        msg: >-
+          MySQL service not found or not running on {{ inventory_hostname }}.
+          MySQL must be installed before running configuration checks.
+          Run deploy_mysql.yml first.
+      when: >-
+        ansible_facts.services | dict2items
+        | selectattr('key', 'match', '(mysqld|mysql)(\\.service)?')
+        | selectattr('value.state', 'equalto', 'running') | list | length == 0
+      tags: always
+
+  tasks:
+    - name: "Phase 1 — Configuration check and auto-remediation"
+      ansible.builtin.include_role:
+        name: mysql_configuration_check
+      vars:
+        mysql_generate_report: "{{ mysql_generate_report | default(true) | bool }}"
+        mysql_configuration_check_remediate: "{{ mysql_configuration_check_remediate | default(true) | bool }}"
+        mysql_configuration_check_allow_restart: "{{ mysql_configuration_check_allow_restart | default(true) | bool }}"
+      tags: [mysql_configuration_check, conf, err, perf]
+
+    - name: "REPORT | Compute report filename"
+      ansible.builtin.set_fact:
+        _config_report_file: "mysql_config_check_{{ inventory_hostname }}_{{ ansible_date_time.date }}.html"
+      tags: [mysql_configuration_check]
+
+    - name: "REPORT | Fetch HTML config report to controller"
+      ansible.builtin.fetch:
+        src: "/tmp/{{ _config_report_file }}"
+        dest: "reports/{{ _config_report_file }}"
+        flat: true
+      ignore_errors: true
+      tags: [mysql_configuration_check]
+
+    - name: "REPORT | Summary"
+      ansible.builtin.debug:
+        msg: |
+          ════════════════════════════════════════════════════════════════
+           MYSQL CHECK COMPLETE — {{ inventory_hostname }}
+          ════════════════════════════════════════════════════════════════
+           Config check HTML : reports/{{ _config_report_file }}
+          ════════════════════════════════════════════════════════════════
+      tags: [mysql_configuration_check]

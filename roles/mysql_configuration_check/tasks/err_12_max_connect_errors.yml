@@ -1,0 +1,57 @@
+---
+# 12 - max_connect_errors >= 10000
+# PASS: >= 10000
+# FAIL: < 10000 (default 100) — clients blocked after too few failures
+# NOTE: Online-settable
+
+- name: "12 - [CHECK] Get max_connect_errors"
+  community.mysql.mysql_query:
+    query: "SHOW GLOBAL VARIABLES LIKE 'max_connect_errors'"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_12_raw
+  changed_when: false
+  tags: [mysql_configuration_check, err, err_12]
+
+- name: "12 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_12_current: "{{ _mysql_12_raw.query_result[0][0]['Value'] | default('0') | int }}"
+    _mysql_12_compliant: "{{ (_mysql_12_raw.query_result[0][0]['Value'] | default('0') | int) >= (mysql_max_connect_errors_min | int) }}"
+  tags: [mysql_configuration_check, err, err_12]
+
+- name: "12 - [FIX] Set max_connect_errors online"
+  community.mysql.mysql_variables:
+    variable: max_connect_errors
+    value: "{{ mysql_max_connect_errors_target }}"
+    mode: persist
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  when:
+    - not _mysql_12_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, err, err_12]
+
+- name: "12 - [FIX] Persist max_connect_errors in config file"
+  ansible.builtin.lineinfile:
+    path: "{{ mysql_config_file[ansible_os_family] }}"
+    regexp: '^max_connect_errors\s*='
+    line: "max_connect_errors = {{ mysql_max_connect_errors_target }}"
+    insertafter: "^\\[mysqld\\]"
+  register: _mysql_12_fix
+  when:
+    - not _mysql_12_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, err, err_12]
+
+- name: "12 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '12', 'name': 'max_connect_errors (>= 10000)',
+        'status': 'PASS' if _mysql_12_compliant else 'FAIL',
+        'fixed': (_mysql_12_fix is defined and _mysql_12_fix is changed) | bool,
+        'note': 'Current: ' ~ _mysql_12_current
+      }] }}
+  tags: [mysql_configuration_check, err, err_12]

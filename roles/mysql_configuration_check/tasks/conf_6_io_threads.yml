@@ -1,0 +1,79 @@
+---
+# 6 - innodb_read_io_threads and innodb_write_io_threads >= 8
+# PASS: both >= 8
+# FAIL: either < 8 — insufficient InnoDB I/O parallelism
+# NOTE: Requires DB restart (static parameters)
+
+- name: "6 - [CHECK] Get I/O thread counts"
+  community.mysql.mysql_query:
+    query: "SHOW GLOBAL VARIABLES WHERE Variable_name IN ('innodb_read_io_threads','innodb_write_io_threads')"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_6_raw
+  changed_when: false
+  tags: [mysql_configuration_check, conf, conf_6]
+
+- name: "6 - [CHECK] Parse thread counts"
+  ansible.builtin.set_fact:
+    _mysql_6_vars: >-
+      {{ dict(_mysql_6_raw.query_result[0]
+         | map(attribute='Variable_name') | zip(
+           _mysql_6_raw.query_result[0] | map(attribute='Value'))) }}
+  tags: [mysql_configuration_check, conf, conf_6]
+
+- name: "6 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_6_read:  "{{ _mysql_6_vars.get('innodb_read_io_threads', '0') | int }}"
+    _mysql_6_write: "{{ _mysql_6_vars.get('innodb_write_io_threads', '0') | int }}"
+    _mysql_6_compliant: >-
+      {{ (_mysql_6_vars.get('innodb_read_io_threads', '0') | int) >= (mysql_io_threads_min | int)
+         and
+         (_mysql_6_vars.get('innodb_write_io_threads', '0') | int) >= (mysql_io_threads_min | int) }}
+  tags: [mysql_configuration_check, conf, conf_6]
+
+- name: "6 - [FIX] Set innodb_read_io_threads in config file (requires restart)"
+  ansible.builtin.lineinfile:
+    path: "{{ mysql_config_file[ansible_os_family] }}"
+    regexp: '^innodb_read_io_threads\s*='
+    line: "innodb_read_io_threads = {{ mysql_io_threads_min }}"
+    insertafter: "^\\[mysqld\\]"
+    backup: true
+  register: _mysql_6_fix_read
+  when:
+    - not _mysql_6_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, conf, conf_6]
+
+- name: "6 - [FIX] Set innodb_write_io_threads in config file (requires restart)"
+  ansible.builtin.lineinfile:
+    path: "{{ mysql_config_file[ansible_os_family] }}"
+    regexp: '^innodb_write_io_threads\s*='
+    line: "innodb_write_io_threads = {{ mysql_io_threads_min }}"
+    insertafter: "^\\[mysqld\\]"
+    backup: true
+  register: _mysql_6_fix_write
+  when:
+    - not _mysql_6_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, conf, conf_6]
+
+- name: "6 - [FIX] Flag restart needed"
+  ansible.builtin.set_fact:
+    _mysql_restart_needed: true
+  when: >-
+    (_mysql_6_fix_read is defined and _mysql_6_fix_read is changed) or
+    (_mysql_6_fix_write is defined and _mysql_6_fix_write is changed)
+  tags: [mysql_configuration_check, conf, conf_6]
+
+- name: "6 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '6', 'name': 'innodb_read/write_io_threads (>= 8)',
+        'status': 'PASS' if _mysql_6_compliant else 'FAIL',
+        'fixed': ((_mysql_6_fix_read is defined and _mysql_6_fix_read is changed)
+                  or (_mysql_6_fix_write is defined and _mysql_6_fix_write is changed)) | bool,
+        'note': 'read=' ~ _mysql_6_read ~ ' write=' ~ _mysql_6_write ~ ' — Restart required'
+      }] }}
+  tags: [mysql_configuration_check, conf, conf_6]

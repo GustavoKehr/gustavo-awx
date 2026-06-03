@@ -1,0 +1,91 @@
+---
+# 13 - Slow query log — slow_query_log=1, 1 <= long_query_time <= 3
+# PASS: slow_query_log=ON and 1 <= long_query_time <= 3
+# FAIL: logging disabled or long_query_time outside range
+
+- name: "13 - [CHECK] Get slow log variables"
+  community.mysql.mysql_query:
+    query: "SHOW GLOBAL VARIABLES WHERE Variable_name IN ('slow_query_log','long_query_time')"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_13_raw
+  changed_when: false
+  tags: [mysql_configuration_check, perf, perf_13]
+
+- name: "13 - [CHECK] Parse slow log state"
+  ansible.builtin.set_fact:
+    _mysql_13_vars: >-
+      {{ dict(_mysql_13_raw.query_result[0]
+         | map(attribute='Variable_name') | zip(
+           _mysql_13_raw.query_result[0] | map(attribute='Value'))) }}
+  tags: [mysql_configuration_check, perf, perf_13]
+
+- name: "13 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_13_log_enabled: "{{ (_mysql_13_vars.get('slow_query_log', 'OFF') | upper) == 'ON' }}"
+    _mysql_13_query_time: "{{ _mysql_13_vars.get('long_query_time', '10') | float }}"
+    _mysql_13_time_ok: >-
+      {{ (_mysql_13_vars.get('long_query_time', '10') | float) >= (mysql_long_query_time_min | float)
+         and
+         (_mysql_13_vars.get('long_query_time', '10') | float) <= (mysql_long_query_time_max | float) }}
+  tags: [mysql_configuration_check, perf, perf_13]
+
+- name: "13 - [CHECK] Compliance summary"
+  ansible.builtin.set_fact:
+    _mysql_13_compliant: "{{ _mysql_13_log_enabled and _mysql_13_time_ok }}"
+  tags: [mysql_configuration_check, perf, perf_13]
+
+- name: "13 - [FIX] Enable slow_query_log online"
+  community.mysql.mysql_variables:
+    variable: slow_query_log
+    value: "1"
+    mode: persist
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  when:
+    - not _mysql_13_compliant
+    - mysql_configuration_check_remediate | bool
+    - not _mysql_13_log_enabled
+  tags: [mysql_configuration_check, perf, perf_13]
+
+- name: "13 - [FIX] Set long_query_time online"
+  community.mysql.mysql_variables:
+    variable: long_query_time
+    value: "{{ mysql_long_query_time_target }}"
+    mode: persist
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  when:
+    - not _mysql_13_compliant
+    - mysql_configuration_check_remediate | bool
+    - not _mysql_13_time_ok
+  tags: [mysql_configuration_check, perf, perf_13]
+
+- name: "13 - [FIX] Persist slow log params in config file"
+  ansible.builtin.blockinfile:
+    path: "{{ mysql_config_file[ansible_os_family] }}"
+    marker: "# {mark} ANSIBLE MANAGED — slow_query_log"
+    insertafter: "^\\[mysqld\\]"
+    block: |
+      slow_query_log = 1
+      long_query_time = {{ mysql_long_query_time_target }}
+  register: _mysql_13_fix
+  when:
+    - not _mysql_13_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, perf, perf_13]
+
+- name: "13 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '13', 'name': 'Slow query log (enabled, long_query_time 1-3s)',
+        'status': 'PASS' if _mysql_13_compliant else 'FAIL',
+        'fixed': (_mysql_13_fix is defined and _mysql_13_fix is changed) | bool,
+        'note': 'slow_query_log=' ~ (_mysql_13_log_enabled | ternary('ON','OFF'))
+                ~ ' long_query_time=' ~ _mysql_13_query_time
+      }] }}
+  tags: [mysql_configuration_check, perf, perf_13]

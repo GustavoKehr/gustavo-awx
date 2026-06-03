@@ -1,0 +1,42 @@
+---
+# 3 - Softlink of DB SW HOME — CHECK ONLY (not automated)
+# PASS: /etc/alternatives/mysql or similar softlink used for MYSQL_HOME
+# FAIL: MYSQL_HOME points to absolute path without softlink
+# NOTE: Cannot be automated — requires manual path restructuring
+
+- name: "3 - [CHECK] Detect MySQL binary path"
+  ansible.builtin.command: which mysqld
+  register: _mysql_3_mysqld_path
+  changed_when: false
+  failed_when: false
+  tags: [mysql_configuration_check, conf, conf_3]
+
+- name: "3 - [CHECK] Check if mysqld path is via symlink"
+  ansible.builtin.stat:
+    path: "{{ _mysql_3_mysqld_path.stdout | default('/usr/sbin/mysqld') }}"
+  register: _mysql_3_stat
+  tags: [mysql_configuration_check, conf, conf_3]
+
+- name: "3 - [CHECK] Evaluate softlink compliance"
+  ansible.builtin.set_fact:
+    _mysql_3_compliant: "{{ _mysql_3_stat.stat.islnk | default(false) }}"
+  tags: [mysql_configuration_check, conf, conf_3]
+
+- name: "3 - [INFO] Softlink status (check-only, no auto-fix)"
+  ansible.builtin.debug:
+    msg: >-
+      3 - Softlink DB SW HOME: {{ 'PASS — symlink detected' if _mysql_3_compliant
+      else 'FAIL — direct path ' ~ (_mysql_3_mysqld_path.stdout | default('unknown'))
+      ~ ' — configure via alternatives or symlink for easy version upgrades' }}
+  tags: [mysql_configuration_check, conf, conf_3]
+
+- name: "3 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '3', 'name': 'Softlink DB SW HOME',
+        'status': 'PASS' if _mysql_3_compliant else 'FAIL',
+        'fixed': false,
+        'note': 'Manual — configure via alternatives or symlink'
+      }] }}
+  tags: [mysql_configuration_check, conf, conf_3]

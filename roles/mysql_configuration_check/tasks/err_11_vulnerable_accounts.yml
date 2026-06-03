@@ -1,0 +1,44 @@
+---
+# 11 - Vulnerable accounts (check only — "Não automatizar, apenas checar")
+# PASS: no accounts with empty user, host, or password/authentication_string
+# FAIL: blank user/host/password found — potential anonymous access
+# NOTE: Manual review required — auto-deletion risks breaking app accounts
+
+- name: "11 - [CHECK] Find accounts with empty user/host/password"
+  community.mysql.mysql_query:
+    query: >-
+      SELECT user, host,
+             IF(authentication_string = '' OR authentication_string IS NULL, 'EMPTY', 'SET') AS auth_state
+      FROM mysql.user
+      WHERE user = '' OR host = '' OR authentication_string = '' OR authentication_string IS NULL
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_11_raw
+  changed_when: false
+  tags: [mysql_configuration_check, err, err_11]
+
+- name: "11 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_11_vuln_count: "{{ _mysql_11_raw.query_result[0] | length }}"
+    _mysql_11_compliant: "{{ _mysql_11_raw.query_result[0] | length == 0 }}"
+  tags: [mysql_configuration_check, err, err_11]
+
+- name: "11 - [INFO] Report vulnerable accounts (check-only, no auto-fix)"
+  ansible.builtin.debug:
+    msg: >-
+      11 - Vulnerable accounts: {{ 'PASS — none found' if _mysql_11_compliant
+      else 'FAIL — ' ~ _mysql_11_vuln_count ~ ' account(s) with empty user/host/password found. '
+      ~ 'Manual review: DELETE or ALTER USER to set non-null values.' }}
+  tags: [mysql_configuration_check, err, err_11]
+
+- name: "11 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '11', 'name': 'Vulnerable accounts (empty user/host/password)',
+        'status': 'PASS' if _mysql_11_compliant else 'FAIL',
+        'fixed': false,
+        'note': _mysql_11_vuln_count ~ ' issue(s) found — Manual review required'
+      }] }}
+  tags: [mysql_configuration_check, err, err_11]

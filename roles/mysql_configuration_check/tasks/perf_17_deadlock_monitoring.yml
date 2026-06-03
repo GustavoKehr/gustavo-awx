@@ -1,0 +1,56 @@
+---
+# 17 - innodb_print_all_deadlocks = ON
+# PASS: ON — all deadlock details written to error log
+# FAIL: OFF — only most recent deadlock logged; intermittent issues hard to diagnose
+
+- name: "17 - [CHECK] Get innodb_print_all_deadlocks"
+  community.mysql.mysql_query:
+    query: "SHOW GLOBAL VARIABLES LIKE 'innodb_print_all_deadlocks'"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_17_raw
+  changed_when: false
+  tags: [mysql_configuration_check, perf, perf_17]
+
+- name: "17 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_17_current: "{{ (_mysql_17_raw.query_result[0][0]['Value'] | default('OFF')) | upper }}"
+    _mysql_17_compliant: "{{ (_mysql_17_raw.query_result[0][0]['Value'] | default('OFF') | upper) == 'ON' }}"
+  tags: [mysql_configuration_check, perf, perf_17]
+
+- name: "17 - [FIX] Enable innodb_print_all_deadlocks online"
+  community.mysql.mysql_variables:
+    variable: innodb_print_all_deadlocks
+    value: "{{ mysql_innodb_print_all_deadlocks_target }}"
+    mode: persist
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  when:
+    - not _mysql_17_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, perf, perf_17]
+
+- name: "17 - [FIX] Persist in config file"
+  ansible.builtin.lineinfile:
+    path: "{{ mysql_config_file[ansible_os_family] }}"
+    regexp: '^innodb_print_all_deadlocks\s*='
+    line: "innodb_print_all_deadlocks = {{ mysql_innodb_print_all_deadlocks_target }}"
+    insertafter: "^\\[mysqld\\]"
+  register: _mysql_17_fix
+  when:
+    - not _mysql_17_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, perf, perf_17]
+
+- name: "17 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '17', 'name': 'innodb_print_all_deadlocks = ON',
+        'status': 'PASS' if _mysql_17_compliant else 'FAIL',
+        'fixed': (_mysql_17_fix is defined and _mysql_17_fix is changed) | bool,
+        'note': 'Current: ' ~ _mysql_17_current
+      }] }}
+  tags: [mysql_configuration_check, perf, perf_17]

@@ -1,0 +1,56 @@
+---
+# 10 - local_infile = OFF
+# PASS: local_infile = OFF (0)
+# FAIL: ON — allows clients to LOAD DATA LOCAL INFILE from client filesystem (security risk)
+
+- name: "10 - [CHECK] Get local_infile"
+  community.mysql.mysql_query:
+    query: "SHOW GLOBAL VARIABLES LIKE 'local_infile'"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_10_raw
+  changed_when: false
+  tags: [mysql_configuration_check, err, err_10]
+
+- name: "10 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_10_current: "{{ (_mysql_10_raw.query_result[0][0]['Value'] | default('ON')) | upper }}"
+    _mysql_10_compliant: "{{ (_mysql_10_raw.query_result[0][0]['Value'] | default('ON') | upper) == 'OFF' }}"
+  tags: [mysql_configuration_check, err, err_10]
+
+- name: "10 - [FIX] Disable local_infile online"
+  community.mysql.mysql_variables:
+    variable: local_infile
+    value: "0"
+    mode: persist
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  when:
+    - not _mysql_10_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, err, err_10]
+
+- name: "10 - [FIX] Persist local_infile in config file"
+  ansible.builtin.lineinfile:
+    path: "{{ mysql_config_file[ansible_os_family] }}"
+    regexp: '^local.infile\s*='
+    line: "local_infile = 0"
+    insertafter: "^\\[mysqld\\]"
+  register: _mysql_10_fix
+  when:
+    - not _mysql_10_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, err, err_10]
+
+- name: "10 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '10', 'name': 'local_infile = OFF',
+        'status': 'PASS' if _mysql_10_compliant else 'FAIL',
+        'fixed': (_mysql_10_fix is defined and _mysql_10_fix is changed) | bool,
+        'note': 'Current: ' ~ _mysql_10_current
+      }] }}
+  tags: [mysql_configuration_check, err, err_10]

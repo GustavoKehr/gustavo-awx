@@ -1,0 +1,68 @@
+---
+# 8 - Disable .mysql_history — prevent command history exposure
+# PASS: .mysql_history is /dev/null symlink OR MYSQL_HISTFILE=/dev/null in profile
+# FAIL: .mysql_history file exists and accumulates commands
+# FIX: Remove file, create symlink → /dev/null, set MYSQL_HISTFILE in .bash_profile
+
+- name: "8 - [CHECK] Check .mysql_history state for each user"
+  ansible.builtin.stat:
+    path: "/{{ 'root' if item == 'root' else 'home/' ~ item }}/.mysql_history"
+  register: _mysql_8_stat
+  loop: "{{ mysql_no_history_users }}"
+  tags: [mysql_configuration_check, conf, conf_8]
+
+- name: "8 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_8_compliant: >-
+      {{ _mysql_8_stat.results | selectattr('stat.exists', 'equalto', true)
+         | selectattr('stat.islnk', 'equalto', false) | list | length == 0 }}
+  tags: [mysql_configuration_check, conf, conf_8]
+
+- name: "8 - [FIX] Remove existing .mysql_history files (non-symlinks)"
+  ansible.builtin.file:
+    path: "/{{ 'root' if item.item == 'root' else 'home/' ~ item.item }}/.mysql_history"
+    state: absent
+  loop: "{{ _mysql_8_stat.results }}"
+  when:
+    - not _mysql_8_compliant
+    - mysql_configuration_check_remediate | bool
+    - item.stat.exists | default(false)
+    - not (item.stat.islnk | default(false))
+  tags: [mysql_configuration_check, conf, conf_8]
+
+- name: "8 - [FIX] Create .mysql_history → /dev/null symlink"
+  ansible.builtin.file:
+    path: "/{{ 'root' if item == 'root' else 'home/' ~ item }}/.mysql_history"
+    src: /dev/null
+    state: link
+  loop: "{{ mysql_no_history_users }}"
+  register: _mysql_8_fix
+  when:
+    - not _mysql_8_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, conf, conf_8]
+
+- name: "8 - [FIX] Set MYSQL_HISTFILE=/dev/null in .bash_profile"
+  ansible.builtin.lineinfile:
+    path: "/{{ 'root' if item == 'root' else 'home/' ~ item }}/.bash_profile"
+    regexp: '^export MYSQL_HISTFILE='
+    line: "export MYSQL_HISTFILE=/dev/null"
+    create: true
+    owner: "{{ item }}"
+    mode: "0644"
+  loop: "{{ mysql_no_history_users }}"
+  when:
+    - not _mysql_8_compliant
+    - mysql_configuration_check_remediate | bool
+  tags: [mysql_configuration_check, conf, conf_8]
+
+- name: "8 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '8', 'name': 'Disable .mysql_history (→ /dev/null)',
+        'status': 'PASS' if _mysql_8_compliant else 'FAIL',
+        'fixed': (_mysql_8_fix is defined and _mysql_8_fix.changed) | bool,
+        'note': 'Users: ' ~ (mysql_no_history_users | join(', '))
+      }] }}
+  tags: [mysql_configuration_check, conf, conf_8]

@@ -1,0 +1,57 @@
+---
+# 14 - Key Cache Hit Ratio (MyISAM only — check only)
+# PASS: 100 - ((key_reads / key_read_requests) * 100) >= 98%
+# FAIL: < 98% — key blocks read from disk more than from cache
+# NOTE: Check only — irrelevant if not using MyISAM engine
+#       Fix: increase key_buffer_size in my.cnf (not automated — depends on RAM/workload)
+
+- name: "14 - [CHECK] Get key cache status variables"
+  community.mysql.mysql_query:
+    query: "SHOW GLOBAL STATUS WHERE Variable_name IN ('Key_reads','Key_read_requests')"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_14_raw
+  changed_when: false
+  tags: [mysql_configuration_check, perf, perf_14]
+
+- name: "14 - [CHECK] Parse and evaluate"
+  ansible.builtin.set_fact:
+    _mysql_14_vars: >-
+      {{ dict(_mysql_14_raw.query_result[0]
+         | map(attribute='Variable_name') | zip(
+           _mysql_14_raw.query_result[0] | map(attribute='Value'))) }}
+  tags: [mysql_configuration_check, perf, perf_14]
+
+- name: "14 - [CHECK] Compute hit ratio"
+  ansible.builtin.set_fact:
+    _mysql_14_reads:    "{{ _mysql_14_vars.get('Key_reads', '0') | int }}"
+    _mysql_14_requests: "{{ _mysql_14_vars.get('Key_read_requests', '0') | int }}"
+    _mysql_14_ratio: >-
+      {{ 100.0 if (_mysql_14_vars.get('Key_read_requests', '0') | int) == 0
+         else (100.0 - ((_mysql_14_vars.get('Key_reads', '0') | int)
+               / (_mysql_14_vars.get('Key_read_requests', '0') | int) * 100.0)) | round(2) }}
+    _mysql_14_compliant: >-
+      {{ (_mysql_14_vars.get('Key_read_requests', '0') | int) == 0
+         or (100.0 - ((_mysql_14_vars.get('Key_reads', '0') | int)
+             / (_mysql_14_vars.get('Key_read_requests', '0') | int) * 100.0)) >= 98.0 }}
+  tags: [mysql_configuration_check, perf, perf_14]
+
+- name: "14 - [INFO] Key cache hit ratio (check-only)"
+  ansible.builtin.debug:
+    msg: >-
+      14 - Key Cache Hit Ratio: {{ 'PASS — ' ~ _mysql_14_ratio ~ '% (or no MyISAM reads)'
+      if _mysql_14_compliant
+      else 'FAIL — ratio=' ~ _mysql_14_ratio ~ '% (< 98%) — increase key_buffer_size in my.cnf' }}
+  tags: [mysql_configuration_check, perf, perf_14]
+
+- name: "14 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '14', 'name': 'Key Cache Hit Ratio (MyISAM, >= 98%)',
+        'status': 'PASS' if _mysql_14_compliant else 'FAIL',
+        'fixed': false,
+        'note': 'Ratio: ' ~ _mysql_14_ratio ~ '% — Increase key_buffer_size if using MyISAM'
+      }] }}
+  tags: [mysql_configuration_check, perf, perf_14]

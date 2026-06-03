@@ -1,0 +1,48 @@
+---
+# 6b - tmpdir separate from root filesystem (/)
+# PASS: tmpdir is on a mount point other than /
+# FAIL: tmpdir is on / — temp files compete with OS for root space
+# NOTE: Check only — moving tmpdir requires provisioning a separate volume
+
+- name: "6b - [CHECK] Get tmpdir"
+  community.mysql.mysql_query:
+    query: "SHOW GLOBAL VARIABLES LIKE 'tmpdir'"
+    login_unix_socket: "{{ mysql_login_unix_socket[ansible_os_family] }}"
+    login_user: root
+    login_password: "{{ mysql_root_password | default('') }}"
+  register: _mysql_6b_raw
+  changed_when: false
+  tags: [mysql_configuration_check, conf, conf_6b]
+
+- name: "6b - [CHECK] Get mount point of tmpdir"
+  ansible.builtin.command: "df --output=target {{ _mysql_6b_raw.query_result[0][0]['Value'] | default('/tmp') }}"
+  register: _mysql_6b_df
+  changed_when: false
+  tags: [mysql_configuration_check, conf, conf_6b]
+
+- name: "6b - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _mysql_6b_tmpdir: "{{ _mysql_6b_raw.query_result[0][0]['Value'] | default('/tmp') }}"
+    _mysql_6b_mountpoint: "{{ _mysql_6b_df.stdout_lines[-1] | trim }}"
+    _mysql_6b_compliant: "{{ (_mysql_6b_df.stdout_lines[-1] | trim) != '/' }}"
+  tags: [mysql_configuration_check, conf, conf_6b]
+
+- name: "6b - [INFO] tmpdir mount status (check-only, no auto-fix)"
+  ansible.builtin.debug:
+    msg: >-
+      6b - tmpdir on root filesystem: {{ 'PASS — tmpdir=' ~ _mysql_6b_tmpdir
+      ~ ' on mount=' ~ _mysql_6b_mountpoint if _mysql_6b_compliant
+      else 'FAIL — tmpdir=' ~ _mysql_6b_tmpdir
+      ~ ' is on / — move to dedicated mount point in my.cnf' }}
+  tags: [mysql_configuration_check, conf, conf_6b]
+
+- name: "6b - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _mysql_report: >-
+      {{ _mysql_report | default([]) + [{
+        'id': '6b', 'name': 'tmpdir separate from root (/)',
+        'status': 'PASS' if _mysql_6b_compliant else 'FAIL',
+        'fixed': false,
+        'note': 'tmpdir=' ~ _mysql_6b_tmpdir ~ ' mount=' ~ _mysql_6b_mountpoint ~ ' — Manual'
+      }] }}
+  tags: [mysql_configuration_check, conf, conf_6b]

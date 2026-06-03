@@ -1,0 +1,68 @@
+---
+# ── Configuration ──────────────────────────────────────────────────────────────
+- import_tasks: conf_1_skip_show_database.yml
+  tags: [mysql_configuration_check, conf, conf_1]
+
+- import_tasks: conf_2_validate_password.yml
+  tags: [mysql_configuration_check, conf, conf_2]
+
+- import_tasks: conf_3_softlink.yml
+  tags: [mysql_configuration_check, conf, conf_3]
+
+- import_tasks: conf_4_innodb_log_file_size.yml
+  tags: [mysql_configuration_check, conf, conf_4]
+
+- import_tasks: conf_5_innodb_io_capacity.yml
+  tags: [mysql_configuration_check, conf, conf_5]
+
+- import_tasks: conf_6_io_threads.yml
+  tags: [mysql_configuration_check, conf, conf_6]
+
+- import_tasks: conf_6b_tmpdir.yml
+  tags: [mysql_configuration_check, conf, conf_6b]
+
+- import_tasks: conf_7_open_files_limit.yml
+  tags: [mysql_configuration_check, conf, conf_7]
+
+- import_tasks: conf_8_mysql_history.yml
+  tags: [mysql_configuration_check, conf, conf_8]
+
+- import_tasks: conf_9_swappiness.yml
+  tags: [mysql_configuration_check, conf, conf_9]
+
+# ── Defect & Error ─────────────────────────────────────────────────────────────
+- import_tasks: err_10_local_infile.yml
+  tags: [mysql_configuration_check, err, err_10]
+
+- import_tasks: err_11_vulnerable_accounts.yml
+  tags: [mysql_configuration_check, err, err_11]
+
+- import_tasks: err_12_max_connect_errors.yml
+  tags: [mysql_configuration_check, err, err_12]
+
+- import_tasks: err_12b_skip_name_resolve.yml
+  tags: [mysql_configuration_check, err, err_12b]
+
+# ── Performance & Capacity ─────────────────────────────────────────────────────
+- import_tasks: perf_13_slow_log.yml
+  tags: [mysql_configuration_check, perf, perf_13]
+
+- import_tasks: perf_14_key_cache.yml
+  tags: [mysql_configuration_check, perf, perf_14]
+
+- import_tasks: perf_15_buffer_pool.yml
+  tags: [mysql_configuration_check, perf, perf_15]
+
+- import_tasks: perf_16_table_open_cache.yml
+  tags: [mysql_configuration_check, perf, perf_16]
+
+- import_tasks: perf_17_deadlock_monitoring.yml
+  tags: [mysql_configuration_check, perf, perf_17]
+
+# ── Report ─────────────────────────────────────────────────────────────────────
+- import_tasks: report.yml
+  tags: [mysql_configuration_check]
+
+# ── DB Restart (single restart for all params that require it) ─────────────────
+- import_tasks: restart_db.yml
+  tags: [mysql_configuration_check]
