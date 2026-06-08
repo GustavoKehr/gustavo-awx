@@ -28,18 +28,6 @@
     enabled: true
   tags: [postgres, postgres_install, postgres_service]
 
-- name: "Allow custom PostgreSQL port in SELinux (RHEL only)"
-  community.general.seport:
-    ports: "{{ postgres_port }}"
-    proto: tcp
-    setype: postgresql_port_t
-    state: present
-  when:
-    - ansible_os_family == "RedHat"
-    - postgres_port | int != 5432
-    - ansible_selinux.status == "enabled"
-  tags: [postgres, postgres_install, postgres_hardening, postgres_selinux]
-
 - name: "Configure PostgreSQL parameters in postgresql.conf"
   ansible.builtin.lineinfile:
     path: "{{ postgres_config_dir[ansible_os_family] }}/postgresql.conf"
