@@ -1,0 +1,51 @@
+﻿---
+postgres_config_file:
+  RedHat: /var/lib/pgsql/data/postgresql.conf
+  Debian: /etc/postgresql/16/main/postgresql.conf
+
+postgres_login_unix_socket:
+  RedHat: /var/run/postgresql/.s.PGSQL.5432
+  Debian: /var/run/postgresql/.s.PGSQL.5432
+
+postgres_service_name:
+  RedHat: postgresql
+  Debian: postgresql
+
+postgres_os_user: postgres
+
+# 1 - fs.file-max + ulimit
+postgres_fs_file_max_min: 655350
+postgres_nofile_min: 655350
+
+# 2 - vm.swappiness
+postgres_swappiness_target: 1
+
+# 3 - vm.overcommit
+postgres_overcommit_memory_target: 2
+postgres_overcommit_ratio_target: 80
+
+# 5 - vm.min_free_kbytes
+postgres_min_free_kbytes_min: 524288
+
+# 8 - shared_buffers
+postgres_shared_buffers_max_gb: 8
+
+# 9 - work_mem
+postgres_work_mem_min_mb: 16
+
+# 10 - random_page_cost
+postgres_random_page_cost_max: 2
+
+# 11 - maintenance_work_mem
+postgres_maintenance_work_mem_min_mb: 100
+
+# 13 - noatime check path
+postgres_data_mount: /data
+
+# 14 - tablespace utilization threshold
+postgres_tablespace_usage_max: 90
+
+# Report
+postgres_generate_report: true
+postgres_configuration_check_remediate: true
+postgres_configuration_check_allow_restart: true

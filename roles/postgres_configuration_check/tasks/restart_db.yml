@@ -1,0 +1,9 @@
+﻿---
+- name: "[RESTART] Restart PostgreSQL to activate parameter changes"
+  ansible.builtin.service:
+    name: "{{ postgres_service_name[ansible_os_family] }}"
+    state: restarted
+  when:
+    - _pg_restart_needed | default(false) | bool
+    - postgres_configuration_check_allow_restart | default(false) | bool
+  tags: [postgres_configuration_check]

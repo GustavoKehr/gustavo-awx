@@ -1,0 +1,62 @@
+﻿---
+# 4 - memlock >= shared_buffers + (work_mem * max_connections)
+
+- name: "4 - [CHECK] Get postgres params for memlock calculation"
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_query:
+    query: "SELECT name, setting FROM pg_settings WHERE name IN ('shared_buffers','work_mem','max_connections')"
+    login_unix_socket: "{{ postgres_login_unix_socket[ansible_os_family] }}"
+  register: _pg_4_params
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_4]
+
+- name: "4 - [CHECK] Build params dict"
+  ansible.builtin.set_fact:
+    _pg_4_dict: >-
+      {{ dict(_pg_4_params.query_result
+         | map(attribute='name') | zip(
+           _pg_4_params.query_result | map(attribute='setting'))) }}
+  tags: [postgres_configuration_check, conf, conf_4]
+
+- name: "4 - [CHECK] Calculate required memlock (KB)"
+  ansible.builtin.set_fact:
+    _pg_4_required_kb: >-
+      {{ ((_pg_4_dict.shared_buffers | int) * 8
+          + (_pg_4_dict.work_mem | int) * (_pg_4_dict.max_connections | int)) // 1024 }}
+  tags: [postgres_configuration_check, conf, conf_4]
+
+- name: "4 - [CHECK] Get current memlock"
+  ansible.builtin.shell:
+    cmd: "grep -E '^postgres.*(memlock)' /etc/security/limits.conf | awk '{print $4}' | sort -n | head -1"
+  register: _pg_4_current_memlock
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_4]
+
+- name: "4 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _pg_4_compliant: >-
+      {{ (_pg_4_current_memlock.stdout | default('0') | int) >= (_pg_4_required_kb | int) }}
+  tags: [postgres_configuration_check, conf, conf_4]
+
+- name: "4 - [FIX] Set memlock in limits.conf"
+  ansible.builtin.blockinfile:
+    path: /etc/security/limits.conf
+    marker: "# {mark} ANSIBLE MANAGED — postgres memlock"
+    block: |
+      postgres soft memlock {{ _pg_4_required_kb }}
+      postgres hard memlock {{ _pg_4_required_kb }}
+  when:
+    - not _pg_4_compliant
+    - postgres_configuration_check_remediate | bool
+  tags: [postgres_configuration_check, conf, conf_4]
+
+- name: "4 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _pg_report: >-
+      {{ _pg_report | default([]) + [{
+        'id': '4', 'name': 'memlock >= shared_buffers + (work_mem * max_connections)',
+        'status': 'PASS' if _pg_4_compliant else 'FAIL',
+        'note': 'Required: ' ~ _pg_4_required_kb ~ ' KB, Current: ' ~ (_pg_4_current_memlock.stdout | default('not set')) ~ ' KB'
+      }] }}
+  tags: [postgres_configuration_check, conf, conf_4]

@@ -1,0 +1,46 @@
+﻿---
+# 10 - maintenance_work_mem >= 100MB
+
+- name: "10 - [CHECK] Get maintenance_work_mem"
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_query:
+    query: "SELECT setting::int AS kb FROM pg_settings WHERE name='maintenance_work_mem'"
+    login_unix_socket: "{{ postgres_login_unix_socket[ansible_os_family] }}"
+  register: _pg_10_raw
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_10]
+
+- name: "10 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _pg_10_compliant: "{{ (_pg_10_raw.query_result[0][0]['kb'] | int) >= (postgres_maintenance_work_mem_min_mb | int * 1024) }}"
+  tags: [postgres_configuration_check, conf, conf_10]
+
+- name: "10 - [FIX] Set maintenance_work_mem in postgresql.conf"
+  ansible.builtin.lineinfile:
+    path: "{{ postgres_config_file[ansible_os_family] }}"
+    regexp: '^#?\s*maintenance_work_mem\s*='
+    line: "maintenance_work_mem = {{ postgres_maintenance_work_mem_min_mb }}MB"
+  register: _pg_10_fix
+  when:
+    - not _pg_10_compliant
+    - postgres_configuration_check_remediate | bool
+  tags: [postgres_configuration_check, conf, conf_10]
+
+- name: "10 - [FIX] Flag restart needed"
+  ansible.builtin.set_fact:
+    _pg_restart_needed: true
+  when:
+    - _pg_10_fix is defined
+    - _pg_10_fix is changed
+  tags: [postgres_configuration_check, conf, conf_10]
+
+- name: "10 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _pg_report: >-
+      {{ _pg_report | default([]) + [{
+        'id': '10', 'name': 'maintenance_work_mem >= 100MB',
+        'status': 'PASS' if _pg_10_compliant else 'FAIL',
+        'note': 'Current: ' ~ ((_pg_10_raw.query_result[0][0]['kb'] | int) // 1024) ~ ' MB'
+      }] }}
+  tags: [postgres_configuration_check, conf, conf_10]

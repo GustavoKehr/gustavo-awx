@@ -1,0 +1,46 @@
+﻿---
+# 9 - random_page_cost < 2
+
+- name: "9 - [CHECK] Get random_page_cost"
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_query:
+    query: "SELECT setting::float AS val FROM pg_settings WHERE name='random_page_cost'"
+    login_unix_socket: "{{ postgres_login_unix_socket[ansible_os_family] }}"
+  register: _pg_9_raw
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_9]
+
+- name: "9 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _pg_9_compliant: "{{ (_pg_9_raw.query_result[0][0]['val'] | float) <= (postgres_random_page_cost_max | float) }}"
+  tags: [postgres_configuration_check, conf, conf_9]
+
+- name: "9 - [FIX] Set random_page_cost in postgresql.conf"
+  ansible.builtin.lineinfile:
+    path: "{{ postgres_config_file[ansible_os_family] }}"
+    regexp: '^#?\s*random_page_cost\s*='
+    line: "random_page_cost = {{ postgres_random_page_cost_max }}"
+  register: _pg_9_fix
+  when:
+    - not _pg_9_compliant
+    - postgres_configuration_check_remediate | bool
+  tags: [postgres_configuration_check, conf, conf_9]
+
+- name: "9 - [FIX] Flag restart needed"
+  ansible.builtin.set_fact:
+    _pg_restart_needed: true
+  when:
+    - _pg_9_fix is defined
+    - _pg_9_fix is changed
+  tags: [postgres_configuration_check, conf, conf_9]
+
+- name: "9 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _pg_report: >-
+      {{ _pg_report | default([]) + [{
+        'id': '9', 'name': 'random_page_cost <= 2',
+        'status': 'PASS' if _pg_9_compliant else 'FAIL',
+        'note': 'Current: ' ~ _pg_9_raw.query_result[0][0]['val']
+      }] }}
+  tags: [postgres_configuration_check, conf, conf_9]

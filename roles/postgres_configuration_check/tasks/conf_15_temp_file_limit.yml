@@ -1,0 +1,37 @@
+﻿---
+# 15 - temp_file_limit != -1 OR temp_tablespaces on separate filesystem
+
+- name: "15 - [CHECK] Get temp_file_limit and temp_tablespaces"
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_query:
+    query: "SELECT name, setting FROM pg_settings WHERE name IN ('temp_file_limit','temp_tablespaces')"
+    login_unix_socket: "{{ postgres_login_unix_socket[ansible_os_family] }}"
+  register: _pg_15_raw
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_15]
+
+- name: "15 - [CHECK] Build params dict"
+  ansible.builtin.set_fact:
+    _pg_15_dict: >-
+      {{ dict(_pg_15_raw.query_result[0]
+         | map(attribute='name') | zip(
+           _pg_15_raw.query_result[0] | map(attribute='setting'))) }}
+  tags: [postgres_configuration_check, conf, conf_15]
+
+- name: "15 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _pg_15_compliant: >-
+      {{ (_pg_15_dict.get('temp_file_limit', '-1') != '-1')
+         or (_pg_15_dict.get('temp_tablespaces', '') != '') }}
+  tags: [postgres_configuration_check, conf, conf_15]
+
+- name: "15 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _pg_report: >-
+      {{ _pg_report | default([]) + [{
+        'id': '15', 'name': 'temp_file_limit != -1 OR temp_tablespaces configured',
+        'status': 'PASS' if _pg_15_compliant else 'FAIL',
+        'note': 'temp_file_limit=' ~ _pg_15_dict.get('temp_file_limit', 'N/A') ~ ' temp_tablespaces=' ~ (_pg_15_dict.get('temp_tablespaces', 'not set') | default('not set'))
+      }] }}
+  tags: [postgres_configuration_check, conf, conf_15]

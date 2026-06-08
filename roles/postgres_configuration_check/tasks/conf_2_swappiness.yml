@@ -1,0 +1,42 @@
+﻿---
+# 2 - vm.swappiness = 1
+
+- name: "2 - [CHECK] Get vm.swappiness"
+  ansible.builtin.command:
+    cmd: sysctl -n vm.swappiness
+  register: _pg_2_swappiness
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_2]
+
+- name: "2 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _pg_2_compliant: "{{ (_pg_2_swappiness.stdout | int) == (postgres_swappiness_target | int) }}"
+  tags: [postgres_configuration_check, conf, conf_2]
+
+- name: "2 - [FIX] Set vm.swappiness"
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^vm.swappiness'
+    line: "vm.swappiness = {{ postgres_swappiness_target }}"
+  when:
+    - not _pg_2_compliant
+    - postgres_configuration_check_remediate | bool
+  tags: [postgres_configuration_check, conf, conf_2]
+
+- name: "2 - [FIX] Apply sysctl"
+  ansible.builtin.command:
+    cmd: sysctl -w vm.swappiness={{ postgres_swappiness_target }}
+  when:
+    - not _pg_2_compliant
+    - postgres_configuration_check_remediate | bool
+  tags: [postgres_configuration_check, conf, conf_2]
+
+- name: "2 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _pg_report: >-
+      {{ _pg_report | default([]) + [{
+        'id': '2', 'name': 'vm.swappiness = 1',
+        'status': 'PASS' if _pg_2_compliant else 'FAIL',
+        'note': 'Current: ' ~ _pg_2_swappiness.stdout
+      }] }}
+  tags: [postgres_configuration_check, conf, conf_2]

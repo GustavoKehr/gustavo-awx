@@ -1,0 +1,36 @@
+﻿---
+# 7 - shared_buffers: RAM<=16GB -> RAM*0.25 to 0.5; RAM>16GB -> 8GB max
+
+- name: "7 - [CHECK] Get shared_buffers (in 8KB pages)"
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_query:
+    query: "SELECT setting::bigint * 8192 AS bytes FROM pg_settings WHERE name='shared_buffers'"
+    login_unix_socket: "{{ postgres_login_unix_socket[ansible_os_family] }}"
+  register: _pg_7_raw
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_7]
+
+- name: "7 - [CHECK] Calculate recommended range"
+  ansible.builtin.set_fact:
+    _pg_7_current_bytes: "{{ _pg_7_raw.query_result[0][0]['bytes'] | int }}"
+    _pg_7_ram_bytes: "{{ ansible_memtotal_mb | int * 1024 * 1024 }}"
+    _pg_7_max_bytes: "{{ postgres_shared_buffers_max_gb | int * 1024 * 1024 * 1024 }}"
+  tags: [postgres_configuration_check, conf, conf_7]
+
+- name: "7 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _pg_7_compliant: >-
+      {{ (_pg_7_current_bytes | int) <= (_pg_7_max_bytes | int)
+         and (_pg_7_current_bytes | int) >= ((_pg_7_ram_bytes | int) * 0.25) | int }}
+  tags: [postgres_configuration_check, conf, conf_7]
+
+- name: "7 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _pg_report: >-
+      {{ _pg_report | default([]) + [{
+        'id': '7', 'name': 'shared_buffers (RAM*0.25 to 8GB max)',
+        'status': 'PASS' if _pg_7_compliant else 'FAIL',
+        'note': 'Current: ' ~ ((_pg_7_current_bytes | int) // 1048576) ~ ' MB, RAM: ' ~ ansible_memtotal_mb ~ ' MB'
+      }] }}
+  tags: [postgres_configuration_check, conf, conf_7]

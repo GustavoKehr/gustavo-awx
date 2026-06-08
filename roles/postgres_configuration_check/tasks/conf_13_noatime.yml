@@ -1,0 +1,25 @@
+﻿---
+# 13 - noatime set on data filesystem
+
+- name: "13 - [CHECK] Check fstab for noatime on data mount"
+  ansible.builtin.shell:
+    cmd: "grep '{{ postgres_data_mount }}' /etc/fstab | grep noatime"
+  register: _pg_13_noatime
+  changed_when: false
+  failed_when: false
+  tags: [postgres_configuration_check, conf, conf_13]
+
+- name: "13 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _pg_13_compliant: "{{ _pg_13_noatime.rc == 0 }}"
+  tags: [postgres_configuration_check, conf, conf_13]
+
+- name: "13 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _pg_report: >-
+      {{ _pg_report | default([]) + [{
+        'id': '13', 'name': 'noatime set on data filesystem',
+        'status': 'PASS' if _pg_13_compliant else 'FAIL',
+        'note': 'Mount: ' ~ postgres_data_mount
+      }] }}
+  tags: [postgres_configuration_check, conf, conf_13]

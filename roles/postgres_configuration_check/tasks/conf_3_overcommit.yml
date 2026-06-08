@@ -1,0 +1,50 @@
+﻿---
+# 3 - vm.overcommit_memory = 2 AND vm.overcommit_ratio = 80
+
+- name: "3 - [CHECK] Get overcommit params"
+  ansible.builtin.command:
+    cmd: "sysctl -n {{ item }}"
+  loop:
+    - vm.overcommit_memory
+    - vm.overcommit_ratio
+  register: _pg_3_raw
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_3]
+
+- name: "3 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _pg_3_compliant: >-
+      {{ (_pg_3_raw.results[0].stdout | int) == (postgres_overcommit_memory_target | int)
+         and (_pg_3_raw.results[1].stdout | int) == (postgres_overcommit_ratio_target | int) }}
+  tags: [postgres_configuration_check, conf, conf_3]
+
+- name: "3 - [FIX] Set overcommit params in sysctl.conf"
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.conf
+    regexp: "^{{ item.key }}"
+    line: "{{ item.key }} = {{ item.value }}"
+  loop:
+    - { key: "vm.overcommit_memory", value: "{{ postgres_overcommit_memory_target }}" }
+    - { key: "vm.overcommit_ratio",  value: "{{ postgres_overcommit_ratio_target }}" }
+  when:
+    - not _pg_3_compliant
+    - postgres_configuration_check_remediate | bool
+  tags: [postgres_configuration_check, conf, conf_3]
+
+- name: "3 - [FIX] Apply sysctl"
+  ansible.builtin.command:
+    cmd: sysctl -p
+  when:
+    - not _pg_3_compliant
+    - postgres_configuration_check_remediate | bool
+  tags: [postgres_configuration_check, conf, conf_3]
+
+- name: "3 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _pg_report: >-
+      {{ _pg_report | default([]) + [{
+        'id': '3', 'name': 'vm.overcommit_memory=2 + vm.overcommit_ratio=80',
+        'status': 'PASS' if _pg_3_compliant else 'FAIL',
+        'note': 'overcommit_memory=' ~ _pg_3_raw.results[0].stdout ~ ' overcommit_ratio=' ~ _pg_3_raw.results[1].stdout
+      }] }}
+  tags: [postgres_configuration_check, conf, conf_3]

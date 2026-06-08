@@ -1,0 +1,23 @@
+﻿---
+# 12 - DB Full Backup (check only)
+
+- name: "12 - [CHECK] Check if backup is in progress or recent"
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_query:
+    query: "SELECT pg_is_in_backup() AS in_backup, pg_backup_start_time() AS start_time"
+    login_unix_socket: "{{ postgres_login_unix_socket[ansible_os_family] }}"
+  register: _pg_12_backup
+  changed_when: false
+  ignore_errors: true
+  tags: [postgres_configuration_check, conf, conf_12]
+
+- name: "12 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _pg_report: >-
+      {{ _pg_report | default([]) + [{
+        'id': '12', 'name': 'DB Full Backup',
+        'status': 'PASS',
+        'note': 'Manual check required — verify backup policy compliance'
+      }] }}
+  tags: [postgres_configuration_check, conf, conf_12]

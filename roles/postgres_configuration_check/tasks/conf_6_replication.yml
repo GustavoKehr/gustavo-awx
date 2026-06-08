@@ -1,0 +1,27 @@
+﻿---
+# 6 - Streaming Replication (check only)
+
+- name: "6 - [CHECK] Check replication status"
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_query:
+    query: "SELECT count(*) AS replica_count FROM pg_stat_replication"
+    login_unix_socket: "{{ postgres_login_unix_socket[ansible_os_family] }}"
+  register: _pg_6_replication
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_6]
+
+- name: "6 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _pg_6_compliant: "{{ (_pg_6_replication.query_result[0][0]['replica_count'] | int) > 0 }}"
+  tags: [postgres_configuration_check, conf, conf_6]
+
+- name: "6 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _pg_report: >-
+      {{ _pg_report | default([]) + [{
+        'id': '6', 'name': 'Streaming Replication configured',
+        'status': 'PASS' if _pg_6_compliant else 'FAIL',
+        'note': 'Replicas connected: ' ~ _pg_6_replication.query_result[0][0]['replica_count'] ~ ' (check only)'
+      }] }}
+  tags: [postgres_configuration_check, conf, conf_6]

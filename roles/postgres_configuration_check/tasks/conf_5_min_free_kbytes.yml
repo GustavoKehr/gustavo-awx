@@ -1,0 +1,42 @@
+﻿---
+# 5 - vm.min_free_kbytes >= 524288
+
+- name: "5 - [CHECK] Get vm.min_free_kbytes"
+  ansible.builtin.command:
+    cmd: sysctl -n vm.min_free_kbytes
+  register: _pg_5_raw
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_5]
+
+- name: "5 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _pg_5_compliant: "{{ (_pg_5_raw.stdout | int) >= (postgres_min_free_kbytes_min | int) }}"
+  tags: [postgres_configuration_check, conf, conf_5]
+
+- name: "5 - [FIX] Set vm.min_free_kbytes in sysctl.conf"
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^vm.min_free_kbytes'
+    line: "vm.min_free_kbytes = {{ postgres_min_free_kbytes_min }}"
+  when:
+    - not _pg_5_compliant
+    - postgres_configuration_check_remediate | bool
+  tags: [postgres_configuration_check, conf, conf_5]
+
+- name: "5 - [FIX] Apply sysctl"
+  ansible.builtin.command:
+    cmd: sysctl -w vm.min_free_kbytes={{ postgres_min_free_kbytes_min }}
+  when:
+    - not _pg_5_compliant
+    - postgres_configuration_check_remediate | bool
+  tags: [postgres_configuration_check, conf, conf_5]
+
+- name: "5 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _pg_report: >-
+      {{ _pg_report | default([]) + [{
+        'id': '5', 'name': 'vm.min_free_kbytes >= 524288',
+        'status': 'PASS' if _pg_5_compliant else 'FAIL',
+        'note': 'Current: ' ~ _pg_5_raw.stdout
+      }] }}
+  tags: [postgres_configuration_check, conf, conf_5]

@@ -1,0 +1,33 @@
+﻿---
+- name: "REPORT | Compute report filename"
+  ansible.builtin.set_fact:
+    _pg_report_file: "postgres_config_check_{{ inventory_hostname }}_{{ ansible_date_time.date }}.html"
+  when: postgres_generate_report | default(true)
+  tags: [postgres_configuration_check]
+
+- name: "REPORT | Generate HTML config report"
+  ansible.builtin.template:
+    src: postgres_config_check_report.html.j2
+    dest: "/tmp/{{ _pg_report_file }}"
+    mode: "0644"
+  when: postgres_generate_report | default(true)
+  tags: [postgres_configuration_check]
+
+- name: "REPORT | Fetch HTML config report to controller"
+  ansible.builtin.fetch:
+    src: "/tmp/{{ _pg_report_file }}"
+    dest: "reports/{{ _pg_report_file }}"
+    flat: true
+  ignore_errors: true
+  when: postgres_generate_report | default(true)
+  tags: [postgres_configuration_check]
+
+- name: "REPORT | Summary"
+  ansible.builtin.debug:
+    msg: >-
+      PostgreSQL Configuration Check Summary for {{ inventory_hostname }}:
+      {% for item in _pg_report %}
+      [{{ item.status }}] {{ item.id }} - {{ item.name }} | {{ item.note | default('') }}
+      {% endfor %}
+  when: postgres_generate_report | default(true)
+  tags: [postgres_configuration_check]

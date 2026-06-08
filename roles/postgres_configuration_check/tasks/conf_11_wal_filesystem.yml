@@ -1,0 +1,41 @@
+﻿---
+# 11 - WAL and DATA on different filesystems
+
+- name: "11 - [CHECK] Get data_directory and WAL path"
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_query:
+    query: "SELECT setting AS data_dir FROM pg_settings WHERE name='data_directory'"
+    login_unix_socket: "{{ postgres_login_unix_socket[ansible_os_family] }}"
+  register: _pg_11_datadir
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_11]
+
+- name: "11 - [CHECK] Get filesystem of data dir"
+  ansible.builtin.command:
+    cmd: "df --output=source {{ _pg_11_datadir.query_result[0][0]['data_dir'] }} | tail -1"
+  register: _pg_11_data_fs
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_11]
+
+- name: "11 - [CHECK] Get filesystem of WAL dir (pg_wal)"
+  ansible.builtin.command:
+    cmd: "df --output=source {{ _pg_11_datadir.query_result[0][0]['data_dir'] }}/pg_wal | tail -1"
+  register: _pg_11_wal_fs
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_11]
+
+- name: "11 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _pg_11_compliant: "{{ _pg_11_data_fs.stdout.strip() != _pg_11_wal_fs.stdout.strip() }}"
+  tags: [postgres_configuration_check, conf, conf_11]
+
+- name: "11 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _pg_report: >-
+      {{ _pg_report | default([]) + [{
+        'id': '11', 'name': 'WAL and DATA on different filesystems',
+        'status': 'PASS' if _pg_11_compliant else 'FAIL',
+        'note': 'DATA: ' ~ _pg_11_data_fs.stdout.strip() ~ ' | WAL: ' ~ _pg_11_wal_fs.stdout.strip()
+      }] }}
+  tags: [postgres_configuration_check, conf, conf_11]

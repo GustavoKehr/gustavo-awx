@@ -1,0 +1,47 @@
+﻿---
+# 14 - Tablespace filesystem usage < 90%
+
+- name: "14 - [CHECK] Get tablespace sizes and locations"
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_query:
+    query: >
+      SELECT spcname,
+             pg_tablespace_location(oid) AS location,
+             pg_size_pretty(pg_tablespace_size(spcname)) AS size
+      FROM pg_tablespace
+      WHERE pg_tablespace_location(oid) != ''
+    login_unix_socket: "{{ postgres_login_unix_socket[ansible_os_family] }}"
+  register: _pg_14_tablespaces
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_14]
+
+- name: "14 - [CHECK] Get filesystem usage for each tablespace"
+  ansible.builtin.shell:
+    cmd: "df --output=pcent {{ item.location }} | tail -1 | tr -d '% '"
+  loop: "{{ _pg_14_tablespaces.query_result[0] }}"
+  loop_control:
+    label: "{{ item.spcname }}"
+  register: _pg_14_usage
+  changed_when: false
+  when: _pg_14_tablespaces.query_result[0] | length > 0
+  tags: [postgres_configuration_check, conf, conf_14]
+
+- name: "14 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _pg_14_compliant: >-
+      {{ _pg_14_usage.results | default([])
+         | map(attribute='stdout') | map('int')
+         | select('ge', postgres_tablespace_usage_max | int)
+         | list | length == 0 }}
+  tags: [postgres_configuration_check, conf, conf_14]
+
+- name: "14 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _pg_report: >-
+      {{ _pg_report | default([]) + [{
+        'id': '14', 'name': 'Tablespace filesystem usage < 90%',
+        'status': 'PASS' if _pg_14_compliant else 'FAIL',
+        'note': 'Check tablespace locations for usage >= ' ~ postgres_tablespace_usage_max ~ '%'
+      }] }}
+  tags: [postgres_configuration_check, conf, conf_14]

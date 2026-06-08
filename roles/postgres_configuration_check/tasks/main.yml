@@ -1,0 +1,59 @@
+﻿---
+# postgres_configuration_check — main entry point
+
+- name: "Initialize report list"
+  ansible.builtin.set_fact:
+    _pg_report: []
+    _pg_restart_needed: false
+  tags: [postgres_configuration_check]
+
+- ansible.builtin.import_tasks: conf_1_fs_file_max.yml
+  tags: [postgres_configuration_check, conf, conf_1]
+
+- ansible.builtin.import_tasks: conf_2_swappiness.yml
+  tags: [postgres_configuration_check, conf, conf_2]
+
+- ansible.builtin.import_tasks: conf_3_overcommit.yml
+  tags: [postgres_configuration_check, conf, conf_3]
+
+- ansible.builtin.import_tasks: conf_4_memlock.yml
+  tags: [postgres_configuration_check, conf, conf_4]
+
+- ansible.builtin.import_tasks: conf_5_min_free_kbytes.yml
+  tags: [postgres_configuration_check, conf, conf_5]
+
+- ansible.builtin.import_tasks: conf_6_replication.yml
+  tags: [postgres_configuration_check, conf, conf_6]
+
+- ansible.builtin.import_tasks: conf_7_shared_buffers.yml
+  tags: [postgres_configuration_check, conf, conf_7]
+
+- ansible.builtin.import_tasks: conf_8_work_mem.yml
+  tags: [postgres_configuration_check, conf, conf_8]
+
+- ansible.builtin.import_tasks: conf_9_random_page_cost.yml
+  tags: [postgres_configuration_check, conf, conf_9]
+
+- ansible.builtin.import_tasks: conf_10_maintenance_work_mem.yml
+  tags: [postgres_configuration_check, conf, conf_10]
+
+- ansible.builtin.import_tasks: conf_11_wal_filesystem.yml
+  tags: [postgres_configuration_check, conf, conf_11]
+
+- ansible.builtin.import_tasks: conf_12_backup.yml
+  tags: [postgres_configuration_check, conf, conf_12]
+
+- ansible.builtin.import_tasks: conf_13_noatime.yml
+  tags: [postgres_configuration_check, conf, conf_13]
+
+- ansible.builtin.import_tasks: conf_14_tablespace_usage.yml
+  tags: [postgres_configuration_check, conf, conf_14]
+
+- ansible.builtin.import_tasks: conf_15_temp_file_limit.yml
+  tags: [postgres_configuration_check, conf, conf_15]
+
+- ansible.builtin.import_tasks: restart_db.yml
+  tags: [postgres_configuration_check]
+
+- ansible.builtin.import_tasks: report.yml
+  tags: [postgres_configuration_check]

@@ -1,0 +1,66 @@
+﻿---
+# 1 - fs.file-max + ulimit nofile >= 655350
+
+- name: "1 - [CHECK] Get fs.file-max"
+  ansible.builtin.command:
+    cmd: sysctl -n fs.file-max
+  register: _pg_1_file_max
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_1]
+
+- name: "1 - [CHECK] Get postgres ulimit nofile"
+  ansible.builtin.shell:
+    cmd: "grep -E '^postgres.*(nofile|hard|soft)' /etc/security/limits.conf | awk '{print $4}' | sort -n | head -1"
+  register: _pg_1_nofile
+  changed_when: false
+  tags: [postgres_configuration_check, conf, conf_1]
+
+- name: "1 - [CHECK] Evaluate compliance"
+  ansible.builtin.set_fact:
+    _pg_1_compliant: >-
+      {{ (_pg_1_file_max.stdout | int) >= (postgres_fs_file_max_min | int)
+         and (_pg_1_nofile.stdout | default('0') | int) >= (postgres_nofile_min | int) }}
+  tags: [postgres_configuration_check, conf, conf_1]
+
+- name: "1 - [FIX] Set fs.file-max in sysctl.conf"
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^fs.file-max'
+    line: "fs.file-max = {{ postgres_fs_file_max_min }}"
+  when:
+    - not _pg_1_compliant
+    - postgres_configuration_check_remediate | bool
+    - (_pg_1_file_max.stdout | int) < (postgres_fs_file_max_min | int)
+  tags: [postgres_configuration_check, conf, conf_1]
+
+- name: "1 - [FIX] Apply sysctl"
+  ansible.builtin.command:
+    cmd: sysctl -p
+  when:
+    - not _pg_1_compliant
+    - postgres_configuration_check_remediate | bool
+    - (_pg_1_file_max.stdout | int) < (postgres_fs_file_max_min | int)
+  tags: [postgres_configuration_check, conf, conf_1]
+
+- name: "1 - [FIX] Set ulimit nofile for postgres in limits.conf"
+  ansible.builtin.blockinfile:
+    path: /etc/security/limits.conf
+    marker: "# {mark} ANSIBLE MANAGED — postgres nofile"
+    block: |
+      postgres soft nofile {{ postgres_nofile_min }}
+      postgres hard nofile {{ postgres_nofile_min }}
+  when:
+    - not _pg_1_compliant
+    - postgres_configuration_check_remediate | bool
+    - (_pg_1_nofile.stdout | default('0') | int) < (postgres_nofile_min | int)
+  tags: [postgres_configuration_check, conf, conf_1]
+
+- name: "1 - [REPORT] Store result"
+  ansible.builtin.set_fact:
+    _pg_report: >-
+      {{ _pg_report | default([]) + [{
+        'id': '1', 'name': 'fs.file-max + ulimit nofile (>= 655350)',
+        'status': 'PASS' if _pg_1_compliant else 'FAIL',
+        'note': 'fs.file-max=' ~ _pg_1_file_max.stdout ~ ' nofile=' ~ (_pg_1_nofile.stdout | default('not set'))
+      }] }}
+  tags: [postgres_configuration_check, conf, conf_1]
