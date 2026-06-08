@@ -105,15 +105,7 @@
         name: postgres_install
       tags: [postgres, postgres_install, bootstrap]
 
-    - name: "Phase 2: Optional user management from survey"
-      ansible.builtin.include_role:
-        name: postgres_manage_users
-      when:
-        - postgres_manage_users_enabled | default(false) | bool
-          or ('postgres_users' in (ansible_run_tags | default([])))
-      tags: [postgres, postgres_users, post_install]
-
-    - name: "Phase 3: Configuration check & auto-remediation (post-install)"
+    - name: "Phase 2: Configuration check & auto-remediation (post-install)"
       ansible.builtin.include_role:
         name: postgres_configuration_check
       vars:
@@ -121,13 +113,3 @@
         postgres_configuration_check_remediate: true
         postgres_configuration_check_allow_restart: true
       tags: [postgres, postgres_configuration_check, post_install]
-
-    - name: "Phase 4: Discover patches (no apply)"
-      ansible.builtin.include_role:
-        name: db_patches
-      when:
-        - db_patches_enabled | default(false) | bool
-          or ('db_patches' in (ansible_run_tags | default([])))
-      vars:
-        db_patch_platform: "postgres"
-      tags: [postgres, db_patches, patching]
