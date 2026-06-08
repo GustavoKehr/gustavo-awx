@@ -13,3 +13,7 @@
       ansible.builtin.include_role:
         name: postgres_install
       tags: [postgres, postgres_install, bootstrap]
+
+- name: "Phase 2: PostgreSQL configuration check and auto-remediation"
+  ansible.builtin.import_playbook: postgres_configuration_check.yml
+  tags: [postgres_configuration_check]
