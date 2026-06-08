@@ -8,12 +8,126 @@
   become: true
   gather_facts: true
 
+  pre_tasks:
+    - name: "Storage | Install LVM tools"
+      ansible.builtin.package:
+        name: lvm2
+        state: present
+      tags: [storage, bootstrap]
+
+    # ---------- /dev/sdb → vg_data → /data ----------
+
+    - name: "Storage | Create PV on /dev/sdb"
+      community.general.lvg:
+        vg: vg_data
+        pvs: /dev/sdb
+        state: present
+      tags: [storage, bootstrap]
+
+    - name: "Storage | Create LV lv_data (100% VG)"
+      community.general.lvol:
+        vg: vg_data
+        lv: lv_data
+        size: 100%VG
+        state: present
+      tags: [storage, bootstrap]
+
+    - name: "Storage | Format /dev/vg_data/lv_data as XFS"
+      community.general.filesystem:
+        fstype: xfs
+        dev: /dev/vg_data/lv_data
+        force: false
+      tags: [storage, bootstrap]
+
+    - name: "Storage | Create mount point /data"
+      ansible.builtin.file:
+        path: /data
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      tags: [storage, bootstrap]
+
+    - name: "Storage | Mount /data and add to fstab"
+      ansible.posix.mount:
+        path: /data
+        src: /dev/vg_data/lv_data
+        fstype: xfs
+        opts: defaults,noatime
+        state: mounted
+      tags: [storage, bootstrap]
+
+    # ---------- /dev/sdc → vg_postgres_temp → /postgres_temp ----------
+
+    - name: "Storage | Create PV on /dev/sdc"
+      community.general.lvg:
+        vg: vg_postgres_temp
+        pvs: /dev/sdc
+        state: present
+      tags: [storage, bootstrap]
+
+    - name: "Storage | Create LV lv_postgres_temp (100% VG)"
+      community.general.lvol:
+        vg: vg_postgres_temp
+        lv: lv_postgres_temp
+        size: 100%VG
+        state: present
+      tags: [storage, bootstrap]
+
+    - name: "Storage | Format /dev/vg_postgres_temp/lv_postgres_temp as XFS"
+      community.general.filesystem:
+        fstype: xfs
+        dev: /dev/vg_postgres_temp/lv_postgres_temp
+        force: false
+      tags: [storage, bootstrap]
+
+    - name: "Storage | Create mount point /postgres_temp"
+      ansible.builtin.file:
+        path: /postgres_temp
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      tags: [storage, bootstrap]
+
+    - name: "Storage | Mount /postgres_temp and add to fstab"
+      ansible.posix.mount:
+        path: /postgres_temp
+        src: /dev/vg_postgres_temp/lv_postgres_temp
+        fstype: xfs
+        opts: defaults,noatime
+        state: mounted
+      tags: [storage, bootstrap]
+
   tasks:
     - name: "Phase 1: Install and harden PostgreSQL"
       ansible.builtin.include_role:
         name: postgres_install
       tags: [postgres, postgres_install, bootstrap]
 
-- name: "Phase 2: PostgreSQL configuration check and auto-remediation"
-  ansible.builtin.import_playbook: postgres_configuration_check.yml
-  tags: [postgres_configuration_check]
+    - name: "Phase 2: Optional user management from survey"
+      ansible.builtin.include_role:
+        name: postgres_manage_users
+      when:
+        - postgres_manage_users_enabled | default(false) | bool
+          or ('postgres_users' in (ansible_run_tags | default([])))
+      tags: [postgres, postgres_users, post_install]
+
+    - name: "Phase 3: Configuration check & auto-remediation (post-install)"
+      ansible.builtin.include_role:
+        name: postgres_configuration_check
+      vars:
+        postgres_generate_report: true
+        postgres_configuration_check_remediate: true
+        postgres_configuration_check_allow_restart: true
+      tags: [postgres, postgres_configuration_check, post_install]
+
+    - name: "Phase 4: Discover patches (no apply)"
+      ansible.builtin.include_role:
+        name: db_patches
+      when:
+        - db_patches_enabled | default(false) | bool
+          or ('db_patches' in (ansible_run_tags | default([])))
+      vars:
+        db_patch_platform: "postgres"
+      tags: [postgres, db_patches, patching]
