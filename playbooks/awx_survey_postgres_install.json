@@ -80,23 +80,5 @@
       "max": 64,
       "default": "appdb"
     },
-    {
-      "question_name": "Enable user management phase",
-      "question_description": "true = run postgres_manage_users role after install (requires pg_username and related vars).",
-      "required": true,
-      "type": "multiplechoice",
-      "variable": "postgres_manage_users_enabled",
-      "choices": "false\ntrue",
-      "default": "false"
-    },
-    {
-      "question_name": "Enable patch discovery phase",
-      "question_description": "true = run db_patches role to discover available updates (no apply).",
-      "required": true,
-      "type": "multiplechoice",
-      "variable": "db_patches_enabled",
-      "choices": "false\ntrue",
-      "default": "false"
-    }
   ]
 }
