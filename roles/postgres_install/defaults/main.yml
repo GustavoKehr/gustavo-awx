@@ -27,8 +27,10 @@ postgres_log_connections: "on"
 postgres_log_disconnections: "on"
 
 postgres_manage_hba: true
-postgres_hba_cidr: "0.0.0.0/0"
 postgres_hba_method: "scram-sha-256"
+# Leave empty to allow local connections only (127.0.0.1 + unix socket).
+# Set a CIDR (e.g. 10.0.1.0/24) to also open a remote entry in pg_hba.conf.
+postgres_hba_app_cidr: ""
 
 # Initial database creation (gated by create_initial_db boolean).
 create_initial_db: false

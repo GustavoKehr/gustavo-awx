@@ -69,19 +69,50 @@
   when: postgres_config_changes is changed
   tags: [postgres, postgres_install, postgres_config]
 
-- name: "Allow remote PostgreSQL client access in pg_hba.conf"
+- name: "HBA | Allow unix socket (local) for postgres OS user"
+  community.postgresql.postgresql_pg_hba:
+    dest: "{{ postgres_config_dir[ansible_os_family] }}/pg_hba.conf"
+    contype: local
+    users: postgres
+    databases: all
+    method: peer
+    state: present
+  become: true
+  become_user: postgres
+  when: postgres_manage_hba | bool
+  register: postgres_hba_local
+  tags: [postgres, postgres_install, postgres_hardening, postgres_hba]
+
+- name: "HBA | Allow loopback TCP for local app connections"
   community.postgresql.postgresql_pg_hba:
     dest: "{{ postgres_config_dir[ansible_os_family] }}/pg_hba.conf"
     contype: host
     users: all
-    source: "{{ postgres_hba_cidr }}"
+    source: "127.0.0.1/32"
     databases: all
     method: "{{ postgres_hba_method }}"
     state: present
   become: true
   become_user: postgres
   when: postgres_manage_hba | bool
-  register: postgres_hba_changes
+  register: postgres_hba_loopback
+  tags: [postgres, postgres_install, postgres_hardening, postgres_hba]
+
+- name: "HBA | Allow remote CIDR (if provided)"
+  community.postgresql.postgresql_pg_hba:
+    dest: "{{ postgres_config_dir[ansible_os_family] }}/pg_hba.conf"
+    contype: host
+    users: all
+    source: "{{ postgres_hba_app_cidr }}"
+    databases: all
+    method: "{{ postgres_hba_method }}"
+    state: present
+  become: true
+  become_user: postgres
+  when:
+    - postgres_manage_hba | bool
+    - postgres_hba_app_cidr | length > 0
+  register: postgres_hba_remote
   tags: [postgres, postgres_install, postgres_hardening, postgres_hba]
 
 - name: "Restart PostgreSQL if configuration changed"
@@ -89,7 +120,11 @@
     name: "{{ postgres_service_name[ansible_os_family] }}"
     state: restarted
   when:
-    - postgres_config_changes is changed or (postgres_hba_changes is defined and postgres_hba_changes is changed)
+    - >-
+      postgres_config_changes is changed
+      or (postgres_hba_local is defined and postgres_hba_local is changed)
+      or (postgres_hba_loopback is defined and postgres_hba_loopback is changed)
+      or (postgres_hba_remote is defined and postgres_hba_remote is changed)
   tags: [postgres, postgres_install, postgres_service]
 
 - name: "Create initial application database"
