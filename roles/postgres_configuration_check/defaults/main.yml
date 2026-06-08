@@ -3,9 +3,11 @@ postgres_config_file:
   RedHat: /var/lib/pgsql/data/postgresql.conf
   Debian: /etc/postgresql/16/main/postgresql.conf
 
+postgres_port: 15432
+
 postgres_login_unix_socket:
-  RedHat: /var/run/postgresql/.s.PGSQL.5432
-  Debian: /var/run/postgresql/.s.PGSQL.5432
+  RedHat: "/var/run/postgresql/.s.PGSQL.{{ postgres_port }}"
+  Debian: "/var/run/postgresql/.s.PGSQL.{{ postgres_port }}"
 
 postgres_service_name:
   RedHat: postgresql

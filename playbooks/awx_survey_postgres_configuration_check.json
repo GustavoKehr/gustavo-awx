@@ -1,0 +1,53 @@
+{
+  "name": "POSTGRES | Configuration Check v1",
+  "description": "Survey vars for postgres_configuration_check playbook. All fields optional -- defaults apply.",
+  "spec": [
+    {
+      "question_name": "Target hosts",
+      "question_description": "Inventory group or hostname to run against.",
+      "required": true,
+      "type": "text",
+      "variable": "target_hosts",
+      "min": 1,
+      "max": 128,
+      "default": "all"
+    },
+    {
+      "question_name": "PostgreSQL port",
+      "question_description": "Port PostgreSQL is listening on. Used to locate the unix socket (.s.PGSQL.<port>). Must match the installed instance.",
+      "required": true,
+      "type": "integer",
+      "variable": "postgres_port",
+      "min": 1024,
+      "max": 65535,
+      "default": "15432"
+    },
+    {
+      "question_name": "Enable auto-remediation",
+      "question_description": "true = apply fixes automatically for all remediable checks. false = check-only, no changes made.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "postgres_configuration_check_remediate",
+      "choices": "true\nfalse",
+      "default": "true"
+    },
+    {
+      "question_name": "Allow PostgreSQL restart",
+      "question_description": "true = restart PostgreSQL if a parameter change requires it. false = skip restart (changes staged but not active until manual restart).",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "postgres_configuration_check_allow_restart",
+      "choices": "true\nfalse",
+      "default": "true"
+    },
+    {
+      "question_name": "Generate HTML report",
+      "question_description": "true = generate and fetch HTML config check report to the controller under reports/.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "postgres_generate_report",
+      "choices": "true\nfalse",
+      "default": "true"
+    }
+  ]
+}
