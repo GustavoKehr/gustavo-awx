@@ -1,6 +1,6 @@
 ---
 - name: "Deploy and harden PostgreSQL server"
-  hosts: "{{ target_hosts | default('all') }}"
+  hosts: all
   become: true
   gather_facts: true
 

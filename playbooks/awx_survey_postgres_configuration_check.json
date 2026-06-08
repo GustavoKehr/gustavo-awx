@@ -3,16 +3,6 @@
   "description": "Survey vars for postgres_configuration_check playbook. All fields optional -- defaults apply.",
   "spec": [
     {
-      "question_name": "Target hosts",
-      "question_description": "Inventory group or hostname to run against.",
-      "required": true,
-      "type": "text",
-      "variable": "target_hosts",
-      "min": 1,
-      "max": 128,
-      "default": "all"
-    },
-    {
       "question_name": "PostgreSQL port",
       "question_description": "Port PostgreSQL is listening on. Used to locate the unix socket (.s.PGSQL.<port>). Must match the installed instance.",
       "required": true,

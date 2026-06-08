@@ -14,7 +14,7 @@
 #   conf_1 ... conf_15             -- individual checks
 
 - name: "PostgreSQL Configuration Check & Security Audit"
-  hosts: "{{ target_hosts | default('all') }}"
+  hosts: all
   become: true
   gather_facts: true
 
