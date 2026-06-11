@@ -1,0 +1,16 @@
+---
+- name: Alloy | Install on Linux
+  ansible.builtin.include_tasks: install_linux.yml
+  when: ansible_os_family != "Windows"
+
+- name: Alloy | Install on Windows
+  ansible.builtin.include_tasks: install_windows.yml
+  when: ansible_os_family == "Windows"
+
+- name: Alloy | Configure on Linux
+  ansible.builtin.include_tasks: configure_linux.yml
+  when: ansible_os_family != "Windows"
+
+- name: Alloy | Configure on Windows
+  ansible.builtin.include_tasks: configure_windows.yml
+  when: ansible_os_family == "Windows"

@@ -1,0 +1,12 @@
+---
+- name: Alloy | Windows | Deploy config
+  ansible.windows.win_template:
+    src: config_windows.alloy.j2
+    dest: "{{ alloy_windows_config_file }}"
+  notify: Restart alloy windows
+
+- name: Alloy | Windows | Ensure service is running
+  ansible.windows.win_service:
+    name: "{{ alloy_windows_service_name }}"
+    state: started
+    start_mode: auto

@@ -1,0 +1,163 @@
+---
+- name: Preflight | Check OS is supported
+  ansible.builtin.fail:
+    msg: >
+      Unsupported OS: {{ ansible_distribution }} {{ ansible_distribution_version }}.
+      Supported: RHEL/Rocky/AlmaLinux 8+, Ubuntu 20.04+.
+  when:
+    - ansible_os_family != "Windows"
+    - ansible_distribution not in preflight_supported_distributions
+
+- name: Preflight | Check RHEL/CentOS minimum version
+  ansible.builtin.fail:
+    msg: >
+      RHEL/CentOS {{ ansible_distribution_major_version }} not supported.
+      Minimum: {{ preflight_min_rhel_version }}.
+  when:
+    - ansible_os_family == "RedHat"
+    - ansible_distribution_major_version | int < preflight_min_rhel_version | int
+
+- name: Preflight | Check Ubuntu minimum version
+  ansible.builtin.fail:
+    msg: >
+      Ubuntu {{ ansible_distribution_version }} not supported.
+      Minimum: {{ preflight_min_ubuntu_version }}.
+  when:
+    - ansible_distribution == "Ubuntu"
+    - ansible_distribution_version is version(preflight_min_ubuntu_version, '<')
+
+- name: Preflight | Check architecture is x86_64
+  ansible.builtin.fail:
+    msg: "Architecture {{ ansible_architecture }} not supported. Only x86_64."
+  when:
+    - ansible_os_family != "Windows"
+    - ansible_architecture != "x86_64"
+
+- name: Preflight | Verify become escalates to root
+  ansible.builtin.command: id
+  become: true
+  register: _become_test
+  changed_when: false
+
+- name: Preflight | Fail if not root after become
+  ansible.builtin.fail:
+    msg: "Cannot escalate to root on {{ inventory_hostname }}. Check sudo configuration."
+  when: "'uid=0(root)' not in _become_test.stdout"
+
+# ── Artifact checks (run on controller / AWX EE) ─────────────────────────────
+
+- name: Preflight | Build artifact list for this host
+  ansible.builtin.set_fact:
+    _artifacts_to_check: "{{ _artifacts_to_check | default([]) + [item] }}"
+  loop: "{{ _preflight_artifact_map[inventory_hostname_short | default('_all')] | default(_preflight_artifact_map['_all']) }}"
+  vars:
+    _preflight_artifact_map:
+      _all:
+        - file: "alloy-{{ alloy_version }}.amd64.rpm"
+          checksum: "{{ artifact_checksums.alloy_rpm | default('') }}"
+          when: "{{ ansible_os_family == 'RedHat' }}"
+        - file: "alloy-{{ alloy_version }}.amd64.deb"
+          checksum: "{{ artifact_checksums.alloy_deb | default('') }}"
+          when: "{{ ansible_distribution == 'Ubuntu' }}"
+  when:
+    - "'linux_agents' in group_names"
+    - ansible_os_family != "Windows"
+
+- name: Preflight | Stat artifacts on controller
+  ansible.builtin.stat:
+    path: "{{ artifacts_base_dir }}/{{ item.file }}"
+    get_checksum: true
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  register: _artifact_stat
+  loop: "{{ _artifacts_to_check | default([]) }}"
+  loop_control:
+    label: "{{ item.file }}"
+
+- name: Preflight | Fail on missing artifacts
+  ansible.builtin.fail:
+    msg: "ARTIFACT MISSING: {{ item.item.file }} not found at {{ artifacts_base_dir }}/"
+  loop: "{{ _artifact_stat.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.file }}"
+  when:
+    - item.item.when | bool
+    - not item.stat.exists
+
+- name: Preflight | Fail on checksum mismatch
+  ansible.builtin.fail:
+    msg: >
+      CHECKSUM MISMATCH: {{ item.item.file }}
+      Expected: {{ item.item.checksum }}
+      Got:      {{ item.stat.checksum }}
+  loop: "{{ _artifact_stat.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.file }}"
+  when:
+    - item.item.when | bool
+    - item.stat.exists
+    - item.item.checksum | default('') != ''
+    - item.stat.checksum != item.item.checksum
+
+# ── NTP check (Linux only) ────────────────────────────────────────────────────
+
+- name: Preflight | Check NTP synchronization
+  ansible.builtin.command: timedatectl show --property=NTPSynchronized --value
+  register: _ntp_sync
+  changed_when: false
+  failed_when: false
+  when: ansible_os_family != "Windows"
+
+- name: Preflight | Warn if NTP not synchronized
+  ansible.builtin.debug:
+    msg: >
+      WARNING: NTP not synchronized on {{ inventory_hostname }}.
+      Out-of-order timestamps will be rejected by Loki.
+      Fix: systemctl enable --now chronyd  OR  timedatectl set-ntp true
+  when:
+    - ansible_os_family != "Windows"
+    - _ntp_sync.stdout is defined
+    - _ntp_sync.stdout | trim != 'yes'
+
+# ── Port availability check (observability_server only) ──────────────────────
+
+- name: Preflight | Check required ports are free on server
+  ansible.builtin.wait_for:
+    port: "{{ item | int }}"
+    state: stopped
+    timeout: 3
+  loop: "{{ preflight_server_ports }}"
+  when: "'observability_server' in group_names"
+  ignore_errors: true
+  register: _port_check
+
+- name: Preflight | Report ports already in use
+  ansible.builtin.debug:
+    msg: "PORT {{ item.item }} already in use on {{ inventory_hostname }} — will be managed by this role."
+  loop: "{{ _port_check.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when:
+    - _port_check.results is defined
+    - item.failed | default(false)
+
+# ── Disk space check (Linux) ──────────────────────────────────────────────────
+
+- name: Preflight | Check free disk space on /var/lib
+  ansible.builtin.assert:
+    that:
+      - item.mount in ['/var/lib', '/var', '/'] or item.mount.startswith('/var/lib')
+      - (item.size_available | int) > (10 * 1024 * 1024 * 1024)
+    fail_msg: "Less than 10 GB free on {{ item.mount }} of {{ inventory_hostname }}"
+    quiet: true
+  loop: "{{ ansible_mounts | selectattr('mount', 'in', ['/var/lib', '/var', '/']) | list }}"
+  loop_control:
+    label: "{{ item.mount }}"
+  when:
+    - ansible_os_family != "Windows"
+    - "'observability_server' in group_names"
+  ignore_errors: true
+
+- name: Preflight | Summary OK
+  ansible.builtin.debug:
+    msg: "Preflight passed on {{ inventory_hostname }} ({{ ansible_distribution }} {{ ansible_distribution_version }})"

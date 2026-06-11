@@ -1,0 +1,14 @@
+---
+- name: Preflight — Linux hosts
+  hosts: observability_server:linux_agents
+  gather_facts: true
+  tags: [preflight]
+  roles:
+    - role: preflight
+
+- name: Preflight — Windows hosts
+  hosts: windows_agents
+  gather_facts: true
+  tags: [preflight]
+  roles:
+    - role: preflight

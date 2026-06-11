@@ -1,0 +1,102 @@
+---
+- name: Node Exporter | Skip if metrics_mode is not node_exporter
+  ansible.builtin.meta: end_host
+  when: metrics_mode | default('alloy') != 'node_exporter'
+
+- name: Node Exporter | Create service group
+  ansible.builtin.group:
+    name: "{{ node_exporter_group }}"
+    system: true
+
+- name: Node Exporter | Create service user
+  ansible.builtin.user:
+    name: "{{ node_exporter_user }}"
+    group: "{{ node_exporter_group }}"
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+    comment: "Prometheus Node Exporter"
+
+- name: Node Exporter | Stat artifact on controller
+  ansible.builtin.stat:
+    path: "{{ artifacts_base_dir }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+    get_checksum: true
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  register: _ne_artifact
+
+- name: Node Exporter | Fail if artifact missing
+  ansible.builtin.fail:
+    msg: "Node Exporter artifact not found: {{ artifacts_base_dir }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+  when: not _ne_artifact.stat.exists
+
+- name: Node Exporter | Validate checksum
+  ansible.builtin.fail:
+    msg: >
+      Node Exporter checksum mismatch.
+      Expected: {{ artifact_checksums.node_exporter }}
+      Got:      {{ _ne_artifact.stat.checksum }}
+  when:
+    - artifact_checksums.node_exporter | default('') != ''
+    - _ne_artifact.stat.checksum != artifact_checksums.node_exporter
+
+- name: Node Exporter | Copy archive to host
+  ansible.builtin.copy:
+    src: "{{ artifacts_base_dir }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+    dest: /tmp/node_exporter.tar.gz
+    mode: "0644"
+  register: _ne_copy
+
+- name: Node Exporter | Extract archive
+  ansible.builtin.unarchive:
+    src: /tmp/node_exporter.tar.gz
+    dest: /tmp/
+    remote_src: true
+  when: _ne_copy is changed
+
+- name: Node Exporter | Install binary
+  ansible.builtin.copy:
+    src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+    dest: "{{ node_exporter_binary_dir }}/node_exporter"
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+  notify: Restart node_exporter
+  when: _ne_copy is changed
+
+- name: Node Exporter | Deploy systemd unit
+  ansible.builtin.template:
+    src: node_exporter.service.j2
+    dest: /etc/systemd/system/node_exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart node_exporter
+
+- name: Node Exporter | Enable and start service
+  ansible.builtin.systemd:
+    name: node_exporter
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Node Exporter | Verify metrics endpoint
+  ansible.builtin.uri:
+    url: "http://localhost:{{ node_exporter_port }}/metrics"
+    return_content: false
+    status_code: 200
+  register: _ne_health
+  retries: 6
+  delay: 5
+  until: _ne_health.status == 200
+
+- name: Node Exporter | Clean up temp files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/node_exporter.tar.gz
+    - "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64"

@@ -1,0 +1,10 @@
+---
+# Windows hosts — Alloy only. Requires manage_windows: true in all.yml.
+ansible_connection: winrm
+ansible_winrm_transport: ntlm
+ansible_winrm_server_cert_validation: ignore
+ansible_port: 5985
+
+alloy_windows_install_dir: 'C:\Program Files\Grafana Alloy'
+alloy_windows_config_file: 'C:\Program Files\Grafana Alloy\config.alloy'
+alloy_windows_service_name: Alloy

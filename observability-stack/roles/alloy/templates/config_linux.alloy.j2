@@ -1,0 +1,66 @@
+// Managed by Ansible — do not edit manually
+// Host: {{ inventory_hostname }} | env: {{ environment_label }}
+
+// ── Loki write endpoint ───────────────────────────────────────────────────────
+loki.write "central" {
+  endpoint {
+    url = "{{ loki_endpoint }}"
+  }
+}
+
+// ── journald source (messages, secure, cron, and all systemd units) ───────────
+loki.source.journal "journal" {
+  forward_to = [loki.write.central.receiver]
+  labels = {
+    job  = "systemd-journal",
+    host = "{{ inventory_hostname }}",
+    env  = "{{ environment_label }}",
+  }
+}
+
+// ── File-based log sources ────────────────────────────────────────────────────
+local.file_match "log_files" {
+  path_targets = [
+{% for path in alloy_log_paths %}
+    { __path__ = "{{ path }}" },
+{% endfor %}
+  ]
+}
+
+loki.source.file "log_files" {
+  targets    = local.file_match.log_files.targets
+  forward_to = [loki.process.add_labels.receiver]
+}
+
+loki.process "add_labels" {
+  forward_to = [loki.write.central.receiver]
+
+  stage.static_labels {
+    values = {
+      job  = "varlogs",
+      host = "{{ inventory_hostname }}",
+      env  = "{{ environment_label }}",
+    }
+  }
+}
+
+{% if metrics_mode | default('alloy') == 'alloy' %}
+// ── Host metrics via prometheus.exporter.unix ─────────────────────────────────
+prometheus.exporter.unix "host" { }
+
+prometheus.scrape "host_metrics" {
+  targets    = prometheus.exporter.unix.host.targets
+  forward_to = [prometheus.remote_write.central.receiver]
+  job_name   = "node"
+}
+
+prometheus.remote_write "central" {
+  endpoint {
+    url = "{{ prometheus_remote_write_endpoint }}"
+  }
+  external_labels = {
+    host = "{{ inventory_hostname }}",
+    env  = "{{ environment_label }}",
+  }
+}
+{% endif %}

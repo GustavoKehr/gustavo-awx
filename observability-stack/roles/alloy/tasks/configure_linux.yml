@@ -1,0 +1,57 @@
+---
+- name: Alloy | Linux | Configure rsyslog for group-readable logs
+  ansible.builtin.copy:
+    dest: /etc/rsyslog.d/10-fileperms.conf
+    content: |
+      $FileOwner root
+      $FileGroup adm
+      $FileCreateMode 0640
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart rsyslog
+
+- name: Alloy | Linux | Fix permissions on existing log files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    group: adm
+    mode: "0640"
+  loop:
+    - /var/log/messages
+    - /var/log/secure
+    - /var/log/cron
+  failed_when: false
+
+- name: Alloy | Linux | Set Alloy UI listen address in sysconfig
+  ansible.builtin.lineinfile:
+    path: /etc/sysconfig/alloy
+    regexp: '^CUSTOM_ARGS='
+    line: 'CUSTOM_ARGS="--server.http.listen-addr=0.0.0.0:{{ alloy_ui_port }}"'
+  notify: Restart alloy
+
+- name: Alloy | Linux | Deploy config
+  ansible.builtin.template:
+    src: config_linux.alloy.j2
+    dest: "{{ alloy_config_dir }}/config.alloy"
+    owner: "{{ alloy_user }}"
+    group: "{{ alloy_group }}"
+    mode: "0640"
+    validate: "alloy validate %s"
+  notify: Restart alloy
+
+- name: Alloy | Linux | Enable and start service
+  ansible.builtin.systemd:
+    name: alloy
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Alloy | Linux | Wait for Alloy UI (health check)
+  ansible.builtin.uri:
+    url: "http://localhost:{{ alloy_ui_port }}/ready"
+    return_content: false
+    status_code: 200
+  register: _alloy_health
+  retries: 10
+  delay: 5
+  until: _alloy_health.status == 200

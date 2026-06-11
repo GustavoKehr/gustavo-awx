@@ -1,0 +1,120 @@
+---
+- name: Loki | Create service group
+  ansible.builtin.group:
+    name: "{{ loki_group }}"
+    system: true
+
+- name: Loki | Create service user
+  ansible.builtin.user:
+    name: "{{ loki_user }}"
+    group: "{{ loki_group }}"
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+    comment: "Grafana Loki"
+
+- name: Loki | Create directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ loki_user }}"
+    group: "{{ loki_group }}"
+    mode: "0750"
+  loop:
+    - "{{ loki_config_dir }}"
+    - "{{ loki_data_dir }}"
+    - "{{ loki_data_dir }}/chunks"
+    - "{{ loki_data_dir }}/rules"
+    - "{{ loki_data_dir }}/compactor"
+    - "{{ loki_data_dir }}/wal"
+
+- name: Loki | Stat artifact on controller
+  ansible.builtin.stat:
+    path: "{{ artifacts_base_dir }}/loki-linux-amd64.zip"
+    get_checksum: true
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  register: _loki_artifact
+
+- name: Loki | Fail if artifact missing
+  ansible.builtin.fail:
+    msg: "Loki artifact not found: {{ artifacts_base_dir }}/loki-linux-amd64.zip"
+  when: not _loki_artifact.stat.exists
+
+- name: Loki | Validate checksum
+  ansible.builtin.fail:
+    msg: >
+      Loki artifact checksum mismatch.
+      Expected: {{ artifact_checksums.loki }}
+      Got:      {{ _loki_artifact.stat.checksum }}
+  when:
+    - artifact_checksums.loki | default('') != ''
+    - _loki_artifact.stat.checksum != artifact_checksums.loki
+
+- name: Loki | Create extract dir on controller
+  ansible.builtin.file:
+    path: "/tmp/loki-extract-{{ inventory_hostname }}"
+    state: directory
+    mode: "0755"
+  delegate_to: localhost
+
+- name: Loki | Extract binary on controller
+  ansible.builtin.unarchive:
+    src: "{{ artifacts_base_dir }}/loki-linux-amd64.zip"
+    dest: "/tmp/loki-extract-{{ inventory_hostname }}/"
+    creates: "/tmp/loki-extract-{{ inventory_hostname }}/loki-linux-amd64"
+  delegate_to: localhost
+
+- name: Loki | Install binary
+  ansible.builtin.copy:
+    src: "/tmp/loki-extract-{{ inventory_hostname }}/loki-linux-amd64"
+    dest: "{{ loki_binary_dir }}/loki"
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart loki
+  register: _loki_install
+
+- name: Loki | Deploy config
+  ansible.builtin.template:
+    src: config.yml.j2
+    dest: "{{ loki_config_dir }}/config.yml"
+    owner: "{{ loki_user }}"
+    group: "{{ loki_group }}"
+    mode: "0640"
+    validate: "{{ loki_binary_dir }}/loki -verify-config -config.file=%s"
+  notify: Restart loki
+
+- name: Loki | Deploy systemd unit
+  ansible.builtin.template:
+    src: loki.service.j2
+    dest: /etc/systemd/system/loki.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart loki
+
+- name: Loki | Enable and start service
+  ansible.builtin.systemd:
+    name: loki
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Loki | Wait for healthcheck
+  ansible.builtin.uri:
+    url: "http://localhost:{{ loki_http_port }}/ready"
+    return_content: false
+    status_code: 200
+  register: _loki_health
+  retries: 10
+  delay: 5
+  until: _loki_health.status == 200
+
+- name: Loki | Clean up temp files on controller
+  ansible.builtin.file:
+    path: "/tmp/loki-extract-{{ inventory_hostname }}"
+    state: absent
+  delegate_to: localhost

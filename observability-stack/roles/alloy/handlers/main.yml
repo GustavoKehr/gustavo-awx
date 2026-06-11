@@ -1,0 +1,24 @@
+---
+- name: Restart alloy
+  ansible.builtin.systemd:
+    name: alloy
+    state: restarted
+    daemon_reload: true
+  when: ansible_os_family != "Windows"
+
+- name: Restart alloy windows
+  ansible.windows.win_service:
+    name: "{{ alloy_windows_service_name }}"
+    state: restarted
+  when: ansible_os_family == "Windows"
+
+- name: Restart rsyslog
+  ansible.builtin.systemd:
+    name: rsyslog
+    state: restarted
+  when: ansible_os_family != "Windows"
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: ansible_os_family != "Windows"

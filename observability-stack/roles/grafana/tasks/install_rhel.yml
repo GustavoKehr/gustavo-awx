@@ -1,0 +1,41 @@
+---
+- name: Grafana | RHEL | Stat artifact
+  ansible.builtin.stat:
+    path: "{{ artifacts_base_dir }}/grafana-enterprise-{{ grafana_version }}-1.x86_64.rpm"
+    get_checksum: true
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  register: _grafana_rpm
+
+- name: Grafana | RHEL | Fail if artifact missing
+  ansible.builtin.fail:
+    msg: "Grafana RPM not found: {{ artifacts_base_dir }}/grafana-enterprise-{{ grafana_version }}-1.x86_64.rpm"
+  when: not _grafana_rpm.stat.exists
+
+- name: Grafana | RHEL | Validate checksum
+  ansible.builtin.fail:
+    msg: >
+      Grafana RPM checksum mismatch.
+      Expected: {{ artifact_checksums.grafana_rpm }}
+      Got:      {{ _grafana_rpm.stat.checksum }}
+  when:
+    - artifact_checksums.grafana_rpm | default('') != ''
+    - _grafana_rpm.stat.checksum != artifact_checksums.grafana_rpm
+
+- name: Grafana | RHEL | Copy RPM to host
+  ansible.builtin.copy:
+    src: "{{ artifacts_base_dir }}/grafana-enterprise-{{ grafana_version }}-1.x86_64.rpm"
+    dest: /tmp/grafana-enterprise.rpm
+    mode: "0644"
+
+- name: Grafana | RHEL | Install RPM
+  ansible.builtin.yum:
+    name: /tmp/grafana-enterprise.rpm
+    state: present
+    disable_gpg_check: true
+  notify: Restart grafana-server
+
+- name: Grafana | RHEL | Remove temp RPM
+  ansible.builtin.file:
+    path: /tmp/grafana-enterprise.rpm
+    state: absent

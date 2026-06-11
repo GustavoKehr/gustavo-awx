@@ -1,0 +1,48 @@
+---
+- name: Grafana | Debian | Install dependencies
+  ansible.builtin.apt:
+    name:
+      - adduser
+      - libfontconfig1
+      - musl
+    state: present
+    update_cache: false
+
+- name: Grafana | Debian | Stat artifact
+  ansible.builtin.stat:
+    path: "{{ artifacts_base_dir }}/grafana-enterprise_{{ grafana_version }}_amd64.deb"
+    get_checksum: true
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  register: _grafana_deb
+
+- name: Grafana | Debian | Fail if artifact missing
+  ansible.builtin.fail:
+    msg: "Grafana DEB not found: {{ artifacts_base_dir }}/grafana-enterprise_{{ grafana_version }}_amd64.deb"
+  when: not _grafana_deb.stat.exists
+
+- name: Grafana | Debian | Validate checksum
+  ansible.builtin.fail:
+    msg: >
+      Grafana DEB checksum mismatch.
+      Expected: {{ artifact_checksums.grafana_deb }}
+      Got:      {{ _grafana_deb.stat.checksum }}
+  when:
+    - artifact_checksums.grafana_deb | default('') != ''
+    - _grafana_deb.stat.checksum != artifact_checksums.grafana_deb
+
+- name: Grafana | Debian | Copy DEB to host
+  ansible.builtin.copy:
+    src: "{{ artifacts_base_dir }}/grafana-enterprise_{{ grafana_version }}_amd64.deb"
+    dest: /tmp/grafana-enterprise.deb
+    mode: "0644"
+
+- name: Grafana | Debian | Install DEB
+  ansible.builtin.apt:
+    deb: /tmp/grafana-enterprise.deb
+  notify: Restart grafana-server
+
+- name: Grafana | Debian | Remove temp DEB
+  ansible.builtin.file:
+    path: /tmp/grafana-enterprise.deb
+    state: absent

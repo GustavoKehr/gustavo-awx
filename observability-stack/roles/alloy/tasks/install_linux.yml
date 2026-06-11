@@ -1,0 +1,118 @@
+---
+- name: Alloy | Linux | Create service group
+  ansible.builtin.group:
+    name: "{{ alloy_group }}"
+    system: true
+
+- name: Alloy | Linux | Create service user
+  ansible.builtin.user:
+    name: "{{ alloy_user }}"
+    group: "{{ alloy_group }}"
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+    comment: "Grafana Alloy"
+    groups: systemd-journal
+    append: true
+
+- name: Alloy | Linux | Create config directory
+  ansible.builtin.file:
+    path: "{{ alloy_config_dir }}"
+    state: directory
+    owner: "{{ alloy_user }}"
+    group: "{{ alloy_group }}"
+    mode: "0750"
+
+- name: Alloy | RHEL | Stat artifact
+  ansible.builtin.stat:
+    path: "{{ artifacts_base_dir }}/alloy-{{ alloy_version }}.amd64.rpm"
+    get_checksum: true
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  register: _alloy_rpm
+  when: ansible_os_family == "RedHat"
+
+- name: Alloy | RHEL | Fail if artifact missing
+  ansible.builtin.fail:
+    msg: "Alloy RPM not found: {{ artifacts_base_dir }}/alloy-{{ alloy_version }}.amd64.rpm"
+  when:
+    - ansible_os_family == "RedHat"
+    - not _alloy_rpm.stat.exists
+
+- name: Alloy | RHEL | Validate checksum
+  ansible.builtin.fail:
+    msg: >
+      Alloy RPM checksum mismatch.
+      Expected: {{ artifact_checksums.alloy_rpm }}
+      Got:      {{ _alloy_rpm.stat.checksum }}
+  when:
+    - ansible_os_family == "RedHat"
+    - artifact_checksums.alloy_rpm | default('') != ''
+    - _alloy_rpm.stat.checksum != artifact_checksums.alloy_rpm
+
+- name: Alloy | RHEL | Copy RPM to host
+  ansible.builtin.copy:
+    src: "{{ artifacts_base_dir }}/alloy-{{ alloy_version }}.amd64.rpm"
+    dest: /tmp/alloy.rpm
+    mode: "0644"
+  when: ansible_os_family == "RedHat"
+
+- name: Alloy | RHEL | Install RPM
+  ansible.builtin.yum:
+    name: /tmp/alloy.rpm
+    state: present
+    disable_gpg_check: true
+  when: ansible_os_family == "RedHat"
+  notify: Restart alloy
+
+- name: Alloy | RHEL | Remove temp RPM
+  ansible.builtin.file:
+    path: /tmp/alloy.rpm
+    state: absent
+  when: ansible_os_family == "RedHat"
+
+- name: Alloy | Debian | Stat artifact
+  ansible.builtin.stat:
+    path: "{{ artifacts_base_dir }}/alloy-{{ alloy_version }}.amd64.deb"
+    get_checksum: true
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  register: _alloy_deb
+  when: ansible_os_family == "Debian"
+
+- name: Alloy | Debian | Fail if artifact missing
+  ansible.builtin.fail:
+    msg: "Alloy DEB not found: {{ artifacts_base_dir }}/alloy-{{ alloy_version }}.amd64.deb"
+  when:
+    - ansible_os_family == "Debian"
+    - not _alloy_deb.stat.exists
+
+- name: Alloy | Debian | Validate checksum
+  ansible.builtin.fail:
+    msg: >
+      Alloy DEB checksum mismatch.
+      Expected: {{ artifact_checksums.alloy_deb }}
+      Got:      {{ _alloy_deb.stat.checksum }}
+  when:
+    - ansible_os_family == "Debian"
+    - artifact_checksums.alloy_deb | default('') != ''
+    - _alloy_deb.stat.checksum != artifact_checksums.alloy_deb
+
+- name: Alloy | Debian | Copy DEB to host
+  ansible.builtin.copy:
+    src: "{{ artifacts_base_dir }}/alloy-{{ alloy_version }}.amd64.deb"
+    dest: /tmp/alloy.deb
+    mode: "0644"
+  when: ansible_os_family == "Debian"
+
+- name: Alloy | Debian | Install DEB
+  ansible.builtin.apt:
+    deb: /tmp/alloy.deb
+  when: ansible_os_family == "Debian"
+  notify: Restart alloy
+
+- name: Alloy | Debian | Remove temp DEB
+  ansible.builtin.file:
+    path: /tmp/alloy.deb
+    state: absent
+  when: ansible_os_family == "Debian"

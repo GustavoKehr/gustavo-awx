@@ -1,0 +1,13 @@
+---
+# Hosts in [observability_server] run Loki + Grafana + Prometheus.
+# Override any all.yml value here for the central server specifically.
+
+loki_data_dir: /var/lib/loki
+loki_config_dir: /etc/loki
+loki_binary_dir: /usr/local/bin
+
+prometheus_data_dir: /var/lib/prometheus
+prometheus_config_dir: /etc/prometheus
+prometheus_binary_dir: /usr/local/bin
+
+grafana_provisioning_dir: /etc/grafana/provisioning

@@ -1,0 +1,12 @@
+---
+- name: Preflight checks — all hosts
+  ansible.builtin.import_playbook: playbooks/00_preflight.yml
+
+- name: Deploy observability server (Loki + Grafana + Prometheus)
+  ansible.builtin.import_playbook: playbooks/10_observability_server.yml
+
+- name: Deploy Linux agents (Alloy ± Node Exporter)
+  ansible.builtin.import_playbook: playbooks/20_linux_agents.yml
+
+- name: Deploy Windows agents (Alloy)
+  ansible.builtin.import_playbook: playbooks/30_windows_agents.yml

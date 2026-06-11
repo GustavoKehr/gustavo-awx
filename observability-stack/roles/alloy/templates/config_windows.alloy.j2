@@ -1,0 +1,58 @@
+// Managed by Ansible — do not edit manually
+// Host: {{ inventory_hostname }} | env: {{ environment_label }}
+
+// ── Loki write endpoint ───────────────────────────────────────────────────────
+loki.write "central" {
+  endpoint {
+    url = "{{ loki_endpoint }}"
+  }
+}
+
+// ── Windows Event Log sources ─────────────────────────────────────────────────
+loki.source.windowsevent "application" {
+  eventlog_name  = "Application"
+  forward_to     = [loki.process.add_labels.receiver]
+}
+
+loki.source.windowsevent "system" {
+  eventlog_name  = "System"
+  forward_to     = [loki.process.add_labels.receiver]
+}
+
+loki.source.windowsevent "security" {
+  eventlog_name  = "Security"
+  forward_to     = [loki.process.add_labels.receiver]
+}
+
+loki.process "add_labels" {
+  forward_to = [loki.write.central.receiver]
+
+  stage.static_labels {
+    values = {
+      job  = "windows-events",
+      host = "{{ inventory_hostname }}",
+      env  = "{{ environment_label }}",
+    }
+  }
+}
+
+{% if metrics_mode | default('alloy') == 'alloy' %}
+// ── Host metrics via prometheus.exporter.windows ─────────────────────────────
+prometheus.exporter.windows "host" { }
+
+prometheus.scrape "host_metrics" {
+  targets    = prometheus.exporter.windows.host.targets
+  forward_to = [prometheus.remote_write.central.receiver]
+  job_name   = "windows"
+}
+
+prometheus.remote_write "central" {
+  endpoint {
+    url = "{{ prometheus_remote_write_endpoint }}"
+  }
+  external_labels = {
+    host = "{{ inventory_hostname }}",
+    env  = "{{ environment_label }}",
+  }
+}
+{% endif %}

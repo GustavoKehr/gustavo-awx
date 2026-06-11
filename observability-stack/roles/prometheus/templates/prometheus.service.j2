@@ -1,0 +1,26 @@
+# Managed by Ansible — do not edit manually
+[Unit]
+Description=Prometheus {{ prometheus_version }}
+Documentation=https://prometheus.io/docs/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User={{ prometheus_user }}
+Group={{ prometheus_group }}
+ExecStart={{ prometheus_binary_dir }}/prometheus \
+  --config.file={{ prometheus_config_dir }}/prometheus.yml \
+  --storage.tsdb.path={{ prometheus_data_dir }} \
+  --storage.tsdb.retention.time={{ prometheus_retention }} \
+  --web.listen-address=:{{ prometheus_port }}{% if metrics_mode | default('alloy') == 'alloy' %} \
+  --web.enable-remote-write-receiver{% endif %}
+
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=prometheus
+
+[Install]
+WantedBy=multi-user.target

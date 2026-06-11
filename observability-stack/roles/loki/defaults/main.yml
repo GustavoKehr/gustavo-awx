@@ -1,0 +1,9 @@
+---
+loki_user: loki
+loki_group: loki
+loki_binary_dir: /usr/local/bin
+loki_config_dir: /etc/loki
+loki_data_dir: /var/lib/loki
+loki_http_port: 3100
+loki_grpc_port: 9096
+loki_retention_period: "720h"

@@ -1,0 +1,6 @@
+---
+# Hosts in [linux_agents] (subgroups rhel8, rhel9, ubuntu) get Grafana Alloy
+# and optionally Node Exporter depending on metrics_mode.
+
+alloy_config_dir: /etc/alloy
+alloy_binary_dir: /usr/local/bin

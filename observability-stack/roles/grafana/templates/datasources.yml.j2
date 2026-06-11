@@ -1,0 +1,21 @@
+# Managed by Ansible — do not edit manually
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://localhost:{{ loki_http_port }}
+    isDefault: true
+    version: 1
+    editable: false
+
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://localhost:{{ prometheus_port }}
+    isDefault: false
+    version: 1
+    editable: false
+    jsonData:
+      timeInterval: "{{ prometheus_scrape_interval | default('15s') }}"

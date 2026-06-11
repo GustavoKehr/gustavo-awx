@@ -1,0 +1,22 @@
+# Managed by Ansible — do not edit manually
+global:
+  scrape_interval:     {{ prometheus_scrape_interval }}
+  evaluation_interval: {{ prometheus_evaluation_interval }}
+  external_labels:
+    env: '{{ environment_label }}'
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:{{ prometheus_port }}']
+
+{% if metrics_mode | default('alloy') == 'node_exporter' %}
+  - job_name: node
+    static_configs:
+      - targets:
+{% for host in groups['linux_agents'] | default([]) %}
+          - '{{ hostvars[host].ansible_host | default(host) }}:{{ node_exporter_port | default(9100) }}'
+{% endfor %}
+        labels:
+          env: '{{ environment_label }}'
+{% endif %}

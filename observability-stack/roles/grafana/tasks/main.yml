@@ -1,0 +1,91 @@
+---
+- name: Grafana | Install on RHEL/CentOS
+  ansible.builtin.include_tasks: install_rhel.yml
+  when: ansible_os_family == "RedHat"
+
+- name: Grafana | Install on Debian/Ubuntu
+  ansible.builtin.include_tasks: install_debian.yml
+  when: ansible_os_family == "Debian"
+
+- name: Grafana | Create directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: "0755"
+  loop:
+    - "{{ grafana_provisioning_dir }}/datasources"
+    - "{{ grafana_provisioning_dir }}/dashboards"
+    - "{{ grafana_provisioning_dir }}/alerting"
+    - "{{ grafana_dashboards_dir }}"
+    - "{{ grafana_plugins_dir }}"
+
+- name: Grafana | Deploy grafana.ini
+  ansible.builtin.template:
+    src: grafana.ini.j2
+    dest: /etc/grafana/grafana.ini
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana-server
+
+- name: Grafana | Provision datasources
+  ansible.builtin.template:
+    src: datasources.yml.j2
+    dest: "{{ grafana_provisioning_dir }}/datasources/datasources.yml"
+    owner: grafana
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana-server
+
+- name: Grafana | Provision dashboard loader config
+  ansible.builtin.template:
+    src: dashboards_provisioning.yml.j2
+    dest: "{{ grafana_provisioning_dir }}/dashboards/dashboards.yml"
+    owner: grafana
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana-server
+
+- name: Grafana | Find dashboard JSON files on controller
+  ansible.builtin.find:
+    paths: "{{ artifacts_base_dir }}/dashboards"
+    patterns: "*.json"
+  delegate_to: localhost
+  register: _dashboard_files
+
+- name: Grafana | Copy dashboard JSON files
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: "{{ grafana_dashboards_dir }}/{{ item.path | basename }}"
+    owner: grafana
+    group: grafana
+    mode: "0640"
+  loop: "{{ _dashboard_files.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+
+- name: Grafana | Install local plugins
+  ansible.builtin.include_tasks: install_plugin.yml
+  loop: "{{ grafana_plugins }}"
+  loop_control:
+    loop_var: _plugin_zip
+  when: grafana_plugins | length > 0
+
+- name: Grafana | Enable and start service
+  ansible.builtin.systemd:
+    name: grafana-server
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Grafana | Wait for web UI
+  ansible.builtin.uri:
+    url: "http://localhost:{{ grafana_port }}/api/health"
+    return_content: false
+    status_code: 200
+  register: _grafana_health
+  retries: 12
+  delay: 5
+  until: _grafana_health.status == 200

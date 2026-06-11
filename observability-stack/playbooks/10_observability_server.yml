@@ -1,0 +1,12 @@
+---
+- name: Deploy observability server
+  hosts: observability_server
+  gather_facts: true
+  tags: [server]
+  roles:
+    - role: loki
+      tags: [loki]
+    - role: grafana
+      tags: [grafana]
+    - role: prometheus
+      tags: [prometheus]

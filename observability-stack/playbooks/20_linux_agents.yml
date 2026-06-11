@@ -1,0 +1,11 @@
+---
+- name: Deploy Linux agents
+  hosts: linux_agents
+  gather_facts: true
+  tags: [agents, linux]
+  roles:
+    - role: alloy
+      tags: [alloy]
+    - role: node_exporter
+      tags: [node_exporter]
+      when: metrics_mode | default('alloy') == 'node_exporter'

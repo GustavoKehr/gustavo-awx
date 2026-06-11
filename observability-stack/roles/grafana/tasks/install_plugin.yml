@@ -1,0 +1,20 @@
+---
+- name: Grafana | Plugin | Copy zip to host
+  ansible.builtin.copy:
+    src: "{{ artifacts_base_dir }}/plugins/{{ _plugin_zip }}"
+    dest: "/tmp/{{ _plugin_zip }}"
+    mode: "0644"
+
+- name: Grafana | Plugin | Extract into plugins dir
+  ansible.builtin.unarchive:
+    src: "/tmp/{{ _plugin_zip }}"
+    dest: "{{ grafana_plugins_dir }}/"
+    remote_src: true
+    owner: grafana
+    group: grafana
+  notify: Restart grafana-server
+
+- name: Grafana | Plugin | Remove temp zip
+  ansible.builtin.file:
+    path: "/tmp/{{ _plugin_zip }}"
+    state: absent

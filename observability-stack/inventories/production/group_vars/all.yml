@@ -1,0 +1,80 @@
+---
+# ── Artifact source ──────────────────────────────────────────────────────────
+# Path on the Ansible controller / AWX Execution Environment where all
+# binaries and packages have been pre-staged. Nothing is downloaded at runtime.
+artifacts_base_dir: /opt/observability-artifacts   # path on Proxmox (ansible controller)
+
+# ── Component versions ────────────────────────────────────────────────────────
+# Set to the exact version you staged. Used to build file names.
+loki_version: "3.6.0"
+grafana_version: "13.0.0"
+prometheus_version: "3.11.0"
+alloy_version: "1.9.0"
+node_exporter_version: "1.11.0"
+
+# ── Deployment toggles ────────────────────────────────────────────────────────
+# alloy   → Alloy pushes metrics via remote_write (single agent per host)
+# node_exporter → separate Node Exporter; Prometheus scrapes :9100
+metrics_mode: "alloy"
+
+# Set true to deploy Alloy on Windows hosts in [windows_agents]
+manage_windows: false
+
+# ── Endpoints (fill with real IPs or FQDNs) ───────────────────────────────────
+# These are injected into every agent config template.
+loki_endpoint: "http://192.168.137.200:3100/loki/api/v1/push"
+prometheus_remote_write_endpoint: "http://192.168.137.200:9090/api/v1/write"
+
+# ── Ports ─────────────────────────────────────────────────────────────────────
+loki_http_port: 3100
+loki_grpc_port: 9096
+grafana_port: 3000
+prometheus_port: 9090
+node_exporter_port: 9100
+alloy_ui_port: 12345
+
+# ── Retention ─────────────────────────────────────────────────────────────────
+loki_retention_period: "720h"    # 30 days
+prometheus_retention: "30d"
+
+# ── Labels applied to all telemetry ──────────────────────────────────────────
+environment_label: "prod"
+
+# ── Alloy log file paths (Linux agents) ──────────────────────────────────────
+alloy_log_paths:
+  - /var/log/messages
+  - /var/log/secure
+  - /var/log/cron
+  - /var/log/httpd/*
+  - /opt/tomcat/logs/*
+
+# ── Grafana SMTP (internal relay) ────────────────────────────────────────────
+grafana_smtp_enabled: false   # no SMTP relay in lab
+grafana_smtp_host: "smtp.interno:25"
+grafana_smtp_from: "observabilidade@empresa.com"
+grafana_smtp_from_name: "Observabilidade"
+# grafana_admin_password: set via AWX credential / ansible-vault — never plaintext here
+
+# ── Grafana plugins (local .zip files under artifacts_base_dir/plugins/) ──────
+# Leave empty list to skip plugin installation.
+grafana_plugins: []
+# grafana_plugins:
+#   - grafana-piechart-panel-1.6.4.zip
+
+# ── Prometheus scrape settings ────────────────────────────────────────────────
+prometheus_scrape_interval: "15s"
+prometheus_evaluation_interval: "15s"
+
+# ── Artifact SHA256 checksums ─────────────────────────────────────────────────
+# Fill these with actual values BEFORE first run.
+# Get them with: sha256sum <file>  (Linux) or Get-FileHash <file> -Algorithm SHA256 (Windows)
+# Leave empty string "" to skip checksum validation (not recommended for prod).
+artifact_checksums:
+  loki: "a172d50e38f8061c01c0cf51870fed5976fd1cbd55e6108f5098d9724178cee4"
+  grafana_rpm: "69fba9d979ce9d5ea6ce1695398c33c8be04f72fe43ea10e0b2d6febf371e361"
+  grafana_deb: ""
+  alloy_rpm: "c31eb73a699337a906f362b0f0f4bcd3844ff070989845a067e0bf003f17a1a3"
+  alloy_deb: ""
+  alloy_windows: ""
+  prometheus: "ff799c3e4c318e17dec14aaaa406a4da328fabb4578336b36d96d893870c3b76"
+  node_exporter: "4f8fbd23b8380b8fb720b125fb9029de261dc5fcd68bfe81ae010c0d32f5f6c3"

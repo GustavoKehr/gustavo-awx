@@ -1,0 +1,129 @@
+---
+- name: Prometheus | Create service group
+  ansible.builtin.group:
+    name: "{{ prometheus_group }}"
+    system: true
+
+- name: Prometheus | Create service user
+  ansible.builtin.user:
+    name: "{{ prometheus_user }}"
+    group: "{{ prometheus_group }}"
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+    comment: "Prometheus"
+
+- name: Prometheus | Create directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ prometheus_user }}"
+    group: "{{ prometheus_group }}"
+    mode: "0750"
+  loop:
+    - "{{ prometheus_config_dir }}"
+    - "{{ prometheus_data_dir }}"
+
+- name: Prometheus | Stat artifact on controller
+  ansible.builtin.stat:
+    path: "{{ artifacts_base_dir }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+    get_checksum: true
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  register: _prom_artifact
+
+- name: Prometheus | Fail if artifact missing
+  ansible.builtin.fail:
+    msg: "Prometheus artifact not found: {{ artifacts_base_dir }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+  when: not _prom_artifact.stat.exists
+
+- name: Prometheus | Validate checksum
+  ansible.builtin.fail:
+    msg: >
+      Prometheus artifact checksum mismatch.
+      Expected: {{ artifact_checksums.prometheus }}
+      Got:      {{ _prom_artifact.stat.checksum }}
+  when:
+    - artifact_checksums.prometheus | default('') != ''
+    - _prom_artifact.stat.checksum != artifact_checksums.prometheus
+
+- name: Prometheus | Copy archive to host
+  ansible.builtin.copy:
+    src: "{{ artifacts_base_dir }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+    dest: /tmp/prometheus.tar.gz
+    mode: "0644"
+  register: _prom_copy
+
+- name: Prometheus | Extract archive
+  ansible.builtin.unarchive:
+    src: /tmp/prometheus.tar.gz
+    dest: /tmp/
+    remote_src: true
+  when: _prom_copy is changed
+
+- name: Prometheus | Install binaries
+  ansible.builtin.copy:
+    src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/{{ item }}"
+    dest: "{{ prometheus_binary_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+  loop:
+    - prometheus
+    - promtool
+  notify: Restart prometheus
+  when: _prom_copy is changed
+
+- name: Prometheus | Fix ownership on config dir
+  ansible.builtin.file:
+    path: "{{ prometheus_config_dir }}"
+    owner: "{{ prometheus_user }}"
+    group: "{{ prometheus_group }}"
+    recurse: true
+
+- name: Prometheus | Deploy prometheus.yml
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ prometheus_config_dir }}/prometheus.yml"
+    owner: "{{ prometheus_user }}"
+    group: "{{ prometheus_group }}"
+    mode: "0640"
+    validate: "{{ prometheus_binary_dir }}/promtool check config %s"
+  notify: Restart prometheus
+
+- name: Prometheus | Deploy systemd unit
+  ansible.builtin.template:
+    src: prometheus.service.j2
+    dest: /etc/systemd/system/prometheus.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart prometheus
+
+- name: Prometheus | Enable and start service
+  ansible.builtin.systemd:
+    name: prometheus
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Prometheus | Wait for healthcheck
+  ansible.builtin.uri:
+    url: "http://localhost:{{ prometheus_port }}/-/ready"
+    return_content: false
+    status_code: 200
+  register: _prom_health
+  retries: 10
+  delay: 5
+  until: _prom_health.status == 200
+
+- name: Prometheus | Clean up temp files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/prometheus.tar.gz
+    - "/tmp/prometheus-{{ prometheus_version }}.linux-amd64"

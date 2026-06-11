@@ -1,0 +1,40 @@
+---
+- name: Alloy | Windows | Stat artifact on controller
+  ansible.builtin.stat:
+    path: "{{ artifacts_base_dir }}/alloy-installer-windows-amd64.exe"
+    get_checksum: true
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  register: _alloy_win
+
+- name: Alloy | Windows | Fail if artifact missing
+  ansible.builtin.fail:
+    msg: "Alloy Windows installer not found: {{ artifacts_base_dir }}/alloy-installer-windows-amd64.exe"
+  when: not _alloy_win.stat.exists
+
+- name: Alloy | Windows | Validate checksum
+  ansible.builtin.fail:
+    msg: >
+      Alloy Windows installer checksum mismatch.
+      Expected: {{ artifact_checksums.alloy_windows }}
+      Got:      {{ _alloy_win.stat.checksum }}
+  when:
+    - artifact_checksums.alloy_windows | default('') != ''
+    - _alloy_win.stat.checksum != artifact_checksums.alloy_windows
+
+- name: Alloy | Windows | Copy installer to host
+  ansible.windows.win_copy:
+    src: "{{ artifacts_base_dir }}/alloy-installer-windows-amd64.exe"
+    dest: 'C:\Windows\Temp\alloy-installer.exe'
+
+- name: Alloy | Windows | Run silent installer
+  ansible.windows.win_command: >
+    C:\Windows\Temp\alloy-installer.exe /S /D={{ alloy_windows_install_dir }}
+  args:
+    creates: '{{ alloy_windows_install_dir }}\alloy-service.exe'
+  notify: Restart alloy windows
+
+- name: Alloy | Windows | Remove installer
+  ansible.windows.win_file:
+    path: 'C:\Windows\Temp\alloy-installer.exe'
+    state: absent

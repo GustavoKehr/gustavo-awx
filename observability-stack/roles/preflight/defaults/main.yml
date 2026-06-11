@@ -1,0 +1,22 @@
+---
+preflight_supported_distributions:
+  - RedHat
+  - CentOS
+  - Rocky
+  - AlmaLinux
+  - OracleLinux
+  - Ubuntu
+  - Debian
+  - Windows
+
+preflight_min_rhel_version: "8"
+preflight_min_ubuntu_version: "20.04"
+
+# Ports that must be FREE on the observability server
+preflight_server_ports:
+  - "{{ loki_http_port | default(3100) }}"
+  - "{{ grafana_port | default(3000) }}"
+  - "{{ prometheus_port | default(9090) }}"
+
+# Max allowed clock skew before warning (seconds)
+preflight_max_clock_skew: 30

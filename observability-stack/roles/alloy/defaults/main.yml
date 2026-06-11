@@ -1,0 +1,19 @@
+---
+alloy_user: alloy
+alloy_group: alloy
+alloy_config_dir: /etc/alloy
+alloy_binary_dir: /usr/local/bin
+alloy_ui_port: 12345
+
+# Log paths collected on Linux agents (can be overridden per host/group)
+alloy_log_paths:
+  - /var/log/messages
+  - /var/log/secure
+  - /var/log/cron
+  - /var/log/httpd/*
+  - /opt/tomcat/logs/*
+
+# Windows install paths
+alloy_windows_install_dir: 'C:\Program Files\Grafana Alloy'
+alloy_windows_config_file: 'C:\Program Files\Grafana Alloy\config.alloy'
+alloy_windows_service_name: Alloy

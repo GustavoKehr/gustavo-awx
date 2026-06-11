@@ -1,0 +1,39 @@
+# Managed by Ansible — do not edit manually
+
+[paths]
+data  = {{ grafana_data_dir }}
+logs  = {{ grafana_log_dir }}
+plugins = {{ grafana_plugins_dir }}
+
+[server]
+http_port = {{ grafana_port }}
+domain    = {{ inventory_hostname }}
+
+[security]
+admin_user     = {{ grafana_admin_user }}
+{% if grafana_admin_password is defined %}
+admin_password = {{ grafana_admin_password }}
+{% endif %}
+disable_gravatar = true
+cookie_secure    = false
+
+[users]
+allow_sign_up = false
+
+[auth.anonymous]
+enabled = false
+
+{% if grafana_smtp_enabled | bool %}
+[smtp]
+enabled      = true
+host         = {{ grafana_smtp_host }}
+from_address = {{ grafana_smtp_from }}
+from_name    = {{ grafana_smtp_from_name | default('Observabilidade') }}
+{% endif %}
+
+[unified_alerting]
+enabled = true
+
+[log]
+mode  = console
+level = warn

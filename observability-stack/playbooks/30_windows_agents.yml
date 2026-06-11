@@ -1,0 +1,8 @@
+---
+- name: Deploy Windows agents
+  hosts: windows_agents
+  gather_facts: true
+  tags: [agents, windows]
+  roles:
+    - role: alloy
+      tags: [alloy]

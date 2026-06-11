@@ -1,0 +1,11 @@
+---
+grafana_port: 3000
+grafana_provisioning_dir: /etc/grafana/provisioning
+grafana_data_dir: /var/lib/grafana
+grafana_log_dir: /var/log/grafana
+grafana_plugins_dir: /var/lib/grafana/plugins
+grafana_dashboards_dir: /var/lib/grafana/dashboards
+grafana_admin_user: admin
+# grafana_admin_password: set via vault or AWX credential
+grafana_smtp_enabled: false
+grafana_plugins: []
