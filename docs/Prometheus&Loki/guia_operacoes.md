@@ -104,6 +104,171 @@ O servidor central nao precisa de acesso de entrada nas portas dos agentes.
 
 ---
 
+## 3. Regras de Firewall - O que Solicitar ao Time de Network
+
+### Visao geral da topologia
+
+```
+[Estacoes de trabalho / NOC]
+         |
+         | TCP 3000 (Grafana - interface web)
+         |
+    [obs-server]  <- IP fixo corporativo (ex: 10.10.5.50)
+    Grafana  :3000
+    Loki     :3100
+    Prometheus :9090
+         ^
+         | TCP 3100 (push logs)
+         | TCP 9090 (push metricas)
+         |
+    [Servidores monitorados]
+    obs-agent1, obs-agent2, app-servers, db-servers...
+    Alloy :12345 (UI - opcional, somente admin)
+```
+
+---
+
+### Tabela de regras para o time de network
+
+Entregar essa tabela exata ao time de rede/firewall:
+
+| # | Origem | Destino | Porta | Protocolo | Direcao | Descricao |
+|---|---|---|---|---|---|---|
+| 1 | Estacoes de trabalho (admin/NOC) | obs-server | 3000 | TCP | Entrada no obs-server | Acesso a interface web do Grafana |
+| 2 | Servidores monitorados (agentes) | obs-server | 3100 | TCP | Entrada no obs-server | Alloy envia logs ao Loki |
+| 3 | Servidores monitorados (agentes) | obs-server | 9090 | TCP | Entrada no obs-server | Alloy envia metricas ao Prometheus |
+| 4 | obs-server | Servidores monitorados | 22 | TCP | Saida do obs-server | Ansible SSH para deploy e manutencao |
+| 5 | Admin / Ansible controller | obs-server | 22 | TCP | Entrada no obs-server | SSH para gerenciamento e deploy |
+| 6 | Admin / Ansible controller | Servidores monitorados | 22 | TCP | Entrada nos agentes | SSH para deploy do Alloy |
+
+**Regras opcionais (nao criticas):**
+
+| # | Origem | Destino | Porta | Protocolo | Descricao |
+|---|---|---|---|---|---|
+| 7 | Admin | Servidores monitorados | 12345 | TCP | UI de debug do Alloy (diagnostico) |
+| 8 | Admin | obs-server | 9090 | TCP | Acesso direto ao Prometheus (queries manuais) |
+| 9 | Admin | obs-server | 3100 | TCP | Acesso direto ao Loki (queries manuais via curl) |
+
+---
+
+### O que NAO precisa de liberacao
+
+- Prometheus NAO precisa acessar os agentes - e o Alloy que empurra as metricas (remote-write)
+- Loki NAO precisa acessar os agentes - e o Alloy que empurra os logs
+- Grafana NAO precisa de porta aberta para fora - ele consulta Loki e Prometheus localmente (loopback)
+
+---
+
+### Grafana acessivel pelo IP do servidor (nao localhost)
+
+Por padrao o Grafana ja faz bind em `0.0.0.0:3000` - responde em todos os IPs da maquina.
+
+O que pode bloquear o acesso externo sao **dois firewalls diferentes**:
+
+**1. firewalld do proprio servidor (SO level)**
+
+Se o firewalld estiver ativo no obs-server, liberar as portas:
+
+```bash
+# Verificar se firewalld esta ativo
+sudo systemctl status firewalld
+
+# Liberar portas permanentemente
+sudo firewall-cmd --permanent --add-port=3000/tcp   # Grafana
+sudo firewall-cmd --permanent --add-port=3100/tcp   # Loki
+sudo firewall-cmd --permanent --add-port=9090/tcp   # Prometheus
+sudo firewall-cmd --reload
+
+# Verificar
+sudo firewall-cmd --list-ports
+```
+
+Nos servidores com agente:
+```bash
+# Opcional - UI do Alloy para debug
+sudo firewall-cmd --permanent --add-port=12345/tcp
+sudo firewall-cmd --reload
+```
+
+**2. Firewall de rede (time de infraestrutura/network)**
+
+Mesmo com firewalld liberado, se houver firewall de perimetro, VLAN ACL ou NSG (cloud), o time de network precisa liberar as regras da tabela acima.
+
+---
+
+### Verificar conectividade apos liberacao
+
+Rodar do computador do admin ou estacao de trabalho:
+
+```bash
+# Testar Grafana (deve retornar JSON com versao)
+curl -s http://OBS_SERVER_IP:3000/api/health
+# {"commit":"...","database":"ok","version":"13.0.0"}
+
+# Testar Loki (deve retornar "ready")
+curl -s http://OBS_SERVER_IP:3100/ready
+# ready
+
+# Testar Prometheus (deve retornar HTML/JSON)
+curl -s http://OBS_SERVER_IP:9090/-/ready
+# Prometheus Server is Ready.
+```
+
+Rodar de um servidor agente para testar que ele consegue enviar dados:
+
+```bash
+# Testar acesso ao Loki
+curl -s http://OBS_SERVER_IP:3100/ready
+# ready
+
+# Testar acesso ao Prometheus remote-write (POST vazio - so testa conectividade)
+curl -s -o /dev/null -w "%{http_code}" -X POST http://OBS_SERVER_IP:9090/api/v1/write
+# 204 ou 400 = porta acessivel (400 = corpo invalido, mas chegou)
+# Connection refused ou timeout = firewall bloqueando
+```
+
+---
+
+### Configuracao do grafana.ini para IP fixo (opcional)
+
+Por padrao `[server] http_addr =` fica em branco, o que significa bind em todos os IPs (`0.0.0.0`). Funciona para a maioria dos casos.
+
+Se quiser restringir o Grafana a um IP especifico do servidor:
+
+```ini
+# /etc/grafana/grafana.ini
+[server]
+http_addr = 10.10.5.50    # IP do obs-server
+http_port = 3000
+domain    = 10.10.5.50    # usado em links de alerta e emails
+root_url  = http://10.10.5.50:3000
+```
+
+Apos alterar, reiniciar o Grafana:
+```bash
+sudo systemctl restart grafana-server
+```
+
+No playbook Ansible, editar `group_vars/observability_server.yml`:
+```yaml
+grafana_http_addr: "0.0.0.0"   # bind em todos os IPs (padrao)
+grafana_domain: "10.10.5.50"   # IP ou hostname do obs-server
+grafana_root_url: "http://10.10.5.50:3000"
+```
+
+---
+
+### Checklist completo antes de solicitar ao network
+
+- [ ] Definir o IP fixo do obs-server (solicitar reserva de IP ao time de rede)
+- [ ] Mapear quais estacoes/subnets precisam de acesso ao Grafana (porta 3000)
+- [ ] Mapear quais servidores serao monitorados (precisam de saida para 3100 e 9090)
+- [ ] Verificar se ha VLAN separada entre obs-server e servidores monitorados
+- [ ] Confirmar se o Ansible controller e o mesmo obs-server ou maquina separada
+- [ ] Verificar politica de firewall interno: SO usa firewalld? iptables? nftables?
+
+---
+
 ## 3. Acessando o Grafana
 
 **URL:** `http://IP_DO_SEU_SERVIDOR:3000`
