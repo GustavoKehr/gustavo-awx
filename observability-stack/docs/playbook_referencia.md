@@ -419,7 +419,7 @@ tasks/main.yml
 ```
 
 **Por que o usuário alloy precisa do grupo `adm`?**  
-Em RHEL/AlmaLinux, os arquivos `/var/log/messages`, `/var/log/secure` e `/var/log/cron` são criados pelo rsyslog com permissão `600 root:root`. Adicionar alloy ao grupo `adm` **e** configurar rsyslog para usar `$FileGroup adm` + `$FileCreateMode 0640` permite que o Alloy leia esses arquivos sem precisar de root.
+Em RHEL/AlmaLinux, os arquivos `/var/log/messages`, `/var/log/secure` e `/var/log/cron` sao criados pelo rsyslog com permissao `600 root:root`. Sao necessarios **tres passos** para o Alloy ler esses arquivos: (1) adicionar alloy ao grupo `adm`, (2) configurar rsyslog com `$FileGroup adm` + `$FileCreateMode 0640` para novos arquivos, (3) `chown root:adm` + `chmod 640` nos arquivos existentes. `chmod 640` sozinho nao basta - o grupo precisa ser `adm`, nao `root`.
 
 **Por que `--server.http.listen-addr=0.0.0.0:12345`?**  
 Por padrão, o Alloy 1.9 escuta a UI de debug apenas em `127.0.0.1:12345`. Sem esse parâmetro, a UI não é acessível de fora da máquina.
@@ -945,12 +945,18 @@ level=error msg="failed to run tailer" err="open /var/log/messages: permission d
 ```
 
 **Causa:** Em RHEL/AlmaLinux, `/var/log/messages` é criado como `600 root:root`. Mesmo com o grupo `adm`, não basta — rsyslog precisa ser configurado para criar os arquivos como `640 root:adm`.  
-**Solução:**
+**Solucao (dois passos obrigatorios):**
 1. Criar `/etc/rsyslog.d/10-fileperms.conf` com `$FileGroup adm` + `$FileCreateMode 0640`
 2. Reiniciar rsyslog
-3. Corrigir permissão nos arquivos existentes: `chmod 640 /var/log/messages /var/log/secure /var/log/cron`
+3. Corrigir permissao E grupo nos arquivos existentes - **ambos sao obrigatorios**:
+```bash
+sudo chown root:adm /var/log/messages /var/log/secure /var/log/cron
+sudo chmod 640 /var/log/messages /var/log/secure /var/log/cron
+```
 
-O playbook aplica as três ações automaticamente via role `alloy`.
+`chmod 640` sozinho nao basta - se o grupo continuar `root:root`, o bit de leitura do grupo so permite acesso ao grupo `root`, nao ao `adm`.
+
+O playbook aplica as tres acoes automaticamente via `ansible.builtin.file` com `group: adm` + `mode: "0640"`.
 
 ---
 
@@ -991,4 +997,212 @@ when:
 
 ---
 
-*Fim da documentação do playbook.*
+## 13. Problemas na Instalacao Manual (Air-Gapped)
+
+Problemas encontrados durante instalacao manual passo-a-passo em AlmaLinux 9.8. Todos resolvidos.
+
+---
+
+### SELinux bloqueia binarios copiados via SCP (`status=203/EXEC`)
+
+**Sintoma:**
+```
+● loki.service - Loki log aggregation service
+   Active: activating (start) → failed
+   ...
+   Main process exited, code=exited, status=203/EXEC
+```
+```bash
+ls -lZ /usr/local/bin/loki
+# -rwxr-xr-x. root root unconfined_u:object_r:user_tmp_t:s0 /usr/local/bin/loki
+```
+
+**Causa:** Binarios copiados via `scp` herdam o contexto SELinux `user_tmp_t` da sessao SSH do usuario. Systemd recusa executar binarios com esse contexto.
+
+**Solucao:** Restaurar contexto correto (`bin_t`) com `restorecon`:
+```bash
+sudo restorecon -v /usr/local/bin/loki
+sudo restorecon -v /usr/local/bin/prometheus
+sudo restorecon -v /usr/local/bin/promtool
+sudo systemctl start loki
+sudo systemctl start prometheus
+```
+
+**Regra:** Todo binario copiado para `/usr/local/bin/` via SCP precisa de `restorecon` em sistemas com SELinux.
+
+---
+
+### Loki 3.6 falha com erro de Consul KV store
+
+**Sintoma:**
+```
+level=error msg="failed to start store, because it depends on module memberlist-kv"
+...
+failed to get value from store http://localhost:8500/v1/kv/collectors/scheduler
+```
+
+**Causa:** Loki 3.6 em modo monolitico tenta usar Consul como KV store por padrao. Sem Consul rodando, o servico falha.
+
+**Solucao:** Adicionar configuracao `common` no `loki-config.yaml` para usar `inmemory`:
+```yaml
+common:
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory
+  replication_factor: 1
+  path_prefix: /var/lib/loki
+```
+
+**Validacao:**
+```bash
+curl -s http://localhost:3100/ready
+# → ready
+```
+
+---
+
+### `sudo promtool` - command not found
+
+**Sintoma:**
+```bash
+sudo promtool check config /etc/prometheus/prometheus.yml
+# sudo: promtool: command not found
+```
+
+**Causa:** `/usr/local/bin` nao esta no PATH seguro do `sudo` em RHEL/AlmaLinux por padrao. O `sudo` usa um PATH restrito que nao inclui esse diretorio.
+
+**Solucao:** Usar o caminho completo do binario:
+```bash
+sudo /usr/local/bin/promtool check config /etc/prometheus/prometheus.yml
+# prometheus.yml: SUCCESS
+```
+
+---
+
+### Loki 3.6: rejeita `host=~".*"` nas queries
+
+**Sintoma:**
+```
+queries require at least one regexp or equality matcher that does not have an empty-compatible value.
+app=~'.*' does not meet this requirement, but app=~'.+' will.
+```
+
+**Causa:** Loki 3.6 exige pelo menos um matcher com valor nao-vazio-compativel em todas as queries.
+
+**Solucao completa (manual):**
+```bash
+# 1. Adicionar alloy ao grupo adm
+sudo usermod -aG adm alloy
+
+# 2. Config rsyslog para novos arquivos
+sudo tee /etc/rsyslog.d/10-fileperms.conf << 'EOF'
+$FileOwner root
+$FileGroup adm
+$FileCreateMode 0640
+EOF
+
+# 3. Corrigir arquivos existentes - AMBOS chown E chmod sao obrigatorios
+sudo chown root:adm /var/log/messages /var/log/secure /var/log/cron
+sudo chmod 640 /var/log/messages /var/log/secure /var/log/cron
+
+# 4. Reiniciar na ordem certa
+sudo systemctl restart rsyslog
+sudo systemctl restart alloy
+```
+
+**Erro comum:** aplicar so `chmod 640` sem `chown root:adm`. O arquivo fica `640 root:root` - o bit de leitura do grupo so vale para membros do grupo `root`, nao do `adm`.
+
+**Verificar correcao:**
+```bash
+ls -la /var/log/messages
+# -rw-r-----. 1 root adm ...  <- grupo deve ser adm
+cat /proc/$(systemctl show -p MainPID --value alloy)/status | grep Groups
+# Groups: 4 190 995  <- 4=adm, 190=systemd-journal
+```
+
+---
+
+### Loki 3.6: rejeita `host=~".*"` nas queries
+
+**Sintoma:**
+```
+queries require at least one regexp or equality matcher that does not have an empty-compatible value.
+```
+
+**Solucao:** Duas opcoes:
+1. Usar `=~".+"` em vez de `=~".*"` nos matchers de host/app
+2. Incluir sempre um matcher fixo nao-vazio: `job="systemd-journal"`
+
+**Padrao recomendado em todas as queries LogQL:**
+```logql
+{job="systemd-journal", host=~".+"}
+```
+
+---
+
+### Dashboards Grafana com UID de datasource errado
+
+**Sintoma:** Todos os paineis mostram "Data source not found" ou "No data".
+
+**Causa:** Os UIDs de datasource sao gerados automaticamente pelo Grafana na instalacao. Usar nomes como `"prometheus"` ou `"loki"` no JSON do dashboard nao funciona - o Grafana usa UIDs no formato `PBFA97CFB590B2093`.
+
+**Solucao:** Buscar os UIDs reais via API antes de criar dashboards:
+```bash
+curl -s -u admin:'SENHA' http://IP:3000/api/datasources | python3 -m json.tool
+```
+
+Pegar os campos `uid` de cada datasource e usar no JSON do dashboard:
+- Campo `datasource.uid` em cada painel
+- Campo `datasource.uid` nas variaveis de template
+
+**UIDs do lab atual:**
+```
+Prometheus: PBFA97CFB590B2093
+Loki:       P8E80F9AEF21F6940
+```
+
+---
+
+### Variavel Loki no Grafana - formato errado
+
+**Sintoma:** Variavel de host no dashboard Loki retorna vazio ou erro.
+
+**Causa:** Variavel do tipo `label_values(host)` e formato Prometheus - nao funciona com Loki.
+
+**Solucao:** Para variaveis Loki, usar formato especifico:
+```json
+{
+  "query": {
+    "label": "host",
+    "stream": "{job=\"systemd-journal\"}",
+    "type": 1
+  }
+}
+```
+
+Tambem definir `includeAll: false` - o valor `allValue: ".*"` e ignorado pelo Grafana no load inicial e envia `.*`, que o Loki 3.6 rejeita.
+
+---
+
+### LogQL: `count(count by ...)` - syntax error
+
+**Sintoma:**
+```
+parse error at line 1, col 59: syntax error: unexpected )
+```
+
+**Causa:** `count by (host) ({...})` e invalido - nao da pra fazer `count by` diretamente num log stream.
+
+**Solucao:** Usar `count_over_time` antes de agregar:
+```logql
+# ERRADO
+count(count by (host) ({job="systemd-journal"}))
+
+# CORRETO
+count(sum by (host) (count_over_time({job="systemd-journal", host=~".+"}[5m])))
+```
+
+---
+
+*Fim da documentacao do playbook.*

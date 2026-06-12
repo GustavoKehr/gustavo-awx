@@ -41,10 +41,12 @@ prometheus_retention: "30d"
 environment_label: "prod"
 
 # ── Alloy log file paths (Linux agents) ──────────────────────────────────────
+# Somente logs de APLICACAO que nao passam pelo systemd journal.
+# messages/secure/cron NAO incluir - ja sao coletados via loki.source.journal
+# com job="systemd-journal". Incluir aqui gera duplicatas no Loki.
+# Logs de arquivo recebem label job="appfiles" - consultaveis no Grafana
+# separadamente de job="systemd-journal".
 alloy_log_paths:
-  - /var/log/messages
-  - /var/log/secure
-  - /var/log/cron
   - /var/log/httpd/*
   - /opt/tomcat/logs/*
 

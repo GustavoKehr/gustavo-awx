@@ -37,7 +37,7 @@ loki.process "add_labels" {
 
   stage.static_labels {
     values = {
-      job  = "varlogs",
+      job  = "appfiles",
       host = "{{ inventory_hostname }}",
       env  = "{{ environment_label }}",
     }

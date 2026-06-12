@@ -1,5 +1,8 @@
 ---
 grafana_port: 3000
+grafana_http_addr: "0.0.0.0"       # bind em todos os IPs - acessivel pela rede
+grafana_domain: ""                  # FQDN ou IP externo do obs-server (ex: 10.10.5.50) - usado em links de alerta
+grafana_root_url: ""                # URL completa (ex: http://10.10.5.50:3000) - se vazio, montada automaticamente
 grafana_provisioning_dir: /etc/grafana/provisioning
 grafana_data_dir: /var/lib/grafana
 grafana_log_dir: /var/log/grafana

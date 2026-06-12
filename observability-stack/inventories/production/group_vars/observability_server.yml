@@ -11,3 +11,13 @@ prometheus_config_dir: /etc/prometheus
 prometheus_binary_dir: /usr/local/bin
 
 grafana_provisioning_dir: /etc/grafana/provisioning
+
+# IP ou FQDN externo do obs-server - usado no root_url do Grafana
+# (links em alertas, emails e notificacoes apontam para esse endereco)
+# Se vazio, o playbook usa ansible_default_ipv4.address automaticamente.
+# Definir aqui quando o servidor tiver IP fixo reservado pelo time de redes.
+# Exemplo:
+# grafana_domain: "10.10.5.50"
+# grafana_root_url: "http://10.10.5.50:3000"
+grafana_domain: ""
+grafana_root_url: ""

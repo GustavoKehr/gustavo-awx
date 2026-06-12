@@ -2,11 +2,13 @@
 auth_enabled: false
 
 server:
+  http_listen_address: 0.0.0.0
   http_listen_port: {{ loki_http_port }}
+  grpc_listen_address: 0.0.0.0
   grpc_listen_port: {{ loki_grpc_port }}
 
 common:
-  instance_addr: 127.0.0.1
+  instance_addr: 127.0.0.1   # endereco interno do ring (inmemory) - nao e o listen address
   path_prefix: {{ loki_data_dir }}
   storage:
     filesystem:

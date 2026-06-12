@@ -6,8 +6,14 @@ logs  = {{ grafana_log_dir }}
 plugins = {{ grafana_plugins_dir }}
 
 [server]
+http_addr = {{ grafana_http_addr | default('0.0.0.0') }}
 http_port = {{ grafana_port }}
-domain    = {{ inventory_hostname }}
+domain    = {{ grafana_domain if grafana_domain else ansible_default_ipv4.address }}
+{% if grafana_root_url %}
+root_url  = {{ grafana_root_url }}
+{% else %}
+root_url  = http://{{ grafana_domain if grafana_domain else ansible_default_ipv4.address }}:{{ grafana_port }}
+{% endif %}
 
 [security]
 admin_user     = {{ grafana_admin_user }}
