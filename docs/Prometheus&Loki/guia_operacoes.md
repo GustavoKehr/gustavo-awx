@@ -29,7 +29,82 @@ Alloy (agente nos servidores)
 
 ---
 
-## 2. Acessando o Grafana
+## 2. Push vs Pull - Como as Metricas Chegam ao Prometheus
+
+### O modelo tradicional: Pull (scrape)
+
+No modelo classico, o Prometheus e quem inicia a conexao. Ele vai periodicamente em cada servidor buscar as metricas:
+
+```
+Prometheus ──── GET /metrics ────► Node Exporter :9100 (servidor A)
+Prometheus ──── GET /metrics ────► Node Exporter :9100 (servidor B)
+Prometheus ──── GET /metrics ────► Node Exporter :9100 (servidor C)
+```
+
+Para isso funcionar:
+- Cada servidor precisa expor porta `9100` acessivel pelo Prometheus
+- O Prometheus precisa saber o IP de cada servidor (lista estatica ou service discovery)
+- Se adicionar novo servidor, precisa atualizar o config do Prometheus
+
+### O modelo do nosso stack: Push (remote-write)
+
+O Alloy e quem inicia a conexao. Ele coleta as metricas localmente e envia ao Prometheus:
+
+```
+Alloy (servidor A) ──── POST /api/v1/write ────► Prometheus :9090
+Alloy (servidor B) ──── POST /api/v1/write ────► Prometheus :9090
+Alloy (servidor C) ──── POST /api/v1/write ────► Prometheus :9090
+```
+
+O Prometheus precisa do flag `--web.enable-remote-write-receiver` para aceitar esse push - e exatamente o que esta configurado no systemd unit do Prometheus nesse stack.
+
+### Comparacao direta
+
+| Criterio | Pull (scrape) | Push (remote-write) |
+|---|---|---|
+| Quem inicia | Prometheus vai buscar | Agente envia |
+| Firewall | Prometheus precisa acessar porta 9100 de cada host | Agente precisa acessar somente `:9090` no servidor central |
+| Novo servidor | Atualizar config do Prometheus | So instalar Alloy - ele ja sabe pra onde enviar |
+| Agente extra | Precisa de Node Exporter separado | Alloy ja faz os dois (logs + metricas) |
+| Complexidade | 2 processos por servidor (Node Exporter + config Prometheus) | 1 processo por servidor (Alloy) |
+
+### Por que remote-write faz sentido aqui
+
+O Alloy ja precisa rodar em cada servidor para coletar logs e enviar ao Loki. Como ele ja esta la, tambem coleta metricas e as envia ao Prometheus pelo mesmo modelo de push. Resultado: **1 agente por servidor** que faz tudo.
+
+### O que acontece no Alloy (config simplificado)
+
+```alloy
+// 1. Coleta metricas locais (node_exporter integrado)
+prometheus.exporter.unix "host" {}
+
+// 2. Faz scrape interno dessas metricas
+prometheus.scrape "host_metrics" {
+  targets    = prometheus.exporter.unix.host.targets
+  forward_to = [prometheus.remote_write.central.receiver]
+}
+
+// 3. Envia (push) para o Prometheus central
+prometheus.remote_write "central" {
+  endpoint {
+    url = "http://OBS_SERVER:9090/api/v1/write"
+  }
+}
+```
+
+O `prometheus.scrape` faz o pull interno (localhost apenas) e o `prometheus.remote_write` faz o push externo para o servidor central.
+
+### Regras de firewall resultantes
+
+Cada agente precisa de saida TCP para:
+- `OBS_SERVER:3100` - push de logs para o Loki
+- `OBS_SERVER:9090` - push de metricas para o Prometheus
+
+O servidor central nao precisa de acesso de entrada nas portas dos agentes.
+
+---
+
+## 3. Acessando o Grafana
 
 **URL:** `http://IP_DO_SEU_SERVIDOR:3000`
 
@@ -46,7 +121,7 @@ Alloy (agente nos servidores)
 
 ---
 
-## 3. Explorando Logs com o Loki (LogQL)
+## 4. Explorando Logs com o Loki (LogQL)
 
 ### Acessar o Explore de Logs
 
